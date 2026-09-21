@@ -2,7 +2,7 @@
 
 Repositorio Proyecto Ingeniería del Software
 
-## Participantes del Equipo 🐕
+## Participantes del Equipo 
 
 - **[Álvaro Mateo Carrero]** [@usuarioGitHub](https://github.com/usuarioGitHub) 🚀
 - **[Jorge Sanchez Valtueña]** [@usuarioGitHub](https://github.com/usuarioGitHub) 🌐
