@@ -1,0 +1,16 @@
+{
+  "name": "proyecto-ingenieria-software",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Proyecto ReFind",
+  "type": "module",
+  "engines": {
+    "node": "24.21.0"
+  },
+  "packageManager": "npm@11.19.0",
+  "scripts": {},
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jesusJoana/Proyecto-Ingenieria-Software.git"
+  }
+}

@@ -1,0 +1,10 @@
+Para este proyecto, limita tu actuación a revisar y redactar la documentación que te solicite expresamente.
+No instales ni desinstales herramientas, extensiones, paquetes o librerías; no crees, borres ni modifiques código, carpetas o archivos de configuración; no inicies servicios ni cambies el entorno de mi máquina sin una instrucción explícita mía para esa acción. Una petición de revisar, adaptar o actualizar el manual no autoriza a ejecutar sus pasos.
+La instalación y configuración del entorno las realizaré yo manualmente. Probaré cada paso antes de darlo por válido y compartirlo con mis compañeros. Puedes indicarme comandos y ayudarme a interpretar sus resultados, pero no ejecutarlos por iniciativa propia.
+El manual de ReFind debe:
+- Contener únicamente lo referente a la práctica, sin referencias a las guías de estudio ni ejemplos vinculados a ellas.
+- Presentar un montaje incremental: primero lo imprescindible para comenzar; después, incorporar herramientas y dependencias cuando una necesidad concreta de la práctica lo requiera.
+- Incluir pasos de instalación, configuración y comprobación, sin explicaciones teóricas sobre qué es cada herramienta o por qué se utiliza.
+- Distinguir claramente los pasos pendientes de los que yo haya realizado y comprobado. No presentar propuestas como decisiones ya validadas.
+- Permitir validar cada etapa antes de continuar con la siguiente.
+Tras revisar y aceptar estas instrucciones, te autorizaré expresamente a revertir lo que instalaste y creaste en tu intervención anterior. Esa retirada deberá limitarse a tus cambios, conservar todo lo que existía previamente y dejar el manual adaptado a estos criterios. No ejecutes esa retirada hasta que te lo indique.
