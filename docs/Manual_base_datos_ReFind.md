@@ -4,60 +4,95 @@ Versión 1.0 · 25 de septiembre de 2026
 
 ## 1. Alcance y requisitos
 
-Este manual prepara y valida PostgreSQL **17.11** y pgAdmin 4 **9.18** en Windows 11 x64, con las bases `refind_dev`, `refind_test` y `refind_e2e` y sus roles separados. La preparación de las bases de pruebas no equivale a configurar los ejecutores de pruebas.
+Este manual explica cómo instalar y comprobar estas herramientas en Windows 11 x64:
 
-Referencias comunes: [manual del entorno base](Manual_entorno_ReFind.md) para terminal, versiones, paquetes y repositorio; [manual de pruebas](Manual_pruebas_ReFind.md) para los ejecutores. Aplicar la decisión de conservar una herramienta solo si coincide con la versión exacta, instalarla si falta y seleccionar la fijada si difiere. Conservar instalaciones y datos de otros proyectos.
+- **PostgreSQL 17.11:** el servidor que almacena y gestiona los datos del proyecto.
+- **pgAdmin 4 9.18:** una aplicación gráfica para conectarnos a PostgreSQL, consultar tablas y datos y ejecutar consultas SQL. La instalamos para trabajar con las bases de datos desde una interfaz visual.
 
-**Estado:** instalación y configuración pendientes de confirmación del desarrollador. Este bloque puede aplazarse sin impedir las comprobaciones del entorno base o la instalación de Chromium.
+Prepararemos tres bases separadas: `refind_dev` para desarrollo, `refind_test` para pruebas de integración y `refind_e2e` para pruebas de la aplicación desde el navegador. Cada una tendrá su propio usuario de conexión.
 
-Los apartados 2 y 3 se realizan manualmente en cada equipo. Las migraciones y el servidor del producto no son requisitos para validar PostgreSQL: se conservan como ejemplos en el anexo A. Quien clone el proyecto reutiliza las migraciones compartidas cuando se implementen; crea sus propios roles, bases y credenciales locales.
+Cada desarrollador realizará la instalación y creará sus bases de datos, usuarios y contraseñas en su propio equipo.
 
 ## 2. Instalación y configuración de PostgreSQL
 
 Las tres bases del entorno son `refind_dev`, `refind_test` y `refind_e2e`, con un rol diferente para cada una. Los pasos siguientes se realizan manualmente en cada equipo.
-### 2.1. Comprobaciones previas
+### 2.1. Reservar una instalación exclusiva para ReFind
 
-**Dónde:** PowerShell externo, usuario normal, cualquier carpeta.
+Las instalaciones de otros proyectos se conservan. Para ReFind utilizaremos:
+
+| Elemento | Valor |
+| --- | --- |
+| Programa | `C:\ReFind\PostgreSQL\17` |
+| Datos | `C:\ReFind\datos\postgresql17` |
+| Servicio de Windows | `postgresql-refind-17` |
+| Dirección | `127.0.0.1` |
+| Puerto | `5433` |
+| Identificador de la instancia | `refind-local` |
+
+**Dónde:** Windows PowerShell, como usuario normal. Ejecutar:
 
 ```powershell
-Get-ComputerInfo | Select-Object WindowsProductName,OsVersion,OsArchitecture
-Get-Command psql -ErrorAction SilentlyContinue
-Get-Service -Name '*postgres*' -ErrorAction SilentlyContinue
-Get-NetTCPConnection -State Listen -LocalPort 5432 -ErrorAction SilentlyContinue
+Test-Path 'C:\ReFind\PostgreSQL\17'
+Test-Path 'C:\ReFind\datos\postgresql17'
+Get-Service -Name 'postgresql-refind-17' -ErrorAction SilentlyContinue
+Get-NetTCPConnection -State Listen -LocalPort 5433 -ErrorAction SilentlyContinue
 ```
 
-Si `psql` está disponible, consultar `psql --version`. Si no aparece en el PATH, comprobar la carpeta de instalación antes de reinstalar; la ruta habitual para la serie 17 es `C:\Program Files\PostgreSQL\17\bin`. Una versión del cliente no demuestra la versión del servidor.
+**Si los dos primeros devuelven `False` y los otros no muestran nada:** continuar con 2.2.
 
-Si existe una instancia, identificar su servicio, puerto, versión y uso antes de cambiarla. Solo sirve para ReFind si el servidor y cliente son exactamente 17.11. Si difieren, preparar 17.11 con un servicio, puerto y directorio de datos propios cuando haya que conservar la instancia existente. Una actualización de una instancia usada por otros proyectos necesita revisar sus datos y copias previamente; no se realizará como sustitución automática. No reemplazar instalaciones ni datos de otros proyectos. El puerto inicial de esta guía es **5432**; si está ocupado por otro servicio, elegir **5433** y sustituirlo en todos los comandos y conexiones siguientes.
+**Si aparece una carpeta, un servicio o un puerto ocupado:** no sobrescribirlo ni detenerlo. Elegir con el responsable otro valor para el elemento ocupado y sustituirlo en los pasos siguientes. Las instalaciones que estén en otras rutas o puertos no se modifican.
 
-### 2.2. Instalación y configuración local
+Se requiere Windows 11 de 64 bits. Si no lo has comprobado en el manual del entorno, consultar `winver` y `Get-ComputerInfo | Select-Object OsArchitecture` antes de descargar el instalador.
 
-**Dónde:** instalador gráfico de PostgreSQL, aceptando la elevación que solicite Windows. Consultas posteriores en PowerShell externo como usuario normal.
+### 2.2. Instalar y comprobar la instancia ReFind
 
-1. Desde [PostgreSQL para Windows](https://www.postgresql.org/download/windows/), acceder al instalador de EDB y seleccionar **17.11** para Windows x64. Si no está disponible, detener este paso y resolver la descarga con el equipo; no instalar otra revisión por defecto.
-2. Instalar **PostgreSQL Server** y **Command Line Tools**. Desmarcar pgAdmin en este instalador: se instala por separado con la versión exacta en 2.5. No instalar complementos mediante Stack Builder.
-3. Registrar la ubicación de instalación y el directorio de datos. Mantener los datos fuera del repositorio y de carpetas sincronizadas con OneDrive.
-4. Establecer una contraseña local para el administrador `postgres`, guardarla fuera de Git y seleccionar el puerto comprobado en 2.1. Conservar la configuración regional predeterminada del instalador y registrar su valor.
-5. Finalizar y consultar el servicio con `Get-Service -Name '*postgres*'`. Si está detenido, abrir **Servicios** de Windows e iniciar únicamente la instancia identificada; elevar permisos si se solicita.
-6. En `postgresql.conf` de esa instancia, comprobar `listen_addresses = 'localhost'`. En `pg_hba.conf`, mantener autenticación con contraseña `scram-sha-256` para conexiones locales TCP (`127.0.0.1/32` y `::1/128`). No usar `trust` ni habilitar acceso externo para este recorrido. Si se modifica la configuración, reiniciar el servicio identificado desde Servicios.
+1. Descargar el instalador de **PostgreSQL 17.11 para Windows x64** desde [PostgreSQL para Windows](https://www.postgresql.org/download/windows/). Si esa versión no está disponible, resolver la descarga con el responsable antes de continuar.
+2. En el Explorador de archivos, localizar el instalador descargado. Pulsar **Mayús + botón derecho** sobre él y seleccionar **Copiar como ruta**. Abrir el menú Inicio, buscar **Windows PowerShell** y elegir **Ejecutar como administrador**. Se puede ejecutar desde cualquier carpeta.
 
-Para utilizar el cliente sin modificar el PATH, establecer su ruta en cada terminal nueva; ajustar si se eligió otra ubicación:
+En el comando siguiente, sustituir `'C:\RUTA\AL\INSTALADOR.exe'` completo, incluidas sus comillas, por la ruta copiada. La ruta pegada ya incluye comillas dobles: conservarlas. Mantener el resto del comando igual y pulsar **Intro**. Se abrirá el asistente de instalación: Las carpetas, el servicio y el puerto de ReFind se indican mediante los parámetros del comando.
 
 ```powershell
-$pgBin = 'C:\Program Files\PostgreSQL\17\bin'
+& 'C:\RUTA\AL\INSTALADOR.exe' --prefix 'C:\ReFind\PostgreSQL\17' --datadir 'C:\ReFind\datos\postgresql17' --servicename 'postgresql-refind-17' --serverport 5433 --disable-components pgAdmin,stackbuilder
+```
+
+3. En el asistente, comprobar las rutas y el puerto indicados. Instalar **PostgreSQL Server** y **Command Line Tools**. Establecer una contraseña nueva para el administrador `postgres` de esta instancia y guardarla localmente. Si el asistente propone actualizar una instalación existente o cambiar una cuenta de servicio existente, cancelar y revisar con el responsable.
+4. Finalizar la instalación. No añadir esta instalación al PATH: utilizaremos siempre su ruta completa. Cerrar la terminal de administrador.
+5. Abrir `C:\ReFind\datos\postgresql17\postgresql.conf` con un editor elevado y establecer una sola entrada activa para cada valor:
+
+```ini
+listen_addresses = '127.0.0.1'
+port = 5433
+cluster_name = 'refind-local'
+```
+
+6. En `C:\ReFind\datos\postgresql17\pg_hba.conf`, comprobar que el acceso TCP local exige contraseña con esta regla y que no hay una regla anterior que permita ese mismo acceso con `trust`:
+
+```text
+host    all    all    127.0.0.1/32    scram-sha-256
+```
+
+7. Abrir **Servicios** de Windows y reiniciar únicamente **postgresql-refind-17**.
+8. En PowerShell normal, definir las rutas de esta instalación y comprobarla:
+
+```powershell
+$pgBin = 'C:\ReFind\PostgreSQL\17\bin'
 & "$pgBin\psql.exe" --version
-& "$pgBin\pg_isready.exe" -h 127.0.0.1 -p 5432
-& "$pgBin\psql.exe" -h 127.0.0.1 -p 5432 -U postgres -d postgres -W -c "SELECT version();"
+Get-CimInstance Win32_Service -Filter "Name='postgresql-refind-17'" | Select-Object Name,State,PathName
+& "$pgBin\psql.exe" -h 127.0.0.1 -p 5433 -U postgres -d postgres -W -c "SELECT version(), current_setting('cluster_name'), current_setting('data_directory'), inet_server_port();"
 ```
 
-**Validación:** servicio iniciado, puerto correcto, servidor aceptando conexiones y versión acordada devuelta por SQL. `pg_isready` por sí solo no valida credenciales. Resolver cualquier error antes de crear las bases.
+Introducir la contraseña del administrador de ReFind cuando se solicite. El cliente y el servidor deben indicar **17.11**, el servicio debe estar **Running**, su ruta debe apuntar a la instalación ReFind y la consulta debe devolver **refind-local**, **C:/ReFind/datos/postgresql17** (o la misma ruta con barras invertidas) y **5433**. Si algo difiere, corregirlo antes de crear las bases.
+
+En cada terminal nueva, volver a definir `$pgBin` antes de usar los comandos siguientes.
+
+Los parámetros del instalador están documentados en [EDB: parámetros de instalación](https://www.enterprisedb.com/docs/supported-open-source/postgresql/installing/command_line_parameters/).
 
 ### 2.3. Bases y credenciales de desarrollo y pruebas
 
 **Dónde:** abrir `psql` desde PowerShell externo como usuario normal. Introducir la contraseña cuando la solicite; no escribirla en el comando.
 
 ```powershell
-& "$pgBin\psql.exe" -h 127.0.0.1 -p 5432 -U postgres -d postgres -W
+& "$pgBin\psql.exe" -h 127.0.0.1 -p 5433 -U postgres -d postgres -W
 ```
 
 **Dentro de `psql`**, consultar primero los roles y bases existentes:
@@ -100,39 +135,51 @@ GRANT CONNECT, TEMPORARY ON DATABASE refind_e2e TO refind_e2e_user;
 Salir con `\q`. Comprobar desde PowerShell las conexiones de cada usuario:
 
 ```powershell
-& "$pgBin\psql.exe" -h 127.0.0.1 -p 5432 -U refind_dev_user -d refind_dev -W -c "SELECT current_database(), current_user, 1 AS comprobacion;"
-& "$pgBin\psql.exe" -h 127.0.0.1 -p 5432 -U refind_test_user -d refind_test -W -c "SELECT current_database(), current_user, 1 AS comprobacion;"
+& "$pgBin\psql.exe" -h 127.0.0.1 -p 5433 -U refind_dev_user -d refind_dev -W -c "SELECT current_database(), current_user, 1 AS comprobacion;"
+& "$pgBin\psql.exe" -h 127.0.0.1 -p 5433 -U refind_test_user -d refind_test -W -c "SELECT current_database(), current_user, 1 AS comprobacion;"
 ```
 
-**Validación:** las consultas de desarrollo e integración devuelven su base y usuario correctos. Repetir la conexión de `refind_test_user` apuntando a `refind_dev`: debe ser rechazada por permisos. La aplicación y las pruebas no utilizarán el administrador `postgres`.
+**Resultado de los dos comandos anteriores:**
 
-La persistencia se comprueba con el marcador técnico del apartado 3.2, sin esperar a implementar la aplicación. No borrar el directorio de datos ni reinstalar para resolver fallos de conexión.
+| Comando | Base que debe mostrar | Usuario que debe mostrar | comprobacion |
+| --- | --- | --- | --- |
+| Primero | `refind_dev` | `refind_dev_user` | `1` |
+| Segundo | `refind_test` | `refind_test_user` | `1` |
 
-Referencia de las órdenes del cliente: [documentación de psql](https://www.postgresql.org/docs/17/app-psql.html).
+Si los resultados coinciden, comprobar que el usuario de pruebas no puede entrar en la base de desarrollo. Ejecutar en la misma terminal PowerShell:
 
+```powershell
+& "$pgBin\psql.exe" -h 127.0.0.1 -p 5433 -U refind_test_user -d refind_dev -W -c "SELECT current_database(), current_user;"
+```
+
+Introducir la contraseña de **refind_test_user**. Debe aparecer un error de **permiso denegado para la base de datos `refind_dev`**. En esta comprobación, ese rechazo es el resultado correcto: el usuario de pruebas no tiene acceso a la base de desarrollo.
+
+Si conecta, revisar los permisos del apartado 2.3 antes de continuar. Un error de contraseña o de conexión no sirve para validar esta comprobación; corregirlo y repetir el comando.
+
+Si las dos conexiones anteriores funcionan y esta última se rechaza por permisos, continuar con **2.4**.
 
 ### 2.4. Comprobación de aislamiento
 
 Comprobar también E2E desde PowerShell externo:
 
 ```powershell
-& "$pgBin\psql.exe" -h 127.0.0.1 -p 5432 -U refind_e2e_user -d refind_e2e -W -c "SELECT current_database(), current_user, 1 AS comprobacion;"
+& "$pgBin\psql.exe" -h 127.0.0.1 -p 5433 -U refind_e2e_user -d refind_e2e -W -c "SELECT current_database(), current_user, 1 AS comprobacion;"
 ```
 
 Resultado: `refind_e2e`, `refind_e2e_user` y `1`. Repetir las conexiones de cada uno de los tres roles contra las otras dos bases: las seis conexiones cruzadas deben rechazarse. Conservar las conexiones correctas de cada rol con su propia base.
 
 ### 2.5. Instalación y configuración de pgAdmin 4
 
-Comprobar en Inicio si existe pgAdmin 4 y consultar **Help > About**. Si muestra **9.18**, conservarlo. Si falta o muestra otra versión, descargar el instalador Windows x64 de **pgAdmin 4 9.18** desde las [descargas oficiales](https://www.pgadmin.org/download/pgadmin-4-windows/), ejecutarlo y volver a comprobar **Help > About**. Conservar las configuraciones existentes; no borrar perfiles ni conexiones para cambiar de versión. Esta instalación no sustituye ni modifica el servidor PostgreSQL.
+Descargar **pgAdmin 4 9.18** desde las [descargas oficiales](https://www.pgadmin.org/download/pgadmin-4-windows/). Instalarlo para ReFind en una carpeta propia, por ejemplo `C:\ReFind\pgAdmin4`. Si el instalador propone sustituir otra instalación, cancelar: hay que resolver una instalación separada antes de continuar. No borrar perfiles ni conexiones existentes. Abrir la copia instalada para ReFind y comprobar **Help > About: 9.18**.
 
-Abrir pgAdmin y seleccionar **Register > Server**. Crear tres conexiones con nombres `ReFind desarrollo`, `ReFind integración` y `ReFind E2E`. En **Connection**, establecer host `127.0.0.1`, el puerto registrado, y como **Maintenance database** y **Username** la base y el rol correspondientes del apartado 2.3. Introducir la contraseña local de cada rol; no exportar conexiones con contraseñas para compartirlas.
+Abrir pgAdmin y seleccionar **Register > Server**. Crear tres conexiones con nombres `ReFind desarrollo`, `ReFind integración` y `ReFind E2E`. En **Connection**, establecer host `127.0.0.1`, el puerto **5433** de ReFind, y como **Maintenance database** y **Username** la base y el rol correspondientes del apartado 2.3. Introducir la contraseña local de cada rol; no exportar conexiones con contraseñas para compartirlas.
 
 Abrir **Query Tool** en cada base y ejecutar `SELECT current_database(), current_user;`. Cada conexión debe devolver su propia base y rol. No usar el administrador `postgres` para las consultas habituales de la aplicación. La consulta del cliente PowerShell y la de pgAdmin deben coincidir.
 
 
 ## 3. Validación independiente de la base de datos
 
-No necesita Express, migraciones de ReFind ni pruebas automatizadas. Completar las comprobaciones de 2: versión de cliente y servidor, servicio, puerto, tres conexiones correctas y seis conexiones cruzadas rechazadas. Confirmar las tres conexiones en pgAdmin.
+Completar las comprobaciones del apartado 2: versión de cliente y servidor, servicio, puerto, tres conexiones correctas y seis conexiones cruzadas rechazadas. Confirmar las tres conexiones en pgAdmin.
 
 ### 3.1. Escritura y lectura por cada rol
 
@@ -164,163 +211,113 @@ INSERT INTO public.refind_install_persistence VALUES (1, 'ReFind');
 SELECT * FROM public.refind_install_persistence;
 ```
 
-Si ya existe, inspeccionar sus datos y procedencia antes de continuar; no sobrescribirlos. La tabla es exclusivamente un marcador técnico de instalación, no una entidad ni migración del producto.
+Si ya existe, inspeccionar sus datos y procedencia antes de continuar; no sobrescribirlos. Esta tabla se utiliza únicamente para comprobar que los datos se conservan después de reiniciar PostgreSQL.
 
-Salir con `\q`, cerrar las conexiones de pgAdmin y reiniciar únicamente el servicio PostgreSQL identificado desde Servicios de Windows. Reconectar con `refind_dev_user` y ejecutar de nuevo `SELECT * FROM public.refind_install_persistence;`: debe devolver la misma fila. Conservar el marcador hasta cerrar la validación; su retirada se hará de forma explícita después, sin tocar datos ajenos.
+Salir con `\q`, cerrar las conexiones de pgAdmin y reiniciar únicamente el servicio `postgresql-refind-17` desde Servicios de Windows. Reconectar con `refind_dev_user` y ejecutar de nuevo `SELECT * FROM public.refind_install_persistence;`: debe devolver la misma fila. Conservar el marcador hasta cerrar la validación; su retirada se hará de forma explícita después, sin tocar datos ajenos.
 
-### 3.3. Registro y cierre
+### 3.3. Comprobar la conexión desde Node
 
-Desarrollador, fecha, commit, nombre del servicio, puerto y rutas de instalación/datos: por registrar. No anotar contraseñas.
+**Dónde:** en VS Code, abrir una terminal Windows PowerShell en la carpeta del proyecto, donde está `package.json`. PostgreSQL debe estar iniciado y las dependencias Node instaladas.
 
-| Comprobación | Resultado esperado | Estado comunicado |
-| --- | --- | --- |
-| Cliente y servidor | Ambos 17.11 | Pendiente |
-| pgAdmin | 9.18 y tres conexiones válidas | Pendiente |
-| Servicio y red local | Iniciado y puerto registrado, acceso local autenticado | Pendiente |
-| Tres conexiones propias | Base y usuario correctos | Pendiente |
-| Seis conexiones cruzadas | Acceso rechazado | Pendiente |
-| Escritura/lectura por rol | Correctas en las tres bases, transacciones revertidas | Pendiente |
-| Persistencia | Marcador conservado después de reiniciar | Pendiente |
+**1. Crear los tres archivos de conexión.** En el explorador de VS Code, crear estos archivos junto a `package.json`. Si ya existen, revisar su contenido.
 
-El bloque queda validado cuando se registren todas estas comprobaciones correctas. Conexión de la aplicación desde `pg`, migraciones del producto y pruebas de integración se comprobarán durante su desarrollo; no se presentan como realizadas al validar el servidor de base de datos.
-
-## 4. Reproducción por otro desarrollador
-
-Cada compañero instala las mismas versiones, prepara sus roles, bases y contraseñas y ejecuta 3. No copia directorios de datos ni secretos de otro equipo. Cuando existan migraciones compartidas, las recibe por Git y las aplica según los scripts del proyecto; no las reescribe. El anexo siguiente conserva ejemplos para ese trabajo posterior.
-## Anexo A. Configuración de aplicación y migraciones: desarrollo posterior
-
-Estos ejemplos se conservan para la aplicación, no para validar la instalación de PostgreSQL. Prepararlos junto con el anexo A del [manual base](Manual_entorno_ReFind.md). No se han ejecutado ni validado. Los secretos permanecen locales y no se publican en Git.
-
-### A.1. Variables locales
-
-Crear `.env.example` en la raíz con este contenido sin secretos:
+Archivo **`.env.development`**:
 
 ```dotenv
 APP_ENV=development
-DATABASE_URL=postgresql://refind_dev_user:CLAVE_CODIFICADA@127.0.0.1:5432/refind_dev
-SESSION_SECRET=SUSTITUIR_POR_UN_SECRETO_LOCAL
-PORT=3000
+DATABASE_URL=postgresql://refind_dev_user:CLAVE_DESARROLLO@127.0.0.1:5433/refind_dev
 ```
 
-Desde el editor, preparar tres archivos locales a partir de esa plantilla:
+Archivo **`.env.test`**:
 
-| Archivo | APP_ENV | Base y usuario de DATABASE_URL | PORT |
-| --- | --- | --- | --- |
-| `.env.development` | `development` | `refind_dev` / `refind_dev_user` | 3000 |
-| `.env.test` | `test` | `refind_test` / `refind_test_user` | 3002 |
-| `.env.e2e` | `e2e` | `refind_e2e` / `refind_e2e_user` | 3001 |
+```dotenv
+APP_ENV=test
+DATABASE_URL=postgresql://refind_test_user:CLAVE_PRUEBAS@127.0.0.1:5433/refind_test
+```
 
-Introducir en cada URL la contraseña de su rol, codificando los caracteres especiales como componentes de URL. Si se cambió el puerto de PostgreSQL, reflejarlo en las tres URLs. Generar un secreto diferente para cada archivo con este comando y copiar el resultado únicamente al archivo local correspondiente:
+Archivo **`.env.e2e`**:
+
+```dotenv
+APP_ENV=e2e
+DATABASE_URL=postgresql://refind_e2e_user:CLAVE_E2E@127.0.0.1:5433/refind_e2e
+```
+
+Sustituir cada `CLAVE_...` por la contraseña asignada a ese usuario en 2.3. Los caracteres especiales deben codificarse para URL: por ejemplo, `@` como `%40`, `#` como `%23` y `%` como `%25`. Guardar los archivos con **Ctrl+S**, sin extensión `.txt`. Si elegiste otro puerto en 2.1, sustituir `5433` por ese puerto.
+
+**2. Comprobar las conexiones.** Ejecutar en la terminal:
 
 ```powershell
-node -e "console.log(require('node:crypto').randomBytes(32).toString('hex'))"
+npm.cmd run check:db
 ```
 
-Comprobar que Git ignora los archivos locales y permite compartir la plantilla:
+Deben aparecer estas tres líneas:
+
+```text
+OK: development: conexión, versión y permisos.
+OK: test: conexión, versión y permisos.
+OK: e2e: conexión, versión y permisos.
+```
+
+Si aparece `ERROR`, revisar el archivo `.env` indicado, la contraseña y que el servidor esté iniciado. Corregir la causa y repetir antes de continuar.
+
+**3. Confirmar que Node conecta al servidor de ReFind.** Copiar todo el bloque siguiente, pegarlo en la misma terminal y pulsar **Intro**. Incluir la primera y la última línea. No pegarlo dentro de `psql` ni en los archivos `.env`.
+
+El bloque consulta el nombre y puerto del servidor sin cambiar datos. Si elegiste otros valores en 2.1, sustituir `5433` y `refind-local` por los acordados antes de ejecutarlo.
 
 ```powershell
-git check-ignore .env.development .env.test .env.e2e
-git check-ignore .env.example
+@'
+import { readFileSync } from "node:fs"; import { parseEnv } from "node:util"; import pg from "pg"; for (const mode of ["development", "test", "e2e"]) { const env = parseEnv(readFileSync(".env." + mode, "utf8")); const client = new pg.Client({ connectionString: env.DATABASE_URL, connectionTimeoutMillis: 5000, query_timeout: 5000 }); try { await client.connect(); const { rows: [r] } = await client.query("SELECT current_setting($1) AS instancia, inet_server_port() AS puerto", ["cluster_name"]); if (r.instancia !== "refind-local" || r.puerto !== 5433) throw new Error("Instancia incorrecta"); console.log(mode + ": OK instancia ReFind"); } catch { console.error(mode + ": ERROR al comprobar instancia ReFind"); process.exitCode = 1; } finally { await client.end(); } }
+'@ | node --input-type=module
 ```
 
-El primer comando debe enumerar los tres archivos. El segundo no debe mostrar salida y devuelve código 1. No copiar contraseñas o secretos al registro de validación.
+El resultado debe ser:
 
-### A.2. Carga y validación de configuración con Zod
-
-Crear `src/config.js`. Se lee únicamente el archivo seleccionado:
-
-```javascript
-import { readFileSync } from 'node:fs';
-import { parseEnv } from 'node:util';
-import { z } from 'zod';
-
-export function readConfig(mode) {
-  if (!['development', 'test', 'e2e'].includes(mode)) {
-    throw new Error('Entorno no permitido');
-  }
-  const input = parseEnv(readFileSync(`.env.${mode}`, 'utf8'));
-  const result = z.object({
-    APP_ENV: z.literal(mode),
-    DATABASE_URL: z.string().url(),
-    SESSION_SECRET: z.string().min(64),
-    PORT: z.coerce.number().int().min(1024).max(65535),
-  }).safeParse(input);
-  if (!result.success) throw new Error('Revisar la configuración local');
-  const config = result.data;
-  const target = new URL(config.DATABASE_URL);
-  const suffix = { development: 'dev', test: 'test', e2e: 'e2e' }[mode];
-  if (
-    target.protocol !== 'postgresql:' ||
-    target.hostname !== '127.0.0.1' ||
-    target.pathname !== `/refind_${suffix}` ||
-    target.username !== `refind_${suffix}_user`
-  ) throw new Error('Base o usuario incorrecto para el entorno');
-  return config;
-}
+```text
+development: OK instancia ReFind
+test: OK instancia ReFind
+e2e: OK instancia ReFind
 ```
 
-**Comprobación, tras preparar los scripts del anexo A.2 del manual del entorno base:** cambiar temporalmente `PORT` a `incorrecto` en `.env.development`: debe rechazarse el arranque con `Revisar la configuración local`. Restaurarlo. En `.env.test`, cambiar temporalmente el nombre de base a `refind_dev`: `npm.cmd run db:check:test` debe rechazarlo antes de conectar. Restaurar el valor y repetir con éxito.
+Si aparecen las tres líneas, continuar con **3.4**. Si aparece `ERROR`, revisar el puerto de los `.env` y el valor `cluster_name` configurado en 2.2. Repetir hasta obtener el resultado esperado.
 
-### A.3. Migración y comandos de base de datos
+### 3.4. Anotar el resultado de la instalación
 
-Crear `migrations/001-entorno.cjs`:
+Este paso consiste en guardar qué has comprobado; no instala ni configura nada.
 
-```javascript
-exports.up = (pgm) => {
-  pgm.sql(`
-    CREATE TABLE environment_check (
-      id integer PRIMARY KEY,
-      label text NOT NULL
-    );
-    INSERT INTO environment_check VALUES (1, 'ReFind');
-    CREATE TABLE session (
-      sid varchar NOT NULL PRIMARY KEY,
-      sess json NOT NULL,
-      expire timestamp(6) NOT NULL
-    );
-    CREATE INDEX session_expire_idx ON session (expire);
-  `);
-};
-exports.down = (pgm) => {
-  pgm.sql('DROP TABLE session; DROP TABLE environment_check;');
-};
+**1. Obtener la versión del proyecto.** Ejecutar en la terminal del proyecto:
+
+```powershell
+git rev-parse HEAD
 ```
 
-Crear `scripts/database.js`. El procedimiento usa únicamente migraciones ascendentes; no ejecutar `down` durante la instalación:
+Copiar el código que aparece.
 
-```javascript
-import pg from 'pg';
-import { runner } from 'node-pg-migrate';
-import { readConfig } from '../src/config.js';
+**2. Crear una nota personal.** Copiar la ficha siguiente y sustituir los textos entre corchetes. Ajustar las rutas y el puerto si elegiste otros.
 
-const [action, mode] = process.argv.slice(2);
-const config = readConfig(mode);
-if (action === 'migrate') {
-  await runner({
-    databaseUrl: config.DATABASE_URL,
-    dir: 'migrations',
-    direction: 'up',
-    migrationsTable: 'pgmigrations',
-    count: Infinity,
-  });
-} else if (action === 'check') {
-  const client = new pg.Client({ connectionString: config.DATABASE_URL });
-  try {
-    await client.connect();
-    const result = await client.query(
-      'SELECT current_database() AS db, current_user AS usuario, label FROM environment_check WHERE id = $1',
-      [1],
-    );
-    if (result.rows.length !== 1 || result.rows[0].label !== 'ReFind') {
-      throw new Error('Falta la fila de comprobación');
-    }
-    console.log(result.rows[0]);
-  } finally {
-    await client.end();
-  }
-} else {
-  throw new Error('Acción de base de datos no permitida');
-}
+```text
+Desarrollador: [tu nombre]
+Fecha: [día/mes/año]
+Versión del proyecto: [código obtenido con git rev-parse HEAD]
+Servicio: postgresql-refind-17
+Puerto: 5433
+Programa: C:\ReFind\PostgreSQL\17
+Datos: C:\ReFind\datos\postgresql17
+
+2.2 - Cliente y servidor PostgreSQL 17.11: [OK / Pendiente / Error]
+2.3 y 2.4 - Cada usuario conecta a su base: [OK / Pendiente / Error]
+2.4 - Las seis conexiones a bases ajenas se rechazan: [OK / Pendiente / Error]
+2.5 - pgAdmin 9.18 conecta a las tres bases: [OK / Pendiente / Error]
+3.1 - Escritura y lectura con los tres usuarios: [OK / Pendiente / Error]
+3.2 - Los datos se conservan después del reinicio: [OK / Pendiente / Error]
+3.3 - Node conecta a las tres bases de ReFind: [OK / Pendiente / Error]
+
+Incidencias: [ninguna, o comprobación fallida y mensaje sin contraseñas]
 ```
 
-Referencias: esquema de sesiones de [connect-pg-simple](https://github.com/voxpelli/node-connect-pg-simple) y [API de node-pg-migrate](https://salsita.github.io/node-pg-migrate/api). Las migraciones posteriores se añadirán como archivos nuevos; no modificar una migración ya compartida y aplicada.
+**3. Guardar y comunicar la ficha al responsable del proyecto.** Marcar `OK` solo si has realizado la comprobación y obtenido el resultado esperado. No incluir contraseñas ni contenido de los archivos `.env`.
+
+La instalación queda validada cuando todas las comprobaciones están en `OK`. Si alguna falla o está pendiente, indicar cuál.
+
+## 4. Reproducción por otro desarrollador
+
+Cada desarrollador instala las versiones indicadas, crea sus usuarios, bases y contraseñas siguiendo el apartado 2 y realiza las comprobaciones del apartado 3. No copia los datos ni las contraseñas de otro equipo.
