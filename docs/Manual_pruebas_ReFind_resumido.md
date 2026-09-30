@@ -1,6 +1,6 @@
-# ReFind · Entorno de pruebas · Primer desarrollador
+# ReFind · Entorno de pruebas · Siguientes desarrolladores
 
-Este manual sirve para revisar la configuración común, comprobar las herramientas en el primer equipo y compartir los archivos con el resto de desarrolladores.
+Este manual sirve para preparar las herramientas locales y ejecutar las comprobaciones que el primer desarrollador ha compartido por Git.
 
 **Dónde:** terminal Windows PowerShell de VS Code, como usuario normal, en la carpeta del proyecto donde está `package.json`.
 
@@ -14,22 +14,13 @@ Este manual sirve para revisar la configuración común, comprobar las herramien
 | Playwright y su Chromium | Ejecutar la prueba de navegador | Playwright 1.63.0 |
 | Extensión Playwright de VS Code | Ejecutar la prueba desde el editor | 1.1.19 |
 
-## 1. Revisar la preparación compartida
+## 1. Abrir el proyecto preparado
 
-Los archivos siguientes ya están preparados en el proyecto. Abrirlos desde el explorador de VS Code para identificar su función; no volver a copiar su código desde el manual.
+Completar primero el [manual del entorno para los siguientes desarrolladores](Manual_entorno_ReFind_resumido.md) hasta su comprobación del entorno base.
 
-| Archivo | Función |
-| --- | --- |
-| `tests/setup/http.js` | Respuesta HTTP mínima para comprobar las herramientas. |
-| `tests/setup/tools.test.js` | Prueba ejecutada por Vitest y Supertest. |
-| `vitest.setup.config.js` | Selecciona esa prueba y configura el informe de cobertura. |
-| `tests/setup/browser.spec.js` | Prueba que escribe y lee un campo en Chromium. |
-| `playwright.setup.config.js` | Selecciona la prueba de navegador y configura su informe. |
-| `package.json` | Contiene los comandos `check:tests:http`, `check:tests:browser` y `check:tests`. |
+Las dependencias se instalaron con `npm.cmd ci --include=dev`. Los archivos de `tests/setup`, `vitest.setup.config.js`, `playwright.setup.config.js` y los comandos de `package.json` vienen del repositorio. No hay que crearlos ni modificarlos para seguir esta guía.
 
-Mantener las versiones de dependencias de `package.json` y `package-lock.json`. Su comprobación corresponde a `check:env` en el manual del entorno. Si falta alguno de estos archivos, completar la preparación compartida antes de continuar.
-
-**Estado:** archivos preparados; no se consideran validados hasta ejecutar correctamente los pasos siguientes.
+Continuar con la descarga del navegador.
 
 ## 2. Descargar el navegador de pruebas
 
@@ -112,11 +103,3 @@ npm.cmd run check:tests
 ```
 
 Ejecuta primero la prueba HTTP y después la de navegador. Si falla la primera, no ejecuta la segunda. Este comando no comprueba la extensión de VS Code.
-
-## 7. Compartir la preparación
-
-Después de comprobarla, incluir en la entrega por Git los cinco archivos de pruebas y configuración del apartado 1, `package.json`, `package-lock.json`, `.gitignore` y ambos manuales de pruebas. Conservar los demás cambios compartidos del proyecto.
-
-No incluir `node_modules`, navegadores descargados, `coverage`, `playwright-report` ni `test-results`.
-
-Los siguientes desarrolladores seguirán el [manual de incorporación del entorno de pruebas](Manual_pruebas_ReFind_resumido.md).

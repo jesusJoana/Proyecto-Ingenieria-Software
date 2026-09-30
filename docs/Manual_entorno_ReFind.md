@@ -1,6 +1,8 @@
-# Manual 1 · Entorno base de desarrollo de ReFind
+# Manual 1 · Entorno base · Primer desarrollador
 
 Versión 3.0 · 25 de septiembre de 2026
+
+**Destinatario:** desarrollador que prepara y comparte la configuración inicial del proyecto. Los siguientes desarrolladores utilizan el [manual de incorporación](Manual_entorno_ReFind_resumido.md).
 
 ## 1. Alcance y recorrido
 
@@ -16,7 +18,7 @@ Las herramientas están elegidas. Los resultados prácticos se registran por sep
 
 Este manual permite preparar y validar el entorno base sin iniciar PostgreSQL, arrancar ReFind ni ejecutar suites de pruebas. Los ejemplos de aplicación se conservan en el anexo A y no son pasos de instalación. El despliegue para usuarios finales sigue pendiente en el apartado 10.
 
-**Estado de los archivos:** `package.json` y `package-lock.json` ya declaran las 21 dependencias y `.node-version` fija Node. Los scripts del proyecto todavía están vacíos. Los bloques de configuración documentados no se consideran creados o probados salvo evidencia registrada. Esta edición solo cambia documentación; no ejecuta sus instrucciones.
+**Estado de los archivos:** `package.json` y `package-lock.json` ya declaran las 21 dependencias y `.node-version` fija Node. Los scripts de comprobación del entorno y de las herramientas de pruebas ya están preparados; su ejecución sigue pendiente. Los scripts de calidad aún no están configurados. Los bloques de configuración documentados no se consideran creados o probados salvo evidencia registrada. Esta edición solo cambia documentación; no ejecuta sus instrucciones.
 
 **Dónde trabajar:** Windows PowerShell 5.1 externo para instaladores y preparación inicial; desde el apartado 5, terminal integrada de VS Code como usuario normal y en la raíz del repositorio. Tras cambiar el PATH, cerrar y reabrir terminal y editor. Copiar solo el contenido de los bloques, sin sus delimitadores. Los bloques JSON, JavaScript, CSS, HTML y YAML se guardan en los archivos indicados, no se ejecutan en PowerShell.
 
@@ -24,12 +26,9 @@ Este manual permite preparar y validar el entorno base sin iniciar PostgreSQL, a
 
 Se parte de Windows 11 x64 funcionando, conexión a Internet, navegador y permisos de instalación. No es necesario disponer previamente de Git, Node, npm, VS Code ni del proyecto. Abrir **Windows PowerShell** desde Inicio.
 
-Seguir los apartados 3 y 4 para preparar herramientas y clonar. Los archivos `package.json`, `package-lock.json` y `.node-version` se reciben con el repositorio. En el apartado 5, elegir solo uno de los dos recorridos:
+Seguir los apartados 3 y 4 para preparar herramientas y repositorio. Preparar las dependencias comunes en 5.1 y la configuración de calidad en 6. Validar en 8 y compartir los archivos según 9. Los archivos ya existentes se revisan y conservan; no se recrean.
 
-- **Responsable que prepara el proyecto:** seguir 5.1, configurar el apartado 6, completar la validación parcial de 8 y compartir los archivos correspondientes al entorno base.
-- **Compañero que clona esa preparación:** omitir 5.1, seguir 5.2, conservar los archivos compartidos de 6 y aplicar únicamente sus preferencias locales y extensiones. Completar 8 y registrar sus propios resultados.
-
-No recrear los archivos compartidos ni copiar `node_modules`. Las instalaciones de base de datos y pruebas se realizan siguiendo sus manuales cuando se aborde cada parte.
+El apartado 5.2 sirve para comprobar que la instalación compartida se puede reproducir. El recorrido de los siguientes desarrolladores está en su manual independiente.
 
 ## 2. Versiones comunes
 
@@ -46,7 +45,7 @@ Las siguientes son las versiones fijadas para todos los integrantes del equipo. 
 | Node.js | 24.21.0 LTS, exacta |
 | npm | 11.19.0, exacta |
 | PostgreSQL, servidor y cliente | 17.11, Windows x64 |
-| pgAdmin 4 | 9.18, exacta; instalador independiente para Windows x64 |
+| pgAdmin 4 | 9.17, exacta; incluido en la instalación de PostgreSQL de ReFind |
 | Chromium | Revisión descargada por Playwright 1.63.0 |
 | Extensión ESLint | 3.0.34, exacta |
 | Extensión Prettier | 12.4.0, exacta |
@@ -652,16 +651,16 @@ Evidencias comunicadas por Jesús y revisión de sus archivos en esta conversaci
 
 Cerrar la validación parcial cuando pasen 8.1–8.3. Resolver y comprobar 8.4 antes de presentar la instalación como completamente reproducible. La validación parcial no acredita PostgreSQL ni el entorno de pruebas.
 
-## 9. Reproducción del entorno base por los compañeros
+## 9. Entregar la preparación a los siguientes desarrolladores
 
 El responsable comparte los archivos npm, `.node-version`, `.gitignore`, configuración común de 6 y manuales, después de revisar `git diff` y `git status --short`. No incluir secretos, datos, informes ni `node_modules`. No se necesita crear los ejemplos del anexo para compartir el entorno base.
 
-Cada compañero prepara las herramientas de 3, clona según 4, ejecuta `npm.cmd ci --include=dev` según 5.2, configura sus extensiones y preferencias de 6 y valida 8. No vuelve a registrar paquetes con `npm install` ni recrea los archivos compartidos. Registrar el commit con `git rev-parse HEAD` y los resultados sin secretos.
+Entregar el [manual de incorporación de desarrolladores](Manual_entorno_ReFind_resumido.md) una vez publicada y comprobada la configuración común.
 
 **Recorrido definido, pendiente de validar en una instalación limpia y de resolver el tratamiento de `allowScripts`.**
 ## Anexo A. Ejemplos de desarrollo: fuera de la instalación base
 
-Se conservan como referencia para desarrollar ReFind. No ejecutar estos pasos para validar la instalación base. Requieren la configuración y migraciones del anexo A del [manual de base de datos](Manual_base_datos_ReFind.md), además de los archivos de pruebas de su manual cuando se invoquen esos scripts. Todos los ejemplos siguen pendientes de comprobación. Quien clone una aplicación ya preparada no recreará sus archivos.
+Se conservan como referencia para desarrollar ReFind. No ejecutar estos pasos para validar la instalación base. Requieren una configuración de aplicación y migraciones todavía pendientes de desarrollo, además de los archivos de pruebas de su manual cuando se invoquen esos scripts. Todos los ejemplos siguen pendientes de comprobación. Quien clone una aplicación ya preparada no recreará sus archivos.
 
 ### A.1. Express, EJS, Bootstrap, sesiones, fotografías y correo local
 

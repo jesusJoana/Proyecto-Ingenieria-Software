@@ -1,4 +1,4 @@
-# ReFind · Incorporación de desarrolladores
+# ReFind · Entorno base · Siguientes desarrolladores
 
 Para Windows 11. Seguir esta guía cuando el responsable haya publicado la configuración común. Cada desarrollador prepara solo su equipo; los archivos del proyecto se reciben por Git.
 
@@ -118,25 +118,9 @@ npm.cmd run check:db
 
 Debe aparecer un `OK` para cada una de las tres bases. Si falla, resolver el error antes de continuar.
 
-### 7.4. Instalar el navegador de pruebas
+### 7.4. Preparar y comprobar las herramientas de pruebas
 
-En la misma terminal, ejecutar:
-
-```powershell
-npx.cmd --no-install playwright install chromium
-```
-
-Este comando descarga el Chromium que necesita Playwright para ejecutar las pruebas de navegador.
-
-### 7.5. Comprobar las herramientas de pruebas
-
-En la misma terminal, ejecutar:
-
-```powershell
-npm.cmd run check:tests
-```
-
-Primero ejecuta una prueba HTTP con Vitest y Supertest y genera cobertura. Después ejecuta una prueba de interacción con Chromium. Ambas deben pasar; si falla la primera, la segunda no se ejecuta.
+Seguir el [manual de pruebas para los siguientes desarrolladores](Manual_pruebas_ReFind_resumido.md). Indica cómo instalar Chromium, ejecutar las pruebas y preparar la extensión de VS Code.
 
 ## 8. Comunicar el resultado
 
