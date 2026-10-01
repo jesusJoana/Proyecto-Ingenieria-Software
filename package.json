@@ -13,7 +13,10 @@
     "check:db": "node scripts/check-database.js",
     "check:tests": "npm run check:tests:http && npm run check:tests:browser",
     "check:tests:http": "vitest run --config vitest.setup.config.js --coverage",
-    "check:tests:browser": "playwright test --config playwright.setup.config.js"
+    "check:tests:browser": "playwright test --config playwright.setup.config.js",
+    "db:migrate": "node scripts/migrate.js development",
+    "db:migrate:test": "node scripts/migrate.js test",
+    "db:migrate:e2e": "node scripts/migrate.js e2e"
   },
   "repository": {
     "type": "git",

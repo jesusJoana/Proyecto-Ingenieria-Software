@@ -106,7 +106,7 @@ Seguir los **apartados 2 y 3 del [manual de base de datos](Manual_base_datos_ReF
 
 Crear `.env.development`, `.env.test` y `.env.e2e` en la carpeta del proyecto, junto a `package.json`.
 
-Copiar en cada uno el contenido indicado en [Archivos locales para el paso 2](../scripts/README.md#archivos-locales-para-el-paso-2) y poner las contraseñas de los usuarios que acabas de crear.
+Copiar en cada uno el contenido indicado en [Archivos locales para el paso 2](../scripts/README.md#archivos-locales-para-el-paso-2): cuatro líneas por archivo, con las contraseñas de los usuarios que acabas de crear, un secreto de sesión distinto en cada archivo y el puerto del servidor.
 
 ### 7.3. Comprobar la conexión a las bases
 
@@ -118,7 +118,21 @@ npm.cmd run check:db
 
 Debe aparecer un `OK` para cada una de las tres bases. Si falla, resolver el error antes de continuar.
 
-### 7.4. Preparar y comprobar las herramientas de pruebas
+### 7.4. Crear las tablas
+
+En la misma terminal, ejecutar uno a uno:
+
+```powershell
+npm.cmd run db:migrate
+npm.cmd run db:migrate:test
+npm.cmd run db:migrate:e2e
+```
+
+Crean las tablas de ReFind en las tres bases. Cada comando debe terminar con `2 migraciones aplicadas.` la primera vez y con `no hay migraciones pendientes.` si se repite. Si falla, o para comprobar las tablas creadas, seguir el [manual de base de datos, apartado 3.4](Manual_base_datos_ReFind.md#34-crear-las-tablas-con-las-migraciones).
+
+Cuando después de `git pull` lleguen migraciones nuevas, volver a ejecutar estos tres comandos.
+
+### 7.5. Preparar y comprobar las herramientas de pruebas
 
 Seguir el [manual de pruebas para los siguientes desarrolladores](Manual_pruebas_ReFind_resumido.md). Indica cómo instalar Chromium, ejecutar las pruebas y preparar la extensión de VS Code.
 
