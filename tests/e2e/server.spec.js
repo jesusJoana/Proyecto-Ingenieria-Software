@@ -1,6 +1,6 @@
 /**
  * Comprobación básica del servidor actual desde un navegador real.
- * No simula un registro o inicio de sesión: esas pantallas aún no existen.
+ * Los flujos reales de registro y acceso se comprueban en auth.spec.js.
  * Playwright arranca ReFind con .env.e2e mediante playwright.config.js.
  */
 import { test, expect } from "@playwright/test";
@@ -23,7 +23,7 @@ test("la página inicial carga y permite navegar sin errores de JavaScript", asy
     page.getByRole("heading", { name: "Encuéntralo con ReFind", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("button", { name: "Iniciar sesión", exact: true }),
+    page.getByRole("link", { name: "Iniciar sesión", exact: true }),
   ).toBeVisible();
 
   // Verificar también la respuesta y página de una ruta inexistente.
@@ -62,15 +62,14 @@ test("permite filtrar los ejemplos y recuperarse de una búsqueda sin resultados
 });
 
 /**
- * Para qué sirve: Comprobar que el botón de registro informa de que la función está pendiente.
- * Qué comprueba: Registrarse abre un diálogo con el aviso todavía no está disponible; Entendido
- * lo cierra. No realiza un registro real ni comprueba los demás botones pendientes.
+ * Para qué sirve: Comprobar que la publicación todavía informa de que está pendiente.
+ * Qué comprueba: Publicar objeto perdido abre el aviso y Entendido lo cierra.
  */
 test("las acciones pendientes informan sin simular un registro", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Registrarse", exact: true }).click();
+  await page.getByRole("button", { name: "Publicar objeto perdido", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("dialog")).toContainText(
     "todavía no está disponible",

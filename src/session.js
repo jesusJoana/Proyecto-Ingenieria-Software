@@ -93,7 +93,7 @@ export function endSession(req, res) {
 
 /**
  * Middleware para rutas privadas: solo deja pasar si hay un usuario en la sesión.
- * Mientras no exista la pantalla de inicio de sesión, responde 401.
+ * Si falta la identidad, responde 401 con una página de acceso restringido.
  */
 export function requireAuth(req, res, next) {
   if (req.session?.userId) return next();

@@ -50,14 +50,6 @@ document.querySelector("#show-all").addEventListener("click", () => {
 
 // Las pantallas pendientes no navegan a rutas inexistentes ni simulan acciones completadas.
 const messages = {
-  register: [
-    "Registrarse",
-    "El registro todavía no está disponible. Pronto podrás crear tu cuenta de ReFind.",
-  ],
-  login: [
-    "Iniciar sesión",
-    "El inicio de sesión todavía no está disponible. Pronto podrás acceder a tu cuenta.",
-  ],
   lost: [
     "Publicar objeto perdido",
     "La publicación todavía no está disponible. Pronto podrás describir el objeto que has perdido y dónde lo viste por última vez.",
@@ -68,7 +60,7 @@ const messages = {
   ],
   privacy: [
     "Privacidad",
-    "La información de privacidad estará disponible antes de habilitar el registro y las publicaciones.",
+    "La información de privacidad está pendiente de publicación.",
   ],
   contact: [
     "Contacto",
@@ -76,7 +68,7 @@ const messages = {
   ],
   terms: [
     "Términos",
-    "Las condiciones de uso estarán disponibles antes de habilitar el registro y las publicaciones.",
+    "Las condiciones de uso están pendientes de publicación.",
   ],
 };
 document

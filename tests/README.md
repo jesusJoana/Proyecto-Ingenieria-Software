@@ -4,9 +4,9 @@ Ejecutar desde la raíz del proyecto, en la terminal de VS Code, después de ins
 
 | Carpeta | Qué comprueba | Comando | Necesita |
 | --- | --- | --- | --- |
-| `unit/` | Configuración y funciones de sesión de forma aislada. | `npm run test:unit` | Node y dependencias; no necesita `.env`, PostgreSQL ni navegador. |
+| `unit/` | Configuración, sesiones, validación y servicio de autenticación aislados. | `npm run test:unit` | Node y dependencias; no necesita `.env`, PostgreSQL ni navegador. |
 | `integration/` | Express, sesiones y PostgreSQL trabajando juntos. | `npm run test:integration` | `.env.test`, PostgreSQL activo y migraciones de `refind_test` aplicadas. |
-| `e2e/` | La portada y sus interacciones desde Chromium. | `npm run test:e2e` | `.env.e2e`, PostgreSQL activo, migraciones de `refind_e2e` y Chromium instalado; puerto E2E libre. |
+| `e2e/` | Portada, registro, acceso y cierre de sesión desde Chromium. | `npm run test:e2e` | `.env.e2e`, PostgreSQL activo, migraciones de `refind_e2e` y Chromium instalado; puerto E2E libre. |
 | `setup/` | Las herramientas de pruebas. | `npm run check:tests` | Dependencias y Chromium instalado. |
 
 `npm test` ejecuta unitarias e integración. `npm run verify` comprueba el entorno y ejecuta unitarias, integración y E2E. Las pruebas de sesiones de integración limpian la tabla `session` de **refind_test**; no ejecutarlas a la vez que un servidor manual que use esa base.
@@ -15,6 +15,11 @@ Ejecutar desde la raíz del proyecto, en la terminal de VS Code, después de ins
 
 - `unit/config.test.js`: 51 casos. Entornos válidos, archivo correcto, datos ausentes o inválidos, límites, aislamiento de conexiones, errores sin secretos y configuración inmutable. Simula la lectura del archivo; no toca los `.env` locales.
 - `unit/session.test.js`: 10 casos. Regeneración, guardado, cierre, propagación de errores y autorización. Simula petición, respuesta y callbacks; no crea usuarios ni conecta con PostgreSQL.
+- `unit/auth-validation.test.js`: validación de registro/acceso y datos públicos del formulario.
+- `unit/auth-service.test.js`: hash, SQL parametrizado, duplicados y credenciales, con dependencias simuladas.
+- `unit/auth-security.test.js`: protección CSRF y límite de envíos, sin esperas reales.
+
+Los flujos de autenticación se comprueban en `integration/auth.test.js` y `e2e/auth.spec.js`, con usuarios únicos que se eliminan al finalizar. Detalle y campos: [Registro y acceso](../docs/Registro_acceso_ReFind.md).
 
 Cada `test` o grupo `test.each` tiene una cabecera **Para qué sirve / Qué comprueba**. `test.each` ejecuta una prueba por cada caso de su tabla.
 

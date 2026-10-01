@@ -24,9 +24,13 @@
       <div class="d-flex align-items-center header-actions">
         <% if (userId) { %>
           <span class="session-label"><%- icon('user') %> Sesión iniciada</span>
+          <form action="/cerrar-sesion" method="post" class="m-0">
+            <input type="hidden" name="_csrf" value="<%= csrf %>">
+            <button class="btn btn-teal" type="submit">Cerrar sesión</button>
+          </form>
         <% } else { %>
-          <button class="btn register-button" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="register">Registrarse</button>
-          <button class="btn btn-teal" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="login">Iniciar sesión</button>
+          <a class="btn register-button" href="/registro">Registrarse</a>
+          <a class="btn btn-teal" href="/iniciar-sesion">Iniciar sesión</a>
         <% } %>
       </div>
     </nav>

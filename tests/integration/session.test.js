@@ -3,8 +3,8 @@
  * Requiere haber ejecutado antes: npm.cmd run db:migrate:test
  *
  * Se monta un servidor mínimo con rutas de prueba que usan las funciones de
- * src/session.js, porque las rutas reales de inicio y cierre de sesión todavía
- * no existen.
+ * src/session.js para aislar su integración. Las rutas reales de registro,
+ * inicio y cierre de sesión se comprueban por separado en auth.test.js.
  */
 import { afterAll, beforeEach, describe, expect, test } from 'vitest';
 import { fileURLToPath } from 'node:url';

@@ -10,6 +10,8 @@ import { fileURLToPath } from 'node:url';
 import express from 'express';
 import pg from 'pg';
 import { createSessionMiddleware } from './session.js';
+import { createAuthRouter } from './auth/routes.js';
+import { csrfToken } from './auth/security.js';
 
 // Carpeta raíz del proyecto, para localizar vistas y recursos.
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -48,8 +50,13 @@ export function createApp(config) {
   // Dejar disponible en todas las vistas si hay un usuario conectado.
   app.use((req, res, next) => {
     res.locals.userId = req.session.userId ?? null;
+    // La portada anónima no crea sesión; el token se necesita allí solo para salir.
+    res.locals.csrf = req.session.userId ? csrfToken(req) : null;
+    if (req.session.userId) res.set('Cache-Control', 'no-store');
     next();
   });
+
+  app.use(createAuthRouter(pool));
 
   // Página de inicio.
   app.get('/', (req, res) => {
