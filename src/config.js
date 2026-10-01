@@ -56,19 +56,26 @@ export function readConfig(mode) {
   }
 
   // 5. La conexión debe ir al PostgreSQL local, a la base y al rol de este entorno.
-  //    Así es imposible que, por ejemplo, las pruebas borren datos de desarrollo.
+  //    Esto evita mezclar accidentalmente bases y roles de distintos entornos.
   const suffix = ENVIRONMENTS[mode];
   let target;
+  let username;
   try {
     target = new URL(config.DATABASE_URL);
+    username = decodeURIComponent(target.username);
   } catch {
     throw new Error(`Revisar .env.${mode}: DATABASE_URL no es una dirección válida.`);
+  }
+  // pg puede dar prioridad a parámetros como ?user= o ?host= frente a la URL.
+  // La configuración local admite los datos de conexión solo en su posición habitual.
+  if (target.search) {
+    throw new Error(`Revisar .env.${mode}: DATABASE_URL no debe incluir parámetros adicionales.`);
   }
   if (
     target.protocol !== 'postgresql:' ||
     target.hostname !== '127.0.0.1' ||
     target.pathname !== `/refind_${suffix}` ||
-    decodeURIComponent(target.username) !== `refind_${suffix}_user` ||
+    username !== `refind_${suffix}_user` ||
     !target.password
   ) {
     throw new Error(

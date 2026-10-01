@@ -1,22 +1,149 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title><%= title %></title>
-    <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
-    <link rel="stylesheet" href="/css/refind.css">
-  </head>
-  <body>
-    <main class="container py-4">
-      <h1>ReFind</h1>
-      <p>Servidor base en funcionamiento.</p>
-      <% if (userId) { %>
-        <p>Sesión iniciada.</p>
-      <% } else { %>
-        <p>No has iniciado sesión.</p>
-      <% } %>
-    </main>
-    <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Encuentra objetos perdidos y ayuda a que vuelvan a su dueño en tu universidad.">
+  <title><%= title %> · Objetos que vuelven a historias</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/refind.css">
+</head>
+<body class="home-page">
+  <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('partials/icons') %>
+  <% const icon = (name, extra = '') => '<svg class="icon ' + extra + '" aria-hidden="true"><use href="#icon-' + name + '"></use></svg>'; %>
+  <% // Ejemplos visuales; todavía no son publicaciones obtenidas de PostgreSQL.
+  const objects = [
+    { title: 'Mochila negra', image: 'backpack', status: 'found', label: 'Encontrada', place: 'Biblioteca', time: 'hace 2 horas' },
+    { title: 'Llaves con llavero azul', image: 'keys', status: 'lost', label: 'Perdidas', place: 'Cafetería', time: 'hace 5 horas' },
+    { title: 'Auriculares inalámbricos', image: 'earbuds', status: 'found', label: 'Encontrados', place: 'Aula 2.3', time: 'hace 1 día' }
+  ]; %>
+  <header class="site-header">
+    <nav class="container d-flex align-items-center justify-content-between" aria-label="Navegación principal">
+      <a class="brand" href="/" aria-label="ReFind, inicio"><%- icon('brand', 'brand-mark') %><span>ReFind</span></a>
+      <div class="d-flex align-items-center header-actions">
+        <% if (userId) { %>
+          <span class="session-label"><%- icon('user') %> Sesión iniciada</span>
+        <% } else { %>
+          <button class="btn register-button" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="register">Registrarse</button>
+          <button class="btn btn-teal" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="login">Iniciar sesión</button>
+        <% } %>
+      </div>
+    </nav>
+  </header>
+  <main id="contenido">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="container">
+        <div class="row align-items-center g-0">
+          <div class="col-lg-6 hero-copy">
+            <p class="eyebrow">¿Has perdido algo?</p>
+            <h1 id="hero-title">Encuéntralo con <span>ReFind</span></h1>
+            <p class="hero-description">Busca objetos perdidos y encontrados en tu universidad<br class="d-none d-xl-block"> o publica uno para ayudar a que vuelva a su dueño.</p>
+            <form id="object-search" class="search-box" role="search">
+              <label for="search-query" class="visually-hidden">Buscar objetos de ejemplo</label>
+              <%- icon('search') %>
+              <input id="search-query" class="form-control" type="search" placeholder="Buscar mochila, llaves, móvil..." autocomplete="off" maxlength="120">
+              <button class="btn btn-indigo" type="submit">Buscar</button>
+            </form>
+            <div class="filter-group d-flex gap-2" role="group" aria-label="Filtrar objetos por estado">
+              <button type="button" class="btn filter-button active" data-filter="all" aria-pressed="true">Todos</button>
+              <button type="button" class="btn filter-button" data-filter="lost" aria-pressed="false">Perdidos</button>
+              <button type="button" class="btn filter-button" data-filter="found" aria-pressed="false">Encontrados</button>
+            </div>
+          </div>
+          <div class="col-lg-6 hero-art" aria-hidden="true">
+            <img class="campus-image" src="/images/campus.webp" alt="" fetchpriority="high">
+            <div class="mint-shape shape-one"></div><div class="mint-shape shape-two"></div>
+            <div class="preview-window">
+              <div class="preview-header">
+                <span class="brand"><%- icon('brand', 'brand-mark') %>ReFind</span>
+                <span class="preview-search"><%- icon('search') %></span>
+                <%- icon('bell') %><span class="preview-user"><%- icon('user') %></span>
+              </div>
+              <div class="preview-objects">
+                <% objects.forEach(object => { %>
+                  <div class="preview-object">
+                    <img src="/images/<%= object.image %>.webp" alt="">
+                    <strong><%= object.title %></strong>
+                    <span><%- icon('pin') %><%= object.place %></span>
+                    <i></i><i></i>
+                  </div>
+                <% }); %>
+              </div>
+            </div>
+            <p class="hero-note">Las cosas también<br>encuentran su camino<span></span></p>
+          </div>
+        </div>
+      </div>
+    </section>
+    <div class="container home-content">
+      <section class="row g-4 action-cards" aria-label="Publicar un objeto">
+        <div class="col-md-6">
+          <article class="action-card lost-card h-100">
+            <div class="action-icon"><%- icon('backpack') %></div>
+            <div>
+              <h2>He perdido un objeto</h2>
+              <p>Publica lo que has perdido para encontrar coincidencias.</p>
+              <button class="btn btn-indigo" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="lost">Publicar objeto perdido <%- icon('arrow') %></button>
+            </div>
+          </article>
+        </div>
+        <div class="col-md-6">
+          <article class="action-card found-card h-100">
+            <div class="action-icon"><%- icon('key') %></div>
+            <div>
+              <h2>He encontrado un objeto</h2>
+              <p>Ayuda a devolver un objeto a su propietario.</p>
+              <button class="btn btn-teal" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="found">Publicar objeto encontrado <%- icon('arrow') %></button>
+            </div>
+          </article>
+        </div>
+      </section>
+      <section class="recent-section" aria-labelledby="recent-title">
+        <div class="d-flex align-items-center justify-content-between recent-heading">
+          <div class="d-flex align-items-center flex-wrap gap-2 gap-sm-3"><h2 id="recent-title">Objetos recientes</h2><span class="example-badge">Ejemplos</span></div>
+          <button id="show-all" class="btn view-all" type="button">Ver todos <%- icon('arrow') %></button>
+        </div>
+        <p id="search-status" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">3 objetos de ejemplo.</p>
+        <div class="row g-3">
+          <% objects.forEach(object => { %>
+            <div class="col-md-4" data-object-card data-status="<%= object.status %>" data-search="<%= object.title %> <%= object.place %>">
+              <button class="object-card w-100" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="object" data-title="<%= object.title %>" data-place="<%= object.place %>">
+                <img src="/images/<%= object.image %>.webp" alt="" width="76" height="76">
+                <span class="object-info">
+                  <strong><%= object.title %></strong>
+                  <span class="object-meta"><span class="status-dot <%= object.status %>"></span><%= object.label %> · <%= object.place %></span>
+                  <span class="object-time"><%= object.time %></span>
+                </span>
+              </button>
+            </div>
+          <% }); %>
+        </div>
+        <p id="empty-results" class="empty-results" hidden>No hay objetos que coincidan con tu búsqueda.</p>
+        <noscript><p class="mt-3">Activa JavaScript para buscar y filtrar los ejemplos de esta portada.</p></noscript>
+      </section>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="container d-flex align-items-center justify-content-between flex-wrap gap-3">
+      <div class="footer-identity d-flex align-items-center"><a class="brand" href="/" aria-label="ReFind, inicio"><%- icon('brand', 'brand-mark') %>ReFind</a><span>Objetos que vuelven a historias</span></div>
+      <nav class="d-flex gap-4" aria-label="Información">
+        <% [['privacy', 'Privacidad'], ['contact', 'Contacto'], ['terms', 'Términos']].forEach(([action, label]) => { %>
+          <button class="footer-link" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="<%= action %>"><%= label %></button>
+        <% }); %>
+      </nav>
+    </div>
+  </footer>
+  <div class="modal fade" id="infoModal" tabindex="-1" aria-labelledby="info-title" aria-describedby="info-description" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header"><h2 class="modal-title fs-5" id="info-title">ReFind</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Cerrar"></button></div>
+        <div class="modal-body"><p id="info-description" class="mb-0"></p></div>
+        <div class="modal-footer"><button class="btn btn-teal" type="button" data-bs-dismiss="modal">Entendido</button></div>
+      </div>
+    </div>
+  </div>
+  <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/home.js" defer></script>
+</body>
 </html>

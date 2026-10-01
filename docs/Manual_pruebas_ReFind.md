@@ -33,13 +33,19 @@ Mantener las versiones de dependencias de `package.json` y `package-lock.json`. 
 
 ## 2. Descargar el navegador de pruebas
 
-Playwright necesita su propia versión de Chromium. Instalarla en este equipo:
+**Dónde:** terminal Windows PowerShell de VS Code, como usuario normal, en la raíz del proyecto (donde está `package.json`).
+
+**Para qué:** instalar el Chromium que necesitan las pruebas sin ventana visible. `npm.cmd ci --include=dev` instala Playwright, pero este navegador se descarga por separado en cada equipo.
 
 ```powershell
-npx.cmd --no-install playwright install chromium
+npx.cmd --no-install playwright install chromium --only-shell
 ```
 
-Esperar a que termine sin errores. Este navegador se descarga en el equipo de cada desarrollador; no se comparte por Git.
+Esperar a que termine sin errores. Si aparece `timed out`, seguir el [procedimiento por IPv4](Manual_pruebas_ReFind.md#descarga-por-ipv4-si-aparece-timed-out). Si termina correctamente, continuar con el apartado 3.
+
+El navegador queda en `%LOCALAPPDATA%\ms-playwright`; no se sube a Git. Repetir la instalación cuando cambie la versión de Playwright del proyecto.
+
+Esta instalación sirve para las pruebas actuales sin ventana visible. Si se necesita mostrar el navegador o depurarlo con ventana, instalar Chromium completo con `npx.cmd --no-install playwright install chromium`.
 
 ## 3. Comprobar Vitest, Supertest y cobertura
 
@@ -88,7 +94,7 @@ Repetir la consulta y comprobar que aparece la versión **1.1.19**.
 3. Cerrar y volver a abrir VS Code con la carpeta del proyecto.
 4. Pulsar el icono del matraz **Testing / Pruebas**, en la barra lateral.
 5. En el apartado de Playwright del panel, seleccionar la configuración **playwright.setup.config.js** si se solicita.
-6. Localizar **Chromium arranca y permite interactuar** y pulsar el botón de ejecución junto a la prueba.
+6. Mantener desactivada la opción **Show browser / Mostrar navegador** del panel de Playwright. Localizar **Chromium arranca y permite interactuar** y pulsar el botón de ejecución junto a la prueba.
 7. Debe terminar correctamente y mostrar una marca verde.
 
 Mantener las actualizaciones automáticas del editor y las extensiones desactivadas según el manual del entorno.
@@ -98,6 +104,7 @@ Mantener las actualizaciones automáticas del editor y las extensiones desactiva
 | Mensaje o problema | Qué hacer |
 | --- | --- |
 | No encuentra `package.json`, un paquete o una configuración | Confirmar que la terminal está en la raíz del proyecto y que se completó el manual del entorno. |
+| La descarga indica `timed out` | Seguir el [procedimiento por IPv4](Manual_pruebas_ReFind.md#descarga-por-ipv4-si-aparece-timed-out) y repetir la comprobación. |
 | Falta el ejecutable de Chromium | Repetir la descarga del apartado 2 y después la prueba de navegador. |
 | No se encuentran pruebas | Comprobar que existen los archivos de `tests/setup` y las dos configuraciones en la raíz. Una ejecución sin pruebas no es válida. |
 | La prueba no aparece en VS Code | Revisar que está abierta la carpeta del proyecto, la extensión tiene la versión indicada y está seleccionada la configuración de comprobación. |
@@ -120,3 +127,40 @@ Después de comprobarla, incluir en la entrega por Git los cinco archivos de pru
 No incluir `node_modules`, navegadores descargados, `coverage`, `playwright-report` ni `test-results`.
 
 Los siguientes desarrolladores seguirán el [manual de incorporación del entorno de pruebas](Manual_pruebas_ReFind_resumido.md).
+
+## Descarga por IPv4 si aparece `timed out`
+
+**Dónde:** la misma terminal PowerShell, como usuario normal, en la raíz del proyecto.
+
+**Para qué:** evitar la conexión IPv6 que bloqueó la descarga en el equipo comprobado. No cambia la configuración de red de Windows ni las versiones del proyecto.
+
+**1. Copiar y ejecutar el bloque completo.** Crea un archivo temporal para descargar por IPv4, ejecuta el instalador y elimina el archivo al terminar. Restaura también el valor anterior de `NODE_OPTIONS`.
+
+```powershell
+$refindPreload = Join-Path $env:TEMP ('refind-playwright-ipv4-' + [guid]::NewGuid().ToString('N') + '.cjs')
+$refindOldOptions = $env:NODE_OPTIONS
+try {
+    Set-Content -LiteralPath $refindPreload -Encoding utf8 -Value "const dns = require('node:dns'); const original = dns.promises.lookup.bind(dns.promises); dns.promises.lookup = (host, options) => { if (options?.family === 6) return Promise.reject(Object.assign(new Error('IPv4-only download'), {code:'ENOTFOUND'})); return original(host, options); };"
+    $refindNodePath = $refindPreload.Replace('\', '/')
+    $env:NODE_OPTIONS = (($refindOldOptions + ' --require="' + $refindNodePath + '"').Trim())
+    node node_modules/playwright/cli.js install chromium --only-shell
+    if ($LASTEXITCODE -ne 0) {
+        throw 'La descarga ha fallado. Conservar el mensaje de error antes de continuar.'
+    }
+} finally {
+    $env:NODE_OPTIONS = $refindOldOptions
+    Remove-Item -LiteralPath $refindPreload -ErrorAction SilentlyContinue
+}
+```
+
+**Resultado esperado:** termina sin errores e indica que el navegador y sus componentes se han descargado; si ya estaban instalados, puede terminar sin nuevas descargas. Para instalar también el navegador con ventana mediante este bloque, quitar únicamente `--only-shell`.
+
+**2. Comprobar las herramientas:**
+
+```powershell
+npm.cmd run check:tests
+```
+
+**Resultado esperado:** una prueba HTTP correcta y una prueba de Chromium correcta (`1 passed` en cada ejecución). El navegador se cierra automáticamente. Después continuar con el apartado 5 para comprobar la extensión de VS Code.
+
+**Comprobado el 01/10/2026 en este equipo:** descarga por IPv4 con `--only-shell` y ambas pruebas correctas con Node 24.21.0 y Playwright 1.63.0. Esto no da por comprobada la extensión de VS Code ni sustituye la comprobación en el equipo de cada desarrollador.

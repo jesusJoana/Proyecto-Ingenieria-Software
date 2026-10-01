@@ -7,7 +7,8 @@ import { defineConfig } from 'vitest/config';
 export default defineConfig({
   test: {
     environment: 'node',
-    include: ['tests/integration/**/*.test.js'],
+    // Ejecutar las pruebas unitarias y de integración, en carpetas separadas.
+    include: ['tests/unit/**/*.test.js', 'tests/integration/**/*.test.js'],
     // Las pruebas comparten la base refind_test: ejecutarlas de una en una.
     fileParallelism: false,
     testTimeout: 15000,

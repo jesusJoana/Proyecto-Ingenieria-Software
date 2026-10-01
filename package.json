@@ -19,7 +19,13 @@
     "db:migrate:e2e": "node scripts/migrate.js e2e",
     "dev": "node --watch src/server.js development",
     "start:e2e": "node src/server.js e2e",
-    "test": "vitest run"
+    "start:test": "node src/server.js test",
+    "test": "vitest run --config vitest.config.js",
+    "test:unit": "vitest run --config vitest.config.js tests/unit",
+    "test:integration": "vitest run --config vitest.config.js tests/integration",
+    "test:watch": "vitest --config vitest.config.js",
+    "test:e2e": "playwright test --config playwright.config.js",
+    "verify": "npm run check:env && npm test && npm run test:e2e"
   },
   "repository": {
     "type": "git",

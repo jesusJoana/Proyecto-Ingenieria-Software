@@ -68,10 +68,20 @@ afterAll(async () => {
 });
 
 describe('Gestión de sesiones', () => {
+  /**
+   * Para qué sirve: Impedir el acceso a una ruta protegida sin sesión.
+   * Qué comprueba: GET /privado, sin cookie de sesión, devuelve HTTP 401.
+   */
   test('una ruta privada rechaza a quien no ha iniciado sesión', async () => {
     await request(app).get('/privado').expect(401);
   });
 
+  /**
+   * Para qué sirve: Comprobar la creación de una sesión mediante una ruta de prueba.
+   * Qué comprueba: POST /entrar devuelve HTTP 204; la cookie incluye HttpOnly, SameSite=Lax,
+   * Path=/ y Expires; PostgreSQL contiene una sesión del usuario 42. No valida credenciales ni
+   * el atributo Secure.
+   */
   test('al iniciar sesión se envía una cookie segura y la sesión se guarda en PostgreSQL', async () => {
     const response = await request(app).post('/entrar').expect(204);
     const cookie = sessionCookie(response);
@@ -83,12 +93,22 @@ describe('Gestión de sesiones', () => {
     expect(await storedSessions()).toBe(1);
   });
 
+  /**
+   * Para qué sirve: Comprobar que la sesión identifica al usuario entre peticiones.
+   * Qué comprueba: Tras entrar, el cliente conserva la cookie y GET /privado devuelve HTTP 200
+   * con userId igual a "42".
+   */
   test('con la cookie, el servidor reconoce al usuario en las siguientes peticiones', async () => {
     const agent = request.agent(app);
     await agent.post('/entrar').expect(204);
     await agent.get('/privado').expect(200, { userId: '42' });
   });
 
+  /**
+   * Para qué sirve: Comprobar la renovación del identificador al iniciar sesión.
+   * Qué comprueba: Crea una sesión de visitante y después inicia sesión; ambas respuestas
+   * contienen cookie y sus identificadores son distintos.
+   */
   test('al iniciar sesión cambia el identificador de la sesión anterior', async () => {
     const agent = request.agent(app);
     const before = sessionCookie(await agent.get('/visitar').expect(204));
@@ -98,6 +118,11 @@ describe('Gestión de sesiones', () => {
     expect(after.split(';')[0]).not.toBe(before.split(';')[0]);
   });
 
+  /**
+   * Para qué sirve: Comprobar que cerrar sesión retira el acceso y elimina su almacenamiento.
+   * Qué comprueba: POST /salir devuelve HTTP 204, caduca la cookie y deja cero sesiones del
+   * usuario 42 en PostgreSQL; el acceso posterior a /privado devuelve HTTP 401.
+   */
   test('al cerrar sesión se borra de PostgreSQL y se elimina la cookie', async () => {
     const agent = request.agent(app);
     await agent.post('/entrar').expect(204);
@@ -109,6 +134,11 @@ describe('Gestión de sesiones', () => {
     await agent.get('/privado').expect(401);
   });
 
+  /**
+   * Para qué sirve: Comprobar que modificar la cookie no permite acceder a una ruta protegida.
+   * Qué comprueba: Altera los últimos caracteres del valor de una cookie válida y exige HTTP
+   * 401 al enviarla a /privado.
+   */
   test('una cookie manipulada no da acceso', async () => {
     const response = await request(app).post('/entrar').expect(204);
     const [nameValue] = sessionCookie(response).split(';');

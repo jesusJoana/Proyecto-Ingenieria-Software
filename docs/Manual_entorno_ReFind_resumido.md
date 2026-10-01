@@ -134,7 +134,7 @@ Cuando después de `git pull` lleguen migraciones nuevas, volver a ejecutar esto
 
 ### 7.5. Preparar y comprobar las herramientas de pruebas
 
-Seguir el [manual de pruebas para los siguientes desarrolladores](Manual_pruebas_ReFind_resumido.md). Indica cómo instalar Chromium, ejecutar las pruebas y preparar la extensión de VS Code.
+Seguir el [manual de pruebas para los siguientes desarrolladores](Manual_pruebas_ReFind_resumido.md). Indica cómo instalar Chromium, ejecutar las pruebas y preparar la extensión de VS Code. La descarga se realiza en cada equipo después de instalar las dependencias. Si aparece `timed out`, seguir la [alternativa por IPv4](Manual_pruebas_ReFind.md#descarga-por-ipv4-si-aparece-timed-out). Terminar comprobando `npm.cmd run check:tests`.
 
 ### 7.6. Comprobar el servidor de ReFind
 

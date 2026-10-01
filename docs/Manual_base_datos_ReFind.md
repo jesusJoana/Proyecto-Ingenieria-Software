@@ -7,7 +7,7 @@ Versión 1.1 · 1 de octubre de 2026
 Este manual explica cómo instalar y comprobar estas herramientas en Windows 11 x64:
 
 - **PostgreSQL 17.11:** el servidor que almacena y gestiona los datos del proyecto.
-- **pgAdmin 4 9.18:** una aplicación gráfica para conectarnos a PostgreSQL, consultar tablas y datos y ejecutar consultas SQL. La instalamos para trabajar con las bases de datos desde una interfaz visual.
+- **pgAdmin 4 9.17:** una aplicación gráfica para conectarnos a PostgreSQL, consultar tablas y datos y ejecutar consultas SQL. La instalamos para trabajar con las bases de datos desde una interfaz visual.
 
 Prepararemos tres bases separadas: `refind_dev` para desarrollo, `refind_test` para pruebas de integración y `refind_e2e` para pruebas de la aplicación desde el navegador. Cada una tendrá su propio usuario de conexión.
 
@@ -52,10 +52,10 @@ Se requiere Windows 11 de 64 bits. Si no lo has comprobado en el manual del ento
 En el comando siguiente, sustituir `'C:\RUTA\AL\INSTALADOR.exe'` completo, incluidas sus comillas, por la ruta copiada. La ruta pegada ya incluye comillas dobles: conservarlas. Mantener el resto del comando igual y pulsar **Intro**. Se abrirá el asistente de instalación: Las carpetas, el servicio y el puerto de ReFind se indican mediante los parámetros del comando.
 
 ```powershell
-& 'C:\RUTA\AL\INSTALADOR.exe' --prefix 'C:\ReFind\PostgreSQL\17' --datadir 'C:\ReFind\datos\postgresql17' --servicename 'postgresql-refind-17' --serverport 5433 --disable-components pgAdmin,stackbuilder
+& 'C:\RUTA\AL\INSTALADOR.exe' --prefix 'C:\ReFind\PostgreSQL\17' --datadir 'C:\ReFind\datos\postgresql17' --servicename 'postgresql-refind-17' --serverport 5433 --disable-components stackbuilder
 ```
 
-3. En el asistente, comprobar las rutas y el puerto indicados. Instalar **PostgreSQL Server** y **Command Line Tools**. Establecer una contraseña nueva para el administrador `postgres` de esta instancia y guardarla localmente. Si el asistente propone actualizar una instalación existente o cambiar una cuenta de servicio existente, cancelar y revisar con el responsable.
+3. En el asistente, comprobar las rutas y el puerto indicados. Instalar **PostgreSQL Server**, **Command Line Tools** y **pgAdmin 4**. Comprobar la versión de pgAdmin en el apartado 2.5. Establecer una contraseña nueva para el administrador `postgres` de esta instancia y guardarla localmente. Si el asistente propone actualizar una instalación existente o cambiar una cuenta de servicio existente, cancelar y revisar con el responsable.
 4. Finalizar la instalación. No añadir esta instalación al PATH: utilizaremos siempre su ruta completa. Cerrar la terminal de administrador.
 5. Abrir `C:\ReFind\datos\postgresql17\postgresql.conf` con un editor elevado y establecer una sola entrada activa para cada valor:
 
@@ -170,7 +170,13 @@ Resultado: `refind_e2e`, `refind_e2e_user` y `1`. Repetir las conexiones de cada
 
 ### 2.5. Instalación y configuración de pgAdmin 4
 
-Descargar **pgAdmin 4 9.18** desde las [descargas oficiales](https://www.pgadmin.org/download/pgadmin-4-windows/). Instalarlo para ReFind en una carpeta propia, por ejemplo `C:\ReFind\pgAdmin4`. Si el instalador propone sustituir otra instalación, cancelar: hay que resolver una instalación separada antes de continuar. No borrar perfiles ni conexiones existentes. Abrir la copia instalada para ReFind y comprobar **Help > About: 9.18**.
+Utilizar **pgAdmin 4 9.17**, incluido en la instalación de PostgreSQL de ReFind. No es necesario instalar otra copia. Para abrir la instalación correcta, ejecutar en PowerShell como usuario normal:
+
+```powershell
+& 'C:\ReFind\PostgreSQL\17\pgAdmin 4\runtime\pgAdmin4.exe'
+```
+
+En **Help → About**, comprobar **Version: 9.17**. Si aparece otra versión, cerrar pgAdmin y abrirlo mediante la ruta anterior. Conservar las demás instalaciones y sus configuraciones; este procedimiento no requiere desinstalarlas.
 
 Abrir pgAdmin y seleccionar **Register > Server**. Crear tres conexiones con nombres `ReFind desarrollo`, `ReFind integración` y `ReFind E2E`. En **Connection**, establecer host `127.0.0.1`, el puerto **5433** de ReFind, y como **Maintenance database** y **Username** la base y el rol correspondientes del apartado 2.3. Introducir la contraseña local de cada rol; no exportar conexiones con contraseñas para compartirlas.
 
@@ -401,7 +407,7 @@ Datos: C:\ReFind\datos\postgresql17
 2.2 - Cliente y servidor PostgreSQL 17.11: [OK / Pendiente / Error]
 2.3 y 2.4 - Cada usuario conecta a su base: [OK / Pendiente / Error]
 2.4 - Las seis conexiones a bases ajenas se rechazan: [OK / Pendiente / Error]
-2.5 - pgAdmin 9.18 conecta a las tres bases: [OK / Pendiente / Error]
+2.5 - pgAdmin 9.17 conecta a las tres bases: [OK / Pendiente / Error]
 3.1 - Escritura y lectura con los tres usuarios: [OK / Pendiente / Error]
 3.2 - Los datos se conservan después del reinicio: [OK / Pendiente / Error]
 3.3 - Node conecta a las tres bases de ReFind: [OK / Pendiente / Error]

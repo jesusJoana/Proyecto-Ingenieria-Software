@@ -12,13 +12,15 @@ La preparación del entorno de ReFind se divide en tres manuales. Cada uno tiene
 | --- | --- | --- |
 | [1. Entorno base](Manual_entorno_ReFind.md) | PowerShell, Git, VS Code, Node/npm, paquetes compartidos y herramientas de análisis/formato | Windows 11 x64, Internet y permisos para instalar |
 | [2. Base de datos](Manual_base_datos_ReFind.md) | PostgreSQL, pgAdmin, bases, roles, conexiones y persistencia | Entorno base para las consultas desde Node; las consultas SQL no requieren aplicación |
-| [3. Entorno de pruebas](Manual_pruebas_ReFind.md) | Vitest, Supertest, cobertura, Playwright, Chromium e integración continua | Entorno base; PostgreSQL solo para integración con datos y pruebas de aplicación que lo utilicen |
+| [3. Entorno de pruebas](Manual_pruebas_ReFind.md) | Vitest, Supertest, cobertura, Playwright, Chromium y extensión de VS Code | Entorno base; PostgreSQL solo para integración con datos y pruebas de aplicación que lo utilicen |
 
-Las herramientas están elegidas. Los resultados prácticos se registran por separado en cada manual. Por ahora se continúa con la validación parcial del entorno base; base de datos y entorno de pruebas quedan pendientes. Los paquetes npm de pruebas ya instalados se conservan: instalar esos paquetes no completa su configuración ni valida el entorno de pruebas.
+Para instalar el navegador en cada equipo, seguir el [apartado 2 del manual de pruebas](Manual_pruebas_ReFind.md#2-descargar-el-navegador-de-pruebas). Incluye la alternativa por IPv4 si la descarga indica `timed out`. La comprobación conjunta es `npm.cmd run check:tests`, desde la raíz del proyecto.
+
+Cada desarrollador debe ejecutar las comprobaciones en su equipo. El 01/10/2026 se comprobó en este equipo la instalación del navegador por IPv4 y la ejecución correcta de `check:tests` (HTTP y Chromium). La comprobación de la extensión de VS Code sigue pendiente; se describe en el manual de pruebas.
 
 Este manual permite preparar y validar el entorno base sin iniciar PostgreSQL, arrancar ReFind ni ejecutar suites de pruebas. Los ejemplos de aplicación se conservan en el anexo A y no son pasos de instalación. El despliegue para usuarios finales sigue pendiente en el apartado 10.
 
-**Estado de los archivos:** `package.json` y `package-lock.json` ya declaran las 21 dependencias y `.node-version` fija Node. Los scripts de comprobación del entorno y de las herramientas de pruebas ya están preparados; su ejecución sigue pendiente. Los scripts de calidad aún no están configurados. Los bloques de configuración documentados no se consideran creados o probados salvo evidencia registrada. Esta edición solo cambia documentación; no ejecuta sus instrucciones.
+**Estado de los archivos:** `package.json` y `package-lock.json` ya declaran las 21 dependencias y `.node-version` fija Node. Los scripts de comprobación del entorno y de las herramientas de pruebas ya están preparados. `check:tests` pasó en este equipo el 01/10/2026; los demás desarrolladores deben ejecutarlo en sus equipos. Los scripts de calidad aún no están configurados. Los bloques de configuración documentados no se consideran creados o probados salvo evidencia registrada. Esta edición solo cambia documentación; no ejecuta sus instrucciones.
 
 **Dónde trabajar:** Windows PowerShell 5.1 externo para instaladores y preparación inicial; desde el apartado 5, terminal integrada de VS Code como usuario normal y en la raíz del repositorio. Tras cambiar el PATH, cerrar y reabrir terminal y editor. Copiar solo el contenido de los bloques, sin sus delimitadores. Los bloques JSON, JavaScript, CSS, HTML y YAML se guardan en los archivos indicados, no se ejecutan en PowerShell.
 
@@ -46,7 +48,7 @@ Las siguientes son las versiones fijadas para todos los integrantes del equipo. 
 | npm | 11.19.0, exacta |
 | PostgreSQL, servidor y cliente | 17.11, Windows x64 |
 | pgAdmin 4 | 9.17, exacta; incluido en la instalación de PostgreSQL de ReFind |
-| Chromium | Revisión descargada por Playwright 1.63.0 |
+| Chromium | Chrome Headless Shell, revisión descargada por Playwright 1.63.0 para las pruebas sin ventana |
 | Extensión ESLint | 3.0.34, exacta |
 | Extensión Prettier | 12.4.0, exacta |
 | Extensión Playwright | 1.1.19, exacta |

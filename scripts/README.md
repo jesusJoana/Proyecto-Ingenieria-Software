@@ -156,8 +156,94 @@ Superar estos pasos acredita las comprobaciones descritas. Quedan aparte la conf
 | Falla Argon2 o aparece el aviso `allowScripts`. | Revisar el apartado 8.4 del manual del entorno; la instalación limpia sigue pendiente de validación. |
 | Falla `check:db`. | Revisar el archivo `.env` del entorno indicado, el servicio PostgreSQL, puerto, credenciales y permisos según el manual de base de datos. |
 | Un comando indica `faltan o son incorrectos SESSION_SECRET, PORT`. | Añadir esas líneas al archivo `.env` indicado según [Archivos locales para el paso 2](#archivos-locales-para-el-paso-2). |
-| Playwright indica que falta el ejecutable del navegador. | Ejecutar `npx.cmd --no-install playwright install chromium` como indica el manual de pruebas y repetir la prueba. |
+| La descarga de Playwright indica `timed out`. | Seguir la [descarga por IPv4](../docs/Manual_pruebas_ReFind.md#descarga-por-ipv4-si-aparece-timed-out) y ejecutar `npm.cmd run check:tests`. |
+| Playwright indica que falta el ejecutable del navegador. | Ejecutar `npx.cmd --no-install playwright install chromium --only-shell` como indica el manual de pruebas y repetir la prueba. |
 
 Tras resolver la causa, repetir el comando que falló. Las consultas manuales de diagnóstico no forman parte de la secuencia habitual.
 
 
+
+## Arranque y pruebas de la aplicación
+
+### Antes de elegir un comando
+
+Abrir la terminal **Windows PowerShell de VS Code**, como usuario normal, en la raíz del proyecto, donde está `package.json`.
+
+Las dependencias deben estar instaladas, PostgreSQL iniciado y los archivos `.env` completados. Aplicar previamente las migraciones de las bases que se utilizarán. Estos comandos no realizan esa preparación automáticamente.
+
+**Elegir el comando según lo que quieras hacer; no ejecutarlos todos en orden.**
+
+### Utilizar la aplicación mientras desarrollas
+
+```powershell
+npm.cmd run dev
+```
+
+- **Hace:** arranca ReFind con `.env.development` y la base `refind_dev`. Reinicia el servidor al cambiar los archivos vigilados.
+- **Tú haces:** abres en el navegador la dirección que muestra la terminal, normalmente `http://127.0.0.1:3000`, y utilizas la aplicación.
+- **Para terminar:** pulsas **Ctrl+C** en esa terminal. Cerrar el navegador no apaga el servidor.
+
+### Ejecutar las pruebas una vez
+
+```powershell
+npm.cmd test
+```
+
+- **Hace:** ejecuta las pruebas unitarias y de integración disponibles. Las de integración utilizan `.env.test` y `refind_test`.
+- **Tú haces:** esperas y lees el resultado. No arrancas antes otro servidor ni abres el navegador: las propias pruebas preparan lo necesario.
+- **Para terminar:** termina solo y devuelve el indicador de PowerShell. Si hay pruebas fallidas, revisar el error; una ejecución sin pruebas no valida nada.
+
+### Repetir las pruebas mientras programas con TDD
+
+```powershell
+npm.cmd run test:watch
+```
+
+- **Hace:** ejecuta las pruebas y permanece esperando cambios para repetir las afectadas. Utiliza la misma configuración que `npm test`.
+- **Tú haces:** editas y guardas código; consultas los resultados en la terminal.
+- **Para terminar:** pulsas **Ctrl+C**. No termina por sí solo después de la primera ejecución.
+
+### Ejecutar las pruebas automáticas de navegador
+
+```powershell
+npm.cmd run test:e2e
+```
+
+- **Necesita además:** Chromium de Playwright instalado y el puerto E2E libre. Si tienes `start:e2e` abierto, cerrarlo antes con **Ctrl+C**.
+- **Hace:** arranca su propio servidor con `.env.e2e` y `refind_e2e`, ejecuta las pruebas con Chromium y cierra su servidor y navegador al terminar.
+- **Tú haces:** esperas y lees el resultado. No arrancas antes la aplicación ni interactúas con el navegador. Chromium trabaja sin ventana visible.
+- **Para terminar:** termina solo. El informe queda en `playwright-report/e2e/index.html`.
+
+### Comprobar el proyecto antes de hacer push
+
+```powershell
+npm.cmd run verify
+```
+
+- **Necesita:** los requisitos de `npm test` y `test:e2e`. No ejecutar a la vez otras pruebas ni mantener abierto `start:e2e`.
+- **Hace:** ejecuta `check:env`, después `test` y después `test:e2e`. Se detiene si falla cualquiera.
+- **Tú haces:** esperas a que termine y revisas que todo pase. Si falla, corriges la causa y repites.
+- **Para terminar:** termina solo. No crea commits ni hace push.
+
+### Abrir la aplicación con una base de pruebas para inspeccionarla tú
+
+Estos dos comandos son auxiliares. **No son pasos previos a las pruebas automáticas.**
+
+| Comando | Archivo y base utilizados | Dirección habitual |
+| --- | --- | --- |
+| `npm.cmd run start:test` | `.env.test` → `refind_test` | `http://127.0.0.1:3002` |
+| `npm.cmd run start:e2e` | `.env.e2e` → `refind_e2e` | `http://127.0.0.1:3001` |
+
+- **Hacen:** dejan el servidor encendido con la base elegida. No ejecutan pruebas automáticas ni reinician al editar código.
+- **Tú haces:** abres la dirección indicada en el navegador y utilizas la aplicación para inspeccionar su comportamiento.
+- **Para terminar:** pulsas **Ctrl+C** en la terminal donde lo arrancaste. Cerrar el navegador no apaga el servidor.
+
+### Qué se mantiene y qué se cierra
+
+Los puertos de la aplicación proceden de `PORT` en cada `.env`; no son el puerto de PostgreSQL. Los comandos no detienen PostgreSQL al terminar: permanece como servicio de Windows.
+
+No ejecutar `test` y `test:watch` simultáneamente ni utilizar `start:test` mientras se ejecutan las pruebas. Las pruebas de integración actuales eliminan las sesiones de `refind_test` para preparar sus casos.
+
+Actualmente existen pruebas de integración y una prueba E2E de la página inicial y la respuesta 404. La configuración admite futuras pruebas unitarias. Los comandos `check:tests:*` siguen comprobando las herramientas, no las funcionalidades de ReFind.
+
+**Estado:** comandos y configuración preparados; ejecución por el desarrollador pendiente.

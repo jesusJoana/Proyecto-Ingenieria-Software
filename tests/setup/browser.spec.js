@@ -6,6 +6,11 @@
  */
 import { test, expect } from '@playwright/test';
 
+/**
+ * Para qué sirve: Comprobar que Playwright puede abrir Chromium e interactuar con una página.
+ * Qué comprueba: Crea un campo en una página en memoria, escribe Mochila y comprueba que
+ * conserva ese valor. No arranca ReFind ni utiliza PostgreSQL.
+ */
 test('Chromium arranca y permite interactuar', async ({ page }) => {
   // Preparar un campo accesible mediante su etiqueta, sin servidor web.
   await page.setContent('<label>Objeto <input></label>');

@@ -7,6 +7,11 @@ import { test, expect } from 'vitest';
 import request from 'supertest';
 import { createCheckApp } from './http.js';
 
+/**
+ * Para qué sirve: Comprobar que Vitest, Express y Supertest funcionan juntos.
+ * Qué comprueba: Una aplicación mínima de comprobación responde a GET /check con HTTP 200 y
+ * exactamente { ok: true }. No comprueba funcionalidades de ReFind.
+ */
 test('el ejecutor y las peticiones HTTP funcionan', async () => {
   // Debe responder HTTP 200 a la ruta de comprobación.
   const response = await request(createCheckApp()).get('/check').expect(200);
