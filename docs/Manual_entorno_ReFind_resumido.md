@@ -136,6 +136,38 @@ Cuando después de `git pull` lleguen migraciones nuevas, volver a ejecutar esto
 
 Seguir el [manual de pruebas para los siguientes desarrolladores](Manual_pruebas_ReFind_resumido.md). Indica cómo instalar Chromium, ejecutar las pruebas y preparar la extensión de VS Code.
 
+### 7.6. Comprobar el servidor de ReFind
+
+Requiere los pasos 7.1 a 7.4: PostgreSQL iniciado, los tres archivos `.env` completos y las tablas creadas.
+
+**1. Ejecutar las pruebas del servidor.** En la terminal Windows PowerShell de VS Code, dentro de la carpeta del proyecto:
+
+```powershell
+npm.cmd run test
+```
+
+Comprueban, contra la base `refind_test`, el servidor base y la gestión de sesiones. **Resultado esperado:** `Test Files 2 passed` y `Tests 12 passed`. Si falla, comprobar que se ha ejecutado `npm.cmd run db:migrate:test` y que `.env.test` está completo.
+
+**2. Arrancar el servidor de desarrollo.**
+
+```powershell
+npm.cmd run dev
+```
+
+Debe mostrar `ReFind (development) en http://127.0.0.1:3000`. La terminal queda ocupada mientras el servidor está encendido; al guardar cambios en el código, el servidor se reinicia solo.
+
+Con el servidor encendido, abrir en el navegador:
+
+| Dirección | Resultado esperado |
+| --- | --- |
+| `http://127.0.0.1:3000` | Página «ReFind · Servidor base en funcionamiento» |
+| `http://127.0.0.1:3000/health` | `{"status":"ok"}` |
+| `http://127.0.0.1:3000/no-existe` | «Página no encontrada» |
+
+**3. Detener el servidor.** En la terminal, pulsar **Ctrl+C**. Debe mostrar `ReFind detenido.`
+
+Si al arrancar aparece `Revisar .env.development: ...`, completar ese archivo según el paso 7.2. Si el puerto 3000 está ocupado, cerrar el otro servidor de ReFind que esté abierto.
+
 ## 8. Comunicar el resultado
 
 **Para qué:** dejar constancia de que tu equipo puede ejecutar las comprobaciones.

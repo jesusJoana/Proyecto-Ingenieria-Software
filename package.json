@@ -16,7 +16,10 @@
     "check:tests:browser": "playwright test --config playwright.setup.config.js",
     "db:migrate": "node scripts/migrate.js development",
     "db:migrate:test": "node scripts/migrate.js test",
-    "db:migrate:e2e": "node scripts/migrate.js e2e"
+    "db:migrate:e2e": "node scripts/migrate.js e2e",
+    "dev": "node --watch src/server.js development",
+    "start:e2e": "node src/server.js e2e",
+    "test": "vitest run"
   },
   "repository": {
     "type": "git",
