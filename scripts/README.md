@@ -1,5 +1,7 @@
 # Comprobación del entorno de ReFind
 
+Para crear una **VM Windows nueva e instalar el entorno mediante scripts**, sigue el [Manual de la máquina virtual](../docs/Manual_VM_ReFind.md), desde la creación de la VM hasta la verificación final.
+
 Guía común para todos los integrantes. **Estado: scripts preparados; ejecución y validación pendientes.**
 
 ## Antes de ejecutar

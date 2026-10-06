@@ -1,0 +1,9 @@
+{
+  "git": "2.55.0.windows.5",
+  "gitRelease": "2.55.0.windows.5",
+  "vscode": "1.139.0",
+  "postgres": "17.11",
+  "postgresInstaller": "postgresql-17.11-1-windows-x64.exe",
+  "pgadmin": "9.17",
+  "extensions": ["dbaeumer.vscode-eslint@3.0.34", "esbenp.prettier-vscode@12.4.0", "ms-playwright.playwright@1.1.19"]
+}
