@@ -27,6 +27,13 @@ Check 'No cambia un archivo local preexistente distinto' {
 }
 Check 'Genera secretos distintos y aptos para URL/optionfile' { $a=New-HexSecret; $b=New-HexSecret; if ($a -notmatch '^[0-9a-f]{64}$' -or $a -eq $b) { throw 'Secreto invalido' } }
 Check 'Un codigo de salida fallido no se marca como exito' { Expect-Failure { Assert-ExitCode 7 'prueba' }; Assert-ExitCode 0 'prueba' }
+Check 'Version VS Code se obtiene del ejecutable sin depender de su package.json interno' {
+    $codeVersion='1.139.0'
+    function Get-Item($LiteralPath) { if ($LiteralPath -ne 'C:\ReFind\Tools\Code\Code.exe') { throw 'Ruta incorrecta' }; return @{VersionInfo=@{ProductVersion=$codeVersion}} }
+    Assert-CodeVersion 'C:\ReFind\Tools\Code\Code.exe' '1.139.0'
+    $codeVersion='1.139.0+build'; Assert-CodeVersion 'C:\ReFind\Tools\Code\Code.exe' '1.139.0'
+    foreach ($codeVersion in @('1.139.01','1.138.0','','1.139.0-insider')) { Expect-Failure { Assert-CodeVersion 'C:\ReFind\Tools\Code\Code.exe' '1.139.0' } }
+}
 Check 'Rutas con espacios, corchetes y acentos no se interpretan como comodines' {
     $dir=Join-Path $env:TEMP ('refind-path-'+[guid]::NewGuid().ToString('N'))
     $project=Join-Path $dir ('ReFind [prueba] '+[char]0x00f1)

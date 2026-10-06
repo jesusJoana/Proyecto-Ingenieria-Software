@@ -22,6 +22,13 @@ function Assert-ChildPath([string]$Parent,[string]$Child) {
     if (!$path.StartsWith($base,[StringComparison]::OrdinalIgnoreCase)) { throw 'Ruta fuera de la carpeta permitida.' }
 }
 function Assert-ExitCode([int]$Code,[string]$Label) { if ($Code -ne 0) { throw "$Label fallo (codigo $Code). Corregir y repetir; no se marca terminado." } }
+function Assert-CodeVersion([string]$CodeExe,[string]$Expected) {
+    # El contenido interno puede estar empaquetado; no depender de resources/app/package.json.
+    $actual=(Get-Item -LiteralPath $CodeExe -ErrorAction Stop).VersionInfo.ProductVersion
+    if (!$actual -or $actual -notmatch ('^'+[regex]::Escape($Expected)+'(?:$|[\s+])')) {
+        throw "Version VS Code incorrecta: esperada $Expected; ejecutable $actual."
+    }
+}
 function Invoke-Native([string]$File,[string[]]$Arguments) { & $File @Arguments; Assert-ExitCode $LASTEXITCODE ([IO.Path]::GetFileName($File)) }
 function New-HexSecret {
     $bytes=New-Object byte[] 32; $rng=[Security.Cryptography.RandomNumberGenerator]::Create()

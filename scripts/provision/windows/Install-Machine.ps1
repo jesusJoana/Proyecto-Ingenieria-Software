@@ -72,8 +72,7 @@ if (!(Test-Path -LiteralPath (Join-Path $codeHome 'Code.exe'))) {
     Expand-Archive -LiteralPath $zip -DestinationPath $codeHome -Force
 }
 Assert-Signature (Join-Path $codeHome 'Code.exe') 'Microsoft Corporation'
-$actual=Get-Content -LiteralPath (Join-Path $codeHome 'resources\app\package.json') -Raw | ConvertFrom-Json
-if ($actual.version -ne $versions.vscode) { throw 'Version VS Code incorrecta.' }
+Assert-CodeVersion (Join-Path $codeHome 'Code.exe') $versions.vscode
 Write-Host '4/4 PostgreSQL propio, sin Stack Builder'
 $service=Get-CimInstance Win32_Service -Filter "Name='postgresql-refind-17'"
 if (!$service) {
