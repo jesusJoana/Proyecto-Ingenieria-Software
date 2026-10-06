@@ -126,48 +126,51 @@ Utiliza la misma cuenta Windows para desarrollar y para elevar permisos con **Ej
 
 **Resultado:** aparece el escritorio de Windows dentro de la VM.
 
-### 3.6. Actualizar y preparar la copia de partida
+### 3.6. Terminar la preparación de Windows
 
 1. Dentro de la VM, abre **Inicio → Configuración → Windows Update → Buscar actualizaciones**. Instala las actualizaciones y reinicia cuando lo solicite.
-2. En **Configuración → Sistema → Activación**, comprueba el estado de la evaluación con la VM conectada a Internet. La evaluación dura 90 días; no es una licencia permanente.
-3. En el menú superior de la ventana de VirtualBox, selecciona **Dispositivos → Insertar imagen de CD de las Guest Additions**.
-4. Dentro de la VM, abre **Explorador de archivos → Este equipo → Unidad de CD de VirtualBox Guest Additions**. Ejecuta `VBoxWindowsAdditions.exe`, acepta la elevación, completa el asistente y reinicia.
-5. Apaga Windows desde **Inicio → Encendido → Apagar**.
-6. En el administrador de VirtualBox del anfitrión, selecciona la VM apagada, abre **Instantáneas / Snapshots**, pulsa **Tomar** y escribe `Windows-limpio`.
+2. En **Configuración → Sistema → Activación**, comprueba la evaluación con conexión a Internet.
+3. Cuando llegues al escritorio y puedas navegar por Internet, continúa con el apartado 4.
 
-**Comprobación:** la VM inicia Windows y permite navegar por Internet. Esta instantánea permite repetir la prueba desde cero sin afectar al anfitrión.
+**Opcional:** puedes instalar Guest Additions para mejorar la integración con VirtualBox y guardar una instantánea `Windows-limpio` con la VM apagada. No son necesarios para descargar ReFind con Git. No necesitas carpetas compartidas ni trasladar un ZIP.
 
-## 4. Preparar el paquete del proyecto — anfitrión
+## 4. Instalar Git — dentro de la VM
 
-**Para qué:** llevar a la VM el código actual, incluidos estos scripts aunque todavía no se hayan subido a GitHub.
+**Para qué:** descargar ReFind desde el repositorio.
 
-Abre una terminal PowerShell normal en la raíz del proyecto, donde está `package.json`. Ejecuta:
-
-```powershell
-New-Item -ItemType Directory -Path "$env:USERPROFILE\ReFindEntrega" -Force
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\provision\windows\Export-Bundle.ps1 -Destination "$env:USERPROFILE\ReFindEntrega\ReFind-VM.zip"
-```
-
-**Resultado:** `OK:` seguido de la ruta del ZIP. Si ya existe, elige otro nombre de ZIP; el script no lo reemplaza.
-
-El paquete incluye el historial Git y los archivos de trabajo, con los cambios todavía sin commit. Excluye del contenido de trabajo los `.env` reales, dependencias y archivos ignorados. El historial Git se conserva tal como existe: utiliza el paquete únicamente para trasladar tu proyecto a tu VM.
-
-## 5. Copiar y extraer el paquete — VM
-
-1. Con la VM apagada, abre **Configuración → Carpetas compartidas → Añadir**.
-2. Selecciona la carpeta `ReFindEntrega` creada en tu perfil del anfitrión.
-3. Pon como nombre compartido **ReFindEntrega** y marca **Solo lectura**. No compartas todo tu disco ni tu carpeta de usuario.
-4. Inicia la VM. Abre el Explorador y escribe `\\VBOXSVR\ReFindEntrega` en su barra de direcciones.
-5. Copia `ReFind-VM.zip` a **Descargas de la VM**.
-6. En la VM, abre **Windows PowerShell como usuario normal**, desde cualquier carpeta, y ejecuta:
+1. Desde el navegador de la VM, abre la [descarga oficial de Git for Windows 2.55.0.windows.5](https://github.com/git-for-windows/git/releases/tag/v2.55.0.windows.5).
+2. En **Assets**, descarga `Git-2.55.0.5-64-bit.exe`.
+3. Ejecuta el instalador y acepta la elevación. Conserva las opciones predeterminadas; en la selección de PATH, deja **Git from the command line and also from 3rd-party software**.
+4. Finaliza el instalador. Abre una **nueva Windows PowerShell normal** dentro de la VM y ejecuta:
 
 ```powershell
-Unblock-File -LiteralPath "$env:USERPROFILE\Downloads\ReFind-VM.zip"
-Expand-Archive -LiteralPath "$env:USERPROFILE\Downloads\ReFind-VM.zip" -DestinationPath 'C:\ReFind\Entrega'
-Test-Path 'C:\ReFind\Entrega\workspace\scripts\provision\windows\Install-Machine.ps1'
+git --version
 ```
 
-**Resultado:** `True`. Si cambiaste el nombre del ZIP, sustituye ese nombre en los dos comandos anteriores. La carpeta `Entrega` debe estar vacía o no existir antes de extraer.
+**Resultado esperado:** `git version 2.55.0.windows.5`. Si no reconoce Git, cierra y vuelve a abrir la terminal.
+
+Este Git permite descargar el proyecto. El instalador de ReFind preparará después su copia aislada de Git en `C:\ReFind\Tools\Git`, que será la utilizada por los scripts.
+
+## 5. Descargar ReFind con git clone — VM, usuario normal
+
+**Antes:** el responsable debe haber publicado en GitHub este manual y los scripts de `scripts/provision/windows`. `git clone` no descarga cambios que solo existen en su ordenador. Esta edición del manual no realiza commit ni push.
+
+En Windows PowerShell normal, dentro de la VM, ejecuta uno a uno:
+
+```powershell
+New-Item -ItemType Directory -Path 'C:\ReFind' -Force
+Set-Location -LiteralPath 'C:\ReFind'
+git clone https://github.com/jesusJoana/Proyecto-Ingenieria-Software.git Origen
+Set-Location -LiteralPath 'C:\ReFind\Origen'
+Test-Path '.\scripts\provision\windows\Install-Machine.ps1'
+Test-Path '.\scripts\provision\windows\Prepare-Project.ps1'
+```
+
+**Resultado:** el clonado termina sin errores y las dos comprobaciones devuelven `True`. Si el repositorio requiere autenticación, inicia sesión con tu cuenta autorizada de GitHub. Si devuelve `False`, faltan scripts en la rama descargada: no continúes hasta que estén publicados. Si se publicaron en otra rama, selecciona esa rama con `git switch NOMBRE_DE_RAMA` antes de comprobar los archivos.
+
+`C:\ReFind\Origen` contiene la descarga inicial. Déjala sin modificar. El apartado 7 preparará la copia de trabajo en **`C:\ReFind\Proyecto`**, con el mismo commit y la misma rama. No clones directamente en `Proyecto`: esa carpeta la prepara el instalador.
+
+Si `Origen` ya existe, no clones encima ni borres su contenido. Para actualizar una copia limpia, entra en esa carpeta y ejecuta `git pull --ff-only`; si falla, revisa el mensaje antes de continuar.
 
 ## 6. Instalar herramientas y PostgreSQL — VM, administrador
 
@@ -176,7 +179,7 @@ Test-Path 'C:\ReFind\Entrega\workspace\scripts\provision\windows\Install-Machine
 En el Inicio de Windows de la VM, busca **Windows PowerShell**, pulsa **Ejecutar como administrador** y acepta UAC con tu misma cuenta. Desde cualquier carpeta:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\ReFind\Entrega\workspace\scripts\provision\windows\Install-Machine.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\ReFind\Origen\scripts\provision\windows\Install-Machine.ps1
 ```
 
 El script descarga y prepara:
@@ -205,12 +208,12 @@ Si aparece un error, no continúes al apartado 7. Consulta el apartado 12. Al te
 Abre una nueva **Windows PowerShell normal**, con la misma cuenta Windows. Desde cualquier carpeta:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\ReFind\Entrega\workspace\scripts\provision\windows\Prepare-Project.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\ReFind\Origen\scripts\provision\windows\Prepare-Project.ps1
 ```
 
 Este script realiza, por orden:
 
-1. Recupera el proyecto y su historial en `C:\ReFind\Proyecto`, conservando los cambios incluidos en el paquete.
+1. Crea la copia de trabajo en `C:\ReFind\Proyecto` desde `Origen`, conservando su rama y commit y configurando GitHub como remoto. Al repetir, utiliza la copia de trabajo existente.
 2. Ejecuta `npm ci --include=dev` y comprueba las herramientas del proyecto.
 3. Crea las tres bases, sus roles y sus permisos; comprueba las seis conexiones cruzadas, que deben rechazarse.
 4. Escribe los tres `.env` con claves nuevas, y comprueba que Git los ignora.
@@ -232,7 +235,7 @@ Los tres archivos quedan en la raíz del proyecto. No debes crearlos a mano ni c
 Si Chromium falla por descarga, ejecuta el mismo paso con la alternativa IPv4:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\ReFind\Entrega\workspace\scripts\provision\windows\Prepare-Project.ps1 -IPv4
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\ReFind\Origen\scripts\provision\windows\Prepare-Project.ps1 -IPv4
 ```
 
 La alternativa afecta únicamente al proceso de descarga y restaura `NODE_OPTIONS` al terminar. No desactiva la comprobación de certificados.
@@ -268,7 +271,7 @@ git config --local user.email "TU CORREO"
 git status --short
 ```
 
-Los cambios locales trasladados en el ZIP seguirán apareciendo como cambios. El procedimiento no hace commit ni push. La autenticación de tu cuenta de GitHub se realiza cuando la necesites; no se copian credenciales del anfitrión.
+El procedimiento no hace commit ni push. La autenticación de tu cuenta de GitHub se realiza cuando la necesites; no se copian credenciales del anfitrión.
 
 ### 8.2. Comprobar pgAdmin
 
@@ -380,7 +383,7 @@ Puedes repetir los apartados 6 y 7 después de corregir un fallo recuperable: co
 
 | Archivo en `scripts/provision/windows` | Función |
 | --- | --- |
-| `Export-Bundle.ps1` | Empaquetar el proyecto en el anfitrión. |
+| `Export-Bundle.ps1` | Alternativa de exportación anterior; no se utiliza en este recorrido con Git. |
 | `Install-Machine.ps1` | Instalar herramientas y servicio PostgreSQL en la VM. |
 | `Prepare-Project.ps1` | Preparar proyecto, tres entornos, migraciones, editor y ejecutores. |
 | `Enter-Environment.ps1` | Seleccionar herramientas para la terminal actual. |

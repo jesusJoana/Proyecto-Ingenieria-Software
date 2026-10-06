@@ -14,7 +14,21 @@ $bundleRoot=(Resolve-Path "$PSScriptRoot\..\..\..\..").Path
 $infoFile=Join-Path $bundleRoot 'bundle.json'
 $ready=Join-Path $p.Private 'project-ready.json'
 if (!(Test-Path -LiteralPath $ready)) {
-    if (!(Test-Path $infoFile)) { throw 'Ejecutar este paso desde Entrega\workspace\scripts\provision\windows del ZIP exportado.' }
+    if (!(Test-Path $infoFile)) {
+        # Recorrido git clone: usar el commit de la copia descargada, sin otro pull.
+        $source=(Resolve-Path "$PSScriptRoot\..\..\..").Path
+        if (!(Test-Path (Join-Path $source '.git'))) { throw 'Se necesita una copia clonada del repositorio.' }
+        if (@(Get-ChildItem -LiteralPath $p.Project -Force).Count) { throw 'Proyecto no vacio sin recibo. Se conserva para revision.' }
+        $changes=@(& git -C $source status --porcelain); Assert-ExitCode $LASTEXITCODE 'Estado de origen'
+        if ($changes.Count) { throw 'La copia de origen tiene cambios sin commit. Se conserva; usar una copia limpia publicada.' }
+        $remote=& git -C $source remote get-url origin; Assert-ExitCode $LASTEXITCODE 'Remoto de origen'
+        $commit=& git -C $source rev-parse HEAD; Assert-ExitCode $LASTEXITCODE 'Commit de origen'
+        $branch=& git -C $source branch --show-current; Assert-ExitCode $LASTEXITCODE 'Rama de origen'
+        if (!$branch) { throw 'La copia de origen debe estar en una rama.' }
+        Invoke-Native git @('clone','--no-hardlinks','--branch',$branch,$source,$p.Project)
+        Invoke-Native git @('-C',$p.Project,'remote','set-url','origin',$remote)
+        @{ Root=$p.Project; SourceCommit=$commit } | ConvertTo-Json | Set-Content -LiteralPath $ready -Encoding UTF8
+    } else {
     $info=Get-Content $infoFile -Raw | ConvertFrom-Json
     if (@(Get-ChildItem -LiteralPath $p.Project -Force).Count) { throw 'Proyecto no vacio sin recibo. Se conserva. Si hubo fallo al clonar, revisar antes de repetir.' }
     Invoke-Native git @('clone','--branch',$info.Branch,(Join-Path $bundleRoot 'repository.bundle'),$p.Project)
@@ -27,6 +41,7 @@ if (!(Test-Path -LiteralPath $ready)) {
     foreach ($relative in $info.Deleted) { $dest=Join-Path $p.Project $relative; Assert-ChildPath $p.Project $dest; if (Test-Path -LiteralPath $dest -PathType Leaf) { Remove-Item -LiteralPath $dest } }
     Invoke-Native git @('-C',$p.Project,'remote','set-url','origin',$info.Remote)
     @{ Root=$p.Project; SourceCommit=$info.Commit } | ConvertTo-Json | Set-Content -LiteralPath $ready -Encoding UTF8
+    }
 }
 $projectReceipt=Get-Content -LiteralPath $ready -Raw | ConvertFrom-Json
 if ($projectReceipt.Root -ne $p.Project -or !(Test-Path (Join-Path $p.Project '.git')) -or !(Test-Path (Join-Path $p.Project 'package-lock.json'))) { throw 'Recibo o proyecto incompleto. Se conserva para revision.' }
