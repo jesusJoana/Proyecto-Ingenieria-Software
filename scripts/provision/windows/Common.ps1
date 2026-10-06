@@ -1,6 +1,13 @@
 # Funciones compartidas. Importar este archivo no instala ni cambia el sistema.
 Set-StrictMode -Version Latest
 $ErrorActionPreference='Stop'
+function Resolve-ProjectRoot([string]$ScriptDirectory,[string]$SourceRoot) {
+    # Resolver despues de param: nunca depender de la carpeta de la terminal.
+    if ([string]::IsNullOrWhiteSpace($SourceRoot)) { $SourceRoot=Join-Path $ScriptDirectory '..\..\..' }
+    $resolved=(Resolve-Path -LiteralPath $SourceRoot -ErrorAction Stop).Path
+    if (!(Test-Path -LiteralPath (Join-Path $resolved 'package.json') -PathType Leaf)) { throw "No hay package.json en $resolved. Indicar -SourceRoot con la raiz de ReFind." }
+    return $resolved
+}
 function Assert-GuestIdentity($Manufacturer,$Model,[int]$Build,[bool]$X64) {
     if ($Model -ne 'VirtualBox' -or $Manufacturer -notmatch 'Oracle|innotek') { throw 'Solo se permite ejecutar dentro de una VM VirtualBox. No ejecutar en el anfitrion.' }
     if ($Build -lt 22000 -or !$X64) { throw 'Se necesita Windows 11 x64 en la VM.' }
@@ -69,9 +76,12 @@ function Install-Exe([string]$Path,[string[]]$Arguments) {
     Assert-ExitCode $process.ExitCode ([IO.Path]::GetFileName($Path))
 }
 function Use-Tools {
-    $p=Get-SetupPaths; $manifest=Get-Content -LiteralPath (Join-Path $PSScriptRoot 'versions.json') -Raw | ConvertFrom-Json
+    $p=Get-SetupPaths
     $nodeFolders=@(Get-ChildItem -LiteralPath (Join-Path $p.Tools 'Node') -Directory -ErrorAction Stop)
     if ($nodeFolders.Count -ne 1) { throw 'Instalacion Node ambigua o incompleta.' }
+    foreach ($file in @((Join-Path $nodeFolders[0].FullName 'node.exe'),(Join-Path $nodeFolders[0].FullName 'npm.cmd'),(Join-Path $p.Tools 'Git\cmd\git.exe'),(Join-Path $p.Tools 'Code\bin\code.cmd'))) {
+        if (!(Test-Path -LiteralPath $file -PathType Leaf)) { throw "Falta herramienta: $file. Completar Install-Machine.ps1 antes de continuar." }
+    }
     $env:PATH=$nodeFolders[0].FullName+';'+(Join-Path $p.Tools 'Git\cmd')+';'+(Join-Path $p.Tools 'Code\bin')+';'+$env:PATH
     return $nodeFolders[0].FullName
 }

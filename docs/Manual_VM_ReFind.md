@@ -179,8 +179,10 @@ Si `Origen` ya existe, no clones encima ni borres su contenido. Para actualizar 
 En el Inicio de Windows de la VM, busca **Windows PowerShell**, pulsa **Ejecutar como administrador** y acepta UAC con tu misma cuenta. Desde cualquier carpeta:
 
 ```powershell
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\ReFind\Origen\scripts\provision\windows\Install-Machine.ps1
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File C:\ReFind\Origen\scripts\provision\windows\Install-Machine.ps1 -SourceRoot C:\ReFind\Origen
 ```
+
+`-SourceRoot` indica la carpeta que contiene `package.json`, independientemente de la carpeta actual de la terminal. Si una copia anterior del script busca `C:\package.json`, repite con el comando completo de arriba; ese fallo ocurre antes de instalar herramientas.
 
 El script descarga y prepara:
 

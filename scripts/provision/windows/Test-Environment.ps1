@@ -4,7 +4,7 @@
 Assert-Guest
 if (Test-Admin) { throw 'Ejecutar las pruebas como usuario normal.' }
 $p=Get-SetupPaths; $null=Use-Tools; $null=Assert-ManagedService
-Push-Location $p.Project
+Push-Location -LiteralPath $p.Project
 try {
     Invoke-DatabaseHelper $p.Project 'verify'
     foreach ($script in @('check:env','check:db','check:tests','verify')) { Invoke-Native npm.cmd @('run',$script) }

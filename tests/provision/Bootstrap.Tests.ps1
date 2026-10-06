@@ -4,6 +4,16 @@ $ErrorActionPreference = 'Stop'
 $script:Passed = 0
 function Check($Name, [scriptblock]$Body) { & $Body; $script:Passed++; Write-Host "OK: $Name" }
 function Expect-Failure([scriptblock]$Body) { $failed=$false; try { & $Body } catch { $failed=$true }; if (!$failed) { throw 'Se esperaba rechazo.' } }
+Check 'Resuelve package.json desde el script aunque la terminal este en C:\' {
+    $scripts=(Resolve-Path "$PSScriptRoot\..\..\scripts\provision\windows").Path
+    $expected=(Resolve-Path "$PSScriptRoot\..\..").Path
+    Push-Location 'C:\'
+    try {
+        if ((Resolve-ProjectRoot $scripts '') -ne $expected) { throw 'Raiz incorrecta' }
+        if ((Resolve-ProjectRoot $scripts $expected) -ne $expected) { throw 'Raiz explicita incorrecta' }
+        Expect-Failure { Resolve-ProjectRoot $scripts 'C:\' }
+    } finally { Pop-Location }
+}
 Check 'Rechaza el anfitrion fisico antes de instalar' { Expect-Failure { Assert-GuestIdentity 'Dell' 'Latitude' 26200 $true } }
 Check 'Acepta Windows 11 x64 en VirtualBox' { Assert-GuestIdentity 'Oracle Corporation' 'VirtualBox' 26200 $true }
 Check 'Rechaza Windows antiguo o arquitectura distinta' { Expect-Failure { Assert-GuestIdentity 'Oracle' 'VirtualBox' 19045 $true }; Expect-Failure { Assert-GuestIdentity 'Oracle' 'VirtualBox' 26200 $false } }
@@ -17,6 +27,35 @@ Check 'No cambia un archivo local preexistente distinto' {
 }
 Check 'Genera secretos distintos y aptos para URL/optionfile' { $a=New-HexSecret; $b=New-HexSecret; if ($a -notmatch '^[0-9a-f]{64}$' -or $a -eq $b) { throw 'Secreto invalido' } }
 Check 'Un codigo de salida fallido no se marca como exito' { Expect-Failure { Assert-ExitCode 7 'prueba' }; Assert-ExitCode 0 'prueba' }
+Check 'Rutas con espacios, corchetes y acentos no se interpretan como comodines' {
+    $dir=Join-Path $env:TEMP ('refind-path-'+[guid]::NewGuid().ToString('N'))
+    $project=Join-Path $dir ('ReFind [prueba] '+[char]0x00f1)
+    $scripts=Join-Path $project 'scripts\provision\windows'
+    New-Item -ItemType Directory -Path $scripts -Force | Out-Null
+    try {
+        Write-Utf8 (Join-Path $project 'package.json') '{}'
+        Push-Location 'C:\'
+        try { if ((Resolve-ProjectRoot $scripts '') -ne $project) { throw 'Ruta especial incorrecta' } }
+        finally { Pop-Location }
+    } finally { Assert-ChildPath $env:TEMP $dir; Remove-Item -LiteralPath $dir -Recurse -Force }
+}
+Check 'No selecciona un Node incompleto ni ejecutables heredados del PATH' {
+    $dir=Join-Path $env:TEMP ('refind-tools-'+[guid]::NewGuid().ToString('N'))
+    $nodeHome=Join-Path $dir 'Node\node-prueba'
+    New-Item -ItemType Directory -Path $nodeHome -Force | Out-Null
+    function Get-SetupPaths { @{Tools=$dir} }
+    $previous=$env:PATH
+    try {
+        Expect-Failure { Use-Tools }
+        if ($env:PATH -ne $previous) { throw 'PATH cambiado antes de validar' }
+        foreach ($relative in @('Node\node-prueba\node.exe','Node\node-prueba\npm.cmd','Git\cmd\git.exe','Code\bin\code.cmd')) {
+            $file=Join-Path $dir $relative
+            New-Item -ItemType Directory -Path ([IO.Path]::GetDirectoryName($file)) -Force | Out-Null
+            Write-Utf8 $file ''
+        }
+        if ((Use-Tools) -ne $nodeHome -or !$env:PATH.StartsWith($nodeHome+';')) { throw 'Herramientas incorrectas' }
+    } finally { $env:PATH=$previous; Assert-ChildPath $env:TEMP $dir; Remove-Item -LiteralPath $dir -Recurse -Force }
+}
 Check 'Todos los scripts son sintacticamente validos en Windows PowerShell' {
     foreach ($file in (Get-ChildItem "$PSScriptRoot\..\..\scripts\provision\windows\*.ps1")) {
         $tokens=$null; $errors=$null

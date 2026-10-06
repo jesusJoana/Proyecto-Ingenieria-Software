@@ -13,6 +13,9 @@ No instala herramientas, abre conexiones de base de datos ni modifica servicios.
 | `Bootstrap.Tests.ps1` | Rechazo de equipos ajenos a VirtualBox, sistema y arquitectura; límites de rutas; conservación de archivos diferentes; secretos aleatorios; propagación de errores; sintaxis PowerShell de los scripts. |
 | `database-plan.test.mjs` | Tres entornos y claves distintas; rechazo de claves inválidas; identidad exacta de PostgreSQL; generación de SQL limitada a los roles previstos. |
 | `Export.Tests.ps1` | Exportación real a un ZIP temporal: historial, scripts y archivos del manifiesto presentes; credenciales locales y dependencias ausentes. Elimina el ZIP al terminar. |
+| `EntryPaths.Tests.ps1` | Ejecuta los preámbulos reales de instalación y preparación desde `C:\` y otra carpeta, en una ruta con espacios, corchetes y acentos. Ejecuta también los puntos de entrada de terminal, verificación, persistencia y consulta de clave con servicios y secretos simulados. No ejecuta instaladores. |
+
+La revisión de rutas incluye selección de herramientas incompletas, resolución literal de carpetas y exportación con destino relativo. Los scripts JavaScript de comprobación y migración resuelven sus archivos respecto a `import.meta.url`; los comandos npm del aprovisionamiento se lanzan desde la carpeta del proyecto.
 
 Cada caso tiene un nombre o comentario que explica su finalidad. Las pruebas de lógica se escribieron primero y fallaron por ausencia de los módulos; después se implementaron los módulos y pasaron. La comprobación de sintaxis se añadió al completar los scripts.
 

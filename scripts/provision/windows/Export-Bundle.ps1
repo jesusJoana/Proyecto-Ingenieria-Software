@@ -5,14 +5,15 @@
 [CmdletBinding()]
 param([Parameter(Mandatory=$true)][string]$Destination)
 . "$PSScriptRoot\Common.ps1"
-$root=(Resolve-Path "$PSScriptRoot\..\..\..").Path
-$target=[IO.Path]::GetFullPath($Destination)
+$root=Resolve-ProjectRoot $PSScriptRoot ''
+# GetFullPath por si solo usa el directorio del proceso, distinto de Set-Location.
+$target=$ExecutionContext.SessionState.Path.GetUnresolvedProviderPathFromPSPath($Destination)
 if ($target.StartsWith($root.TrimEnd('\')+'\',[StringComparison]::OrdinalIgnoreCase)) { throw 'Guardar el ZIP fuera del repositorio.' }
 if (Test-Path -LiteralPath $target) { throw 'El ZIP ya existe. Elegir otro nombre.' }
 $temp=Join-Path $env:TEMP ('refind-export-'+[guid]::NewGuid().ToString('N'))
 New-Item -ItemType Directory -Path $temp | Out-Null
 $overlay=Join-Path $temp 'workspace'; New-Item -ItemType Directory -Path $overlay | Out-Null
-Push-Location $root
+Push-Location -LiteralPath $root
 try {
     Invoke-Native git @('bundle','create',(Join-Path $temp 'repository.bundle'),'--all')
     $files=@(& git -c core.quotepath=false ls-files --cached --others --exclude-standard); Assert-ExitCode $LASTEXITCODE 'Listado Git'

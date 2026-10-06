@@ -4,8 +4,11 @@ $ErrorActionPreference='Stop'
 Add-Type -AssemblyName System.IO.Compression.FileSystem
 $zip=Join-Path $env:TEMP ('refind-export-test-'+[guid]::NewGuid().ToString('N')+'.zip')
 try {
-    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$PSScriptRoot\..\..\scripts\provision\windows\Export-Bundle.ps1" -Destination $zip
-    if ($LASTEXITCODE -ne 0) { throw 'La exportacion fallo.' }
+    Push-Location -LiteralPath $env:TEMP
+    try {
+        # Ejecutar en el mismo proceso conserva la diferencia entre cwd .NET y PowerShell.
+        & "$PSScriptRoot\..\..\scripts\provision\windows\Export-Bundle.ps1" -Destination ([IO.Path]::GetFileName($zip))
+    } finally { Pop-Location }
     $archive=[IO.Compression.ZipFile]::OpenRead($zip)
     try {
         $entries=@{}

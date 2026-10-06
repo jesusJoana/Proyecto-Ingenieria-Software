@@ -9,7 +9,7 @@
   },
   "packageManager": "npm@11.19.0",
   "scripts": {
-    "check:provision": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/provision/Bootstrap.Tests.ps1 && node --test tests/provision/database-plan.test.mjs && powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/provision/Export.Tests.ps1",
+    "check:provision": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/provision/Bootstrap.Tests.ps1 && powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/provision/EntryPaths.Tests.ps1 && node --test tests/provision/database-plan.test.mjs && powershell.exe -NoProfile -ExecutionPolicy Bypass -File tests/provision/Export.Tests.ps1",
     "check:env": "node scripts/check-environment.js",
     "check:db": "node scripts/check-database.js",
     "check:tests": "npm run check:tests:http && npm run check:tests:browser",

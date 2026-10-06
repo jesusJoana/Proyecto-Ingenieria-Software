@@ -10,14 +10,14 @@ if (Test-Admin) { throw 'Cerrar terminal elevada y abrir Windows PowerShell COMO
 $p=Get-SetupPaths; $null=Use-Tools; $null=Get-Secrets
 $null=Assert-ManagedService
 if ((Get-Service $p.Service).Status -ne 'Running') { throw 'PostgreSQL no esta iniciado. Revisar fase 1.' }
-$bundleRoot=(Resolve-Path "$PSScriptRoot\..\..\..\..").Path
+$source=Resolve-ProjectRoot $PSScriptRoot ''
+$bundleRoot=Split-Path -Parent $source
 $infoFile=Join-Path $bundleRoot 'bundle.json'
 $ready=Join-Path $p.Private 'project-ready.json'
 if (!(Test-Path -LiteralPath $ready)) {
-    if (!(Test-Path $infoFile)) {
+    if (Test-Path -LiteralPath (Join-Path $source '.git')) {
         # Recorrido git clone: usar el commit de la copia descargada, sin otro pull.
-        $source=(Resolve-Path "$PSScriptRoot\..\..\..").Path
-        if (!(Test-Path (Join-Path $source '.git'))) { throw 'Se necesita una copia clonada del repositorio.' }
+        if (!(Test-Path -LiteralPath (Join-Path $source '.git'))) { throw 'Se necesita una copia clonada del repositorio.' }
         if (@(Get-ChildItem -LiteralPath $p.Project -Force).Count) { throw 'Proyecto no vacio sin recibo. Se conserva para revision.' }
         $changes=@(& git -C $source status --porcelain); Assert-ExitCode $LASTEXITCODE 'Estado de origen'
         if ($changes.Count) { throw 'La copia de origen tiene cambios sin commit. Se conserva; usar una copia limpia publicada.' }
@@ -29,7 +29,8 @@ if (!(Test-Path -LiteralPath $ready)) {
         Invoke-Native git @('-C',$p.Project,'remote','set-url','origin',$remote)
         @{ Root=$p.Project; SourceCommit=$commit } | ConvertTo-Json | Set-Content -LiteralPath $ready -Encoding UTF8
     } else {
-    $info=Get-Content $infoFile -Raw | ConvertFrom-Json
+    if (!(Test-Path -LiteralPath $infoFile -PathType Leaf)) { throw 'No hay repositorio Git ni paquete exportado en la ruta del script.' }
+    $info=Get-Content -LiteralPath $infoFile -Raw | ConvertFrom-Json
     if (@(Get-ChildItem -LiteralPath $p.Project -Force).Count) { throw 'Proyecto no vacio sin recibo. Se conserva. Si hubo fallo al clonar, revisar antes de repetir.' }
     Invoke-Native git @('clone','--branch',$info.Branch,(Join-Path $bundleRoot 'repository.bundle'),$p.Project)
     foreach ($relative in $info.Files) {
@@ -44,10 +45,10 @@ if (!(Test-Path -LiteralPath $ready)) {
     }
 }
 $projectReceipt=Get-Content -LiteralPath $ready -Raw | ConvertFrom-Json
-if ($projectReceipt.Root -ne $p.Project -or !(Test-Path (Join-Path $p.Project '.git')) -or !(Test-Path (Join-Path $p.Project 'package-lock.json'))) { throw 'Recibo o proyecto incompleto. Se conserva para revision.' }
-Push-Location $p.Project
+if ($projectReceipt.Root -ne $p.Project -or !(Test-Path -LiteralPath (Join-Path $p.Project '.git')) -or !(Test-Path -LiteralPath (Join-Path $p.Project 'package-lock.json'))) { throw 'Recibo o proyecto incompleto. Se conserva para revision.' }
+Push-Location -LiteralPath $p.Project
 try {
-    $manifest=Get-Content package.json -Raw | ConvertFrom-Json
+    $manifest=Get-Content -LiteralPath package.json -Raw | ConvertFrom-Json
     if ((& node --version) -ne ('v'+$manifest.engines.node) -or (& npm.cmd --version) -ne $manifest.packageManager.Substring(4)) { throw 'Node/npm no coinciden. Repetir fase 1 con la entrega correcta.' }
     Write-Host '1/6 Dependencias exactas del lockfile'
     Invoke-Native npm.cmd @('ci','--include=dev')
@@ -65,11 +66,11 @@ try {
         Invoke-Native node @('node_modules/playwright/cli.js','install','chromium','--only-shell')
     } finally { $env:NODE_OPTIONS=$previous }
     Write-Host '5/6 Editor y extensiones aisladas'
-    $versions=Get-Content "$PSScriptRoot\versions.json" -Raw | ConvertFrom-Json
+    $versions=Get-Content -LiteralPath "$PSScriptRoot\versions.json" -Raw | ConvertFrom-Json
     $userData=Join-Path $p.Private 'code-user'; $extensions=Join-Path $p.Private 'code-extensions'
     New-Item -ItemType Directory -Force -Path (Join-Path $userData 'User') | Out-Null
     $settings=Join-Path $userData 'User\settings.json'
-    if (!(Test-Path $settings)) { Write-Utf8 $settings '{"update.mode":"none","extensions.autoUpdate":false,"extensions.autoCheckUpdates":false,"terminal.integrated.defaultProfile.windows":"Windows PowerShell"}' }
+    if (!(Test-Path -LiteralPath $settings)) { Write-Utf8 $settings '{"update.mode":"none","extensions.autoUpdate":false,"extensions.autoCheckUpdates":false,"terminal.integrated.defaultProfile.windows":"Windows PowerShell"}' }
     $code=Join-Path $p.Tools 'Code\bin\code.cmd'
     foreach ($extension in $versions.extensions) { Invoke-Native $code @('--user-data-dir',$userData,'--extensions-dir',$extensions,'--install-extension',$extension) }
     $installed=@(& $code --user-data-dir $userData --extensions-dir $extensions --list-extensions --show-versions); Assert-ExitCode $LASTEXITCODE 'Extensiones'
