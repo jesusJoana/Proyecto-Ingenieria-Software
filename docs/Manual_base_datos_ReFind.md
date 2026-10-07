@@ -314,6 +314,7 @@ Las tablas de ReFind no se crean a mano en `psql` ni en pgAdmin. Están definida
 | --- | --- |
 | `001_create-users.js` | `users`: usuarios registrados |
 | `002_create-session.js` | `session`: sesiones de los usuarios conectados |
+| `003_add-public-profile.js` | Añade a `users` nombre de usuario único, edad, descripción, localidad y foto de perfil |
 
 **Dónde:** terminal Windows PowerShell de VS Code, en la carpeta del proyecto. PostgreSQL debe estar iniciado y el apartado 3.3 correcto.
 
@@ -346,7 +347,8 @@ Cada comando debe terminar así (con `test` y `e2e` en los otros dos):
 ```text
 development: aplicada 001_create-users
 development: aplicada 002_create-session
-development: 2 migraciones aplicadas.
+development: aplicada 003_add-public-profile
+development: 3 migraciones aplicadas.
 ```
 
 Si aparece `relation "users" already exists`, en esa base existe una tabla `users` creada a mano antes de las migraciones. Si no contiene datos que haya que conservar, eliminarla con el usuario de esa base y repetir el comando. Por ejemplo, en desarrollo:

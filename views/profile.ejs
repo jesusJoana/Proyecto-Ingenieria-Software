@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · ReFind</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/refind.css">
+  <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body class="home-page auth-page">
+  <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('partials/icons') %>
+  <header class="site-header">
+    <nav class="container d-flex align-items-center justify-content-between" aria-label="Navegación principal">
+      <a class="brand" href="/" aria-label="ReFind, inicio"><svg class="icon brand-mark" aria-hidden="true"><use href="#icon-brand"></use></svg>ReFind</a>
+      <a class="auth-home-link" href="/">Volver al inicio <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+  <main id="contenido" class="container auth-main">
+    <div class="auth-layout">
+      <aside class="auth-story" aria-label="Tu cuenta de ReFind">
+        <img src="/images/campus.webp" alt="" class="auth-campus">
+        <div class="auth-story-content">
+          <p class="eyebrow">Tu comunidad, más cerca</p>
+          <h2>Tu cuenta,<br><span>tu comunidad.</span></h2>
+          <p>Mantén actualizados tus datos para formar parte de ReFind.</p>
+          <div class="auth-story-note"><svg class="icon" aria-hidden="true"><use href="#icon-brand"></use></svg><span>Un lugar para encontrar.<br>Una comunidad para ayudar.</span></div>
+        </div>
+      </aside>
+      <section class="auth-panel" aria-labelledby="profile-title">
+        <div class="auth-form-heading">
+          <span class="auth-kicker">Gestiona tu cuenta</span>
+          <h1 id="profile-title">Mi perfil</h1>
+          <p>Consulta y actualiza los datos de tu cuenta.</p>
+        </div>
+        <% if (saved) { %>
+          <div class="alert alert-success" role="status">Tus datos se han actualizado correctamente.</div>
+        <% } %>
+        <% if (Object.keys(errors).length) { %>
+          <div class="alert alert-danger auth-errors" role="alert" tabindex="-1" id="form-errors">
+            <strong><%= errors.form || 'Revisa los campos indicados.' %></strong>
+            <% if (!errors.form) { %><ul class="mb-0 mt-1">
+              <% Object.entries(errors).forEach(([field, message]) => { %>
+                <li><a href="#<%= field %>"><%= message %></a></li>
+              <% }); %>
+            </ul><% } %>
+          </div>
+        <% } %>
+        <% if (avatarFilename) { %>
+          <div class="profile-avatar-preview mb-3">
+            <img src="/uploads/avatars/<%= avatarFilename %>" alt="Foto de perfil actual" width="112" height="112">
+          </div>
+        <% } %>
+        <form action="/perfil" method="post" enctype="multipart/form-data" class="auth-form" novalidate>
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <div class="row g-3">
+            <div class="col-12">
+              <label class="form-label" for="username">Nombre de usuario</label>
+              <input class="form-control <%= errors.username ? 'is-invalid' : '' %>" id="username" name="username" type="text" autocomplete="username" minlength="3" maxlength="30" pattern="[A-Za-z0-9][A-Za-z0-9_-]{1,28}[A-Za-z0-9]" required value="<%= values.username || '' %>" aria-invalid="<%= Boolean(errors.username) %>">
+              <div class="form-text">Este nombre forma parte de tu perfil público.</div>
+              <% if (errors.username) { %><div class="invalid-feedback d-block"><%= errors.username %></div><% } %>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="first_name">Nombre</label>
+              <input class="form-control <%= errors.first_name ? 'is-invalid' : '' %>" id="first_name" name="first_name" type="text" autocomplete="given-name" maxlength="100" required value="<%= values.first_name || '' %>" aria-invalid="<%= Boolean(errors.first_name) %>">
+              <% if (errors.first_name) { %><div class="invalid-feedback d-block"><%= errors.first_name %></div><% } %>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="last_name">Apellidos</label>
+              <input class="form-control <%= errors.last_name ? 'is-invalid' : '' %>" id="last_name" name="last_name" type="text" autocomplete="family-name" maxlength="150" required value="<%= values.last_name || '' %>" aria-invalid="<%= Boolean(errors.last_name) %>">
+              <% if (errors.last_name) { %><div class="invalid-feedback d-block"><%= errors.last_name %></div><% } %>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="email">Correo electrónico</label>
+              <input class="form-control <%= errors.email ? 'is-invalid' : '' %>" id="email" name="email" type="email" autocomplete="email" maxlength="254" required value="<%= values.email || '' %>" aria-invalid="<%= Boolean(errors.email) %>">
+              <% if (errors.email) { %><div class="invalid-feedback d-block"><%= errors.email %></div><% } %>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="organization">Organización <span class="optional-label">(opcional)</span></label>
+              <input class="form-control <%= errors.organization ? 'is-invalid' : '' %>" id="organization" name="organization" type="text" autocomplete="organization" maxlength="200" value="<%= values.organization || '' %>" aria-invalid="<%= Boolean(errors.organization) %>">
+              <% if (errors.organization) { %><div class="invalid-feedback d-block"><%= errors.organization %></div><% } %>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="age">Edad <span class="optional-label">(opcional)</span></label>
+              <input class="form-control <%= errors.age ? 'is-invalid' : '' %>" id="age" name="age" type="number" min="13" max="120" step="1" value="<%= values.age ?? '' %>" aria-invalid="<%= Boolean(errors.age) %>">
+              <% if (errors.age) { %><div class="invalid-feedback d-block"><%= errors.age %></div><% } %>
+            </div>
+            <div class="col-sm-6">
+              <label class="form-label" for="locality">Localidad <span class="optional-label">(opcional)</span></label>
+              <input class="form-control <%= errors.locality ? 'is-invalid' : '' %>" id="locality" name="locality" type="text" maxlength="100" autocomplete="address-level2" value="<%= values.locality || '' %>" aria-invalid="<%= Boolean(errors.locality) %>">
+              <% if (errors.locality) { %><div class="invalid-feedback d-block"><%= errors.locality %></div><% } %>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="description">Descripción <span class="optional-label">(opcional)</span></label>
+              <textarea class="form-control <%= errors.description ? 'is-invalid' : '' %>" id="description" name="description" rows="4" maxlength="500" aria-invalid="<%= Boolean(errors.description) %>"><%= values.description || '' %></textarea>
+              <div class="form-text">Máximo 500 caracteres.</div>
+              <% if (errors.description) { %><div class="invalid-feedback d-block"><%= errors.description %></div><% } %>
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="avatar">Foto de perfil <span class="optional-label">(opcional)</span></label>
+              <input class="form-control <%= errors.avatar ? 'is-invalid' : '' %>" id="avatar" name="avatar" type="file" accept="image/jpeg,image/png,image/webp" aria-invalid="<%= Boolean(errors.avatar) %>">
+              <div class="form-text">JPG, PNG o WebP; máximo 5 MB. Se optimiza como WebP.</div>
+              <% if (errors.avatar) { %><div class="invalid-feedback d-block"><%= errors.avatar %></div><% } %>
+            </div>
+            <% if (avatarFilename) { %>
+              <div class="col-12">
+                <div class="form-check">
+                  <input class="form-check-input" id="remove_avatar" name="remove_avatar" type="checkbox">
+                  <label class="form-check-label" for="remove_avatar">Eliminar la foto de perfil actual</label>
+                </div>
+              </div>
+            <% } %>
+          </div>
+          <button class="btn btn-teal auth-submit w-100" type="submit">Guardar cambios <span aria-hidden="true">→</span></button>
+        </form>
+        <p class="auth-switch"><a href="<%= publicProfileUrl %>">Ver mi perfil público</a></p>
+        <p class="auth-switch"><a href="/">Volver a ReFind</a></p>
+        <p class="auth-footnote">Objetos que vuelven a historias.</p>
+      </section>
+    </div>
+    <section class="profile-placeholder-grid" aria-label="Actividad del perfil">
+      <article class="profile-placeholder">
+        <h2>Objetos encontrados y perdidos</h2>
+        <p>Cuando estén disponibles las publicaciones, los objetos que publiques aparecerán aquí automáticamente.</p>
+      </article>
+      <article class="profile-placeholder">
+        <h2>Valoración</h2>
+        <p>El sistema de valoraciones todavía no está disponible.</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

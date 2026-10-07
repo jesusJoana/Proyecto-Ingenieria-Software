@@ -3,11 +3,13 @@ import { describe, expect, test } from 'vitest';
 import {
   registrationSchema,
   loginSchema,
+  profileSchema,
   formValues,
   fieldErrors,
 } from '../../src/auth/validation.js';
 
 const valid = {
+  username: 'ana_garcia',
   first_name: ' Ana ',
   last_name: ' García ',
   email: ' ANA@example.com ',
@@ -21,6 +23,7 @@ describe('Validación del registro', () => {
    * Qué comprueba: limpia espacios, normaliza correo y admite la organización opcional. */
   test('normaliza los datos válidos', () => {
     expect(registrationSchema.parse(valid)).toMatchObject({
+      username: 'ana_garcia',
       first_name: 'Ana',
       last_name: 'García',
       email: 'ana@example.com',
@@ -38,6 +41,9 @@ describe('Validación del registro', () => {
   /** Para qué sirve: impedir campos obligatorios vacíos y valores fuera de sus límites.
    * Qué comprueba: rechaza cada variante en el servidor, aunque el navegador la admita. */
   test.each([
+    ['username', 'ab'],
+    ['username', 'ana nombre'],
+    ['username', 'x'.repeat(31)],
     ['first_name', ' '],
     ['first_name', 'x'.repeat(101)],
     ['last_name', ''],
@@ -94,15 +100,19 @@ test('prepara valores públicos seguros para el formulario', () => {
     _csrf: 'secreto',
   });
   expect(result.first_name).toBe('');
-  expect(result.organization).toHaveLength(254);
+  expect(result.organization).toHaveLength(500);
   expect(result).not.toHaveProperty('password');
   expect(result).not.toHaveProperty('confirm_password');
   expect(result).not.toHaveProperty('_csrf');
   expect(formValues()).toEqual({
+    username: '',
     first_name: '',
     last_name: '',
     email: '',
     organization: '',
+    age: '',
+    description: '',
+    locality: '',
   });
 });
 
@@ -138,4 +148,74 @@ describe('Validación del acceso', () => {
   ])('rechaza credenciales inválidas (%j)', (values) =>
     expect(loginSchema.safeParse(values).success).toBe(false),
   );
+});
+
+describe('Validación del perfil', () => {
+  const profile = {
+    username: ' Ana_Garcia ',
+    first_name: ' Ana ',
+    last_name: ' García ',
+    email: ' ANA@example.com ',
+    organization: ' Universidad ',
+    age: '22',
+    description: ' Hola ',
+    locality: ' Madrid ',
+  };
+
+  test('normaliza los datos y los campos opcionales', () => {
+    expect(profileSchema.parse(profile)).toEqual({
+      username: 'ana_garcia',
+      first_name: 'Ana',
+      last_name: 'García',
+      email: 'ana@example.com',
+      organization: 'Universidad',
+      age: 22,
+      description: 'Hola',
+      locality: 'Madrid',
+      remove_avatar: false,
+    });
+    expect(
+      profileSchema.parse({ ...profile, organization: '' }).organization,
+    ).toBeNull();
+    expect(
+      profileSchema.parse({
+        ...profile,
+        age: '',
+        description: '',
+        locality: '',
+      }),
+    ).toMatchObject({ age: null, description: null, locality: null });
+  });
+
+  test.each([
+    ['username', 'invalid username'],
+    ['first_name', ' '],
+    ['first_name', 'x'.repeat(101)],
+    ['last_name', 'x'.repeat(151)],
+    ['email', 'correo-inválido'],
+    ['organization', 'x'.repeat(201)],
+    ['age', '12'],
+    ['age', '121'],
+    ['age', '20.5'],
+    ['description', 'x'.repeat(501)],
+    ['locality', 'x'.repeat(101)],
+  ])('rechaza datos inválidos del perfil (%s)', (field, value) => {
+    expect(
+      profileSchema.safeParse({ ...profile, [field]: value }).success,
+    ).toBe(false);
+  });
+
+  test('descarta campos internos y contraseñas enviados por el cliente', () => {
+    const result = profileSchema.parse({
+      ...profile,
+      id: '1',
+      avatarFilename: 'injected.webp',
+      password: 'no debe persistirse',
+      password_hash: 'no debe persistirse',
+    });
+    expect(result).not.toHaveProperty('id');
+    expect(result).not.toHaveProperty('password');
+    expect(result).not.toHaveProperty('password_hash');
+    expect(result).not.toHaveProperty('avatarFilename');
+  });
 });

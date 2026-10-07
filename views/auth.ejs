@@ -51,6 +51,7 @@
           <input type="hidden" name="_csrf" value="<%= csrf %>">
           <div class="row g-3">
             <% const fields = mode === 'register' ? [
+              { id: 'username', label: 'Nombre de usuario', type: 'text', auto: 'username', max: 30, half: true, help: 'Entre 3 y 30 caracteres: letras, números, guiones o guiones bajos.' },
               { id: 'first_name', label: 'Nombre', type: 'text', auto: 'given-name', max: 100, half: true },
               { id: 'last_name', label: 'Apellidos', type: 'text', auto: 'family-name', max: 150, half: true },
               { id: 'email', label: 'Correo electrónico', type: 'email', auto: 'email', max: 254 },

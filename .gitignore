@@ -145,3 +145,6 @@ vite.config.ts.timestamp-*
 # Informes locales de Playwright
 playwright-report/
 test-results/
+
+# Fotos de perfil subidas localmente
+/public/uploads/avatars/

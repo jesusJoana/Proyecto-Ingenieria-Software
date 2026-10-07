@@ -128,7 +128,7 @@ npm.cmd run db:migrate:test
 npm.cmd run db:migrate:e2e
 ```
 
-Crean las tablas de ReFind en las tres bases. Cada comando debe terminar con `2 migraciones aplicadas.` la primera vez y con `no hay migraciones pendientes.` si se repite. Si falla, o para comprobar las tablas creadas, seguir el [manual de base de datos, apartado 3.4](Manual_base_datos_ReFind.md#34-crear-las-tablas-con-las-migraciones).
+Crean las tablas y actualizan el esquema de ReFind en las tres bases. En una instalación nueva, cada comando debe terminar con `3 migraciones aplicadas.`; después de un `git pull`, se aplican solo las pendientes. Si se repite sin cambios, debe indicar `no hay migraciones pendientes.` Si falla, o para comprobar las tablas creadas, seguir el [manual de base de datos, apartado 3.4](Manual_base_datos_ReFind.md#34-crear-las-tablas-con-las-migraciones).
 
 Cuando después de `git pull` lleguen migraciones nuevas, volver a ejecutar estos tres comandos.
 

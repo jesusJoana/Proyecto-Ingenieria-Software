@@ -8,6 +8,7 @@ vi.mock('argon2', () => ({
 const query = vi.fn();
 const service = createAuthService({ query });
 const input = {
+  username: 'ana_garcia',
   first_name: 'Ana',
   last_name: 'García',
   email: 'ana@example.com',
@@ -22,7 +23,14 @@ describe('Registro de usuarios', () => {
   test('guarda un hash y devuelve solo datos públicos', async () => {
     argon2.hash.mockResolvedValue('$argon2id$hash-ficticio');
     query.mockResolvedValue({
-      rows: [{ id: '42', first_name: 'Ana', email: input.email }],
+      rows: [
+        {
+          id: '42',
+          username: input.username,
+          first_name: 'Ana',
+          email: input.email,
+        },
+      ],
     });
     const result = await service.register(input);
     expect(argon2.hash).toHaveBeenCalledWith(
@@ -33,6 +41,7 @@ describe('Registro de usuarios', () => {
     expect(sql).toContain('$1');
     expect(sql).not.toContain(input.email);
     expect(params).toEqual([
+      input.username,
       'Ana',
       'García',
       input.email,
@@ -53,6 +62,17 @@ describe('Registro de usuarios', () => {
     });
     await expect(service.register(input)).rejects.toMatchObject({
       code: 'EMAIL_EXISTS',
+    });
+  });
+
+  test('traduce el nombre de usuario duplicado', async () => {
+    argon2.hash.mockResolvedValue('$argon2id$hash');
+    query.mockRejectedValue({
+      code: '23505',
+      constraint: 'users_username_unique',
+    });
+    await expect(service.register(input)).rejects.toMatchObject({
+      code: 'USERNAME_EXISTS',
     });
   });
 
@@ -122,5 +142,81 @@ describe('Autenticación', () => {
     query.mockResolvedValue({ rows: [] });
     argon2.verify.mockResolvedValue(true);
     expect(await service.authenticate(input)).toBeNull();
+  });
+});
+
+describe('Gestión del perfil', () => {
+  test('obtiene solo los datos públicos de la cuenta', async () => {
+    const profile = {
+      id: '42',
+      username: 'ana_garcia',
+      first_name: 'Ana',
+      last_name: 'García',
+      email: input.email,
+      organization: 'Universidad',
+      age: 22,
+      description: 'Descripción',
+      locality: 'Madrid',
+      avatar_filename: 'image.webp',
+    };
+    query.mockResolvedValue({ rows: [profile] });
+    expect(await service.getProfile('42')).toEqual(profile);
+    expect(query.mock.calls[0][0]).toContain(
+      'SELECT id, username, first_name, last_name, email, organization',
+    );
+    expect(query.mock.calls[0][1]).toEqual(['42']);
+    expect(query.mock.calls[0][0]).not.toContain('password_hash');
+  });
+
+  test('actualiza el perfil con consulta parametrizada', async () => {
+    const profile = {
+      id: '42',
+      username: 'ana_garcia',
+      first_name: 'Ana',
+      last_name: 'García',
+      email: input.email,
+      organization: null,
+      age: 22,
+      description: 'Descripción',
+      locality: 'Madrid',
+      remove_avatar: false,
+      avatarFilename: 'new.webp',
+    };
+    query.mockResolvedValue({ rows: [profile] });
+    expect(await service.updateProfile('42', profile)).toEqual(profile);
+    expect(query.mock.calls[0][0]).toContain('updated_at = now()');
+    expect(query.mock.calls[0][1]).toEqual([
+      'ana_garcia',
+      'Ana',
+      'García',
+      input.email,
+      null,
+      22,
+      'Descripción',
+      'Madrid',
+      false,
+      'new.webp',
+      '42',
+    ]);
+  });
+
+  test('traduce un correo duplicado al actualizar', async () => {
+    query.mockRejectedValue({
+      code: '23505',
+      constraint: 'users_email_unique',
+    });
+    await expect(service.updateProfile('42', input)).rejects.toMatchObject({
+      code: 'EMAIL_EXISTS',
+    });
+  });
+
+  test('traduce un nombre de usuario duplicado al actualizar', async () => {
+    query.mockRejectedValue({
+      code: '23505',
+      constraint: 'users_username_unique',
+    });
+    await expect(service.updateProfile('42', input)).rejects.toMatchObject({
+      code: 'USERNAME_EXISTS',
+    });
   });
 });

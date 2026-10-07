@@ -20,9 +20,12 @@ export function createAuthService(pool) {
         const {
           rows: [user],
         } = await pool.query(
-          `INSERT INTO users (first_name, last_name, email, password_hash, organization)
-           VALUES ($1, $2, $3, $4, $5) RETURNING id, first_name, email`,
+          `INSERT INTO users
+             (username, first_name, last_name, email, password_hash, organization)
+           VALUES ($1, $2, $3, $4, $5, $6)
+           RETURNING id, username, first_name, email`,
           [
+            data.username,
             data.first_name,
             data.last_name,
             data.email,
@@ -39,6 +42,15 @@ export function createAuthService(pool) {
           throw Object.assign(
             new Error('Ya existe una cuenta con este correo.'),
             { code: 'EMAIL_EXISTS' },
+          );
+        }
+        if (
+          error.code === '23505' &&
+          error.constraint === 'users_username_unique'
+        ) {
+          throw Object.assign(
+            new Error('Ese nombre de usuario ya está en uso.'),
+            { code: 'USERNAME_EXISTS' },
           );
         }
         throw error;
@@ -58,6 +70,82 @@ export function createAuthService(pool) {
       );
       if (!user || !matches) return null;
       return { id: user.id, first_name: user.first_name, email: user.email };
+    },
+    async getProfile(userId) {
+      const {
+        rows: [user],
+      } = await pool.query(
+        `SELECT id, username, first_name, last_name, email, organization,
+                age, description, locality, avatar_filename
+         FROM users WHERE id = $1`,
+        [userId],
+      );
+      return user ?? null;
+    },
+    async updateProfile(userId, data) {
+      try {
+        const {
+          rows: [user],
+        } = await pool.query(
+          `UPDATE users
+           SET username = $1, first_name = $2, last_name = $3, email = $4,
+               organization = $5, age = $6, description = $7, locality = $8,
+               avatar_filename = CASE
+                 WHEN $9 AND $10::text IS NULL THEN NULL
+                 WHEN $10::text IS NOT NULL THEN $10::text
+                 ELSE avatar_filename
+               END,
+               updated_at = now()
+           WHERE id = $11
+           RETURNING id, username, first_name, last_name, email, organization,
+                     age, description, locality, avatar_filename`,
+          [
+            data.username,
+            data.first_name,
+            data.last_name,
+            data.email,
+            data.organization,
+            data.age,
+            data.description,
+            data.locality,
+            data.remove_avatar,
+            data.avatarFilename ?? null,
+            userId,
+          ],
+        );
+        return user ?? null;
+      } catch (error) {
+        if (
+          error.code === '23505' &&
+          error.constraint === 'users_email_unique'
+        ) {
+          throw Object.assign(
+            new Error('Ya existe una cuenta con este correo.'),
+            { code: 'EMAIL_EXISTS' },
+          );
+        }
+        if (
+          error.code === '23505' &&
+          error.constraint === 'users_username_unique'
+        ) {
+          throw Object.assign(
+            new Error('Ese nombre de usuario ya está en uso.'),
+            { code: 'USERNAME_EXISTS' },
+          );
+        }
+        throw error;
+      }
+    },
+    async getPublicProfile(username) {
+      const {
+        rows: [profile],
+      } = await pool.query(
+        `SELECT username, first_name, last_name, organization, age,
+                description, locality, avatar_filename
+         FROM users WHERE username = $1`,
+        [username],
+      );
+      return profile ?? null;
     },
   };
 }

@@ -2,6 +2,7 @@
 import { afterAll, describe, expect, test, vi } from 'vitest';
 import { randomUUID } from 'node:crypto';
 import argon2 from 'argon2';
+import sharp from 'sharp';
 import request from 'supertest';
 import { createApp } from '../../src/app.js';
 import { readConfig } from '../../src/config.js';
@@ -11,8 +12,10 @@ const users = [];
 const tokens = [];
 const payload = () => {
   const email = `auth-${randomUUID()}@example.test`;
+  const username = `user-${randomUUID().slice(0, 8)}`;
   emails.push(email);
   return {
+    username,
     first_name: 'Ana',
     last_name: 'García',
     email,
@@ -72,6 +75,163 @@ describe('Formularios reales', () => {
     expect((await agent.get('/')).text).not.toContain('Cerrar sesión');
   });
 
+  test('permite consultar y actualizar el perfil solo con sesión autenticada', async () => {
+    const data = payload();
+    const agent = request.agent(app);
+    await agent.get('/perfil').expect(401);
+
+    const registrationCsrf = await token(agent, '/registro');
+    await agent
+      .post('/registro')
+      .type('form')
+      .send({ ...data, _csrf: registrationCsrf })
+      .expect(303);
+    const loginCsrf = await token(agent, '/iniciar-sesion');
+    await agent
+      .post('/iniciar-sesion')
+      .type('form')
+      .send({ email: data.email, password: data.password, _csrf: loginCsrf })
+      .expect(303);
+
+    const profilePage = await agent.get('/perfil').expect(200);
+    expect(profilePage.text).toContain('value="Ana"');
+    expect(profilePage.text).toContain('value="García"');
+    const profileCsrf = profilePage.text.match(
+      /name="_csrf" value="([a-f0-9]+)"/,
+    )[1];
+    await agent
+      .post('/perfil')
+      .type('form')
+      .send({
+        _csrf: profileCsrf,
+        username: `public-${randomUUID().slice(0, 8)}`,
+        first_name: 'Ana María',
+        last_name: 'García',
+        email: data.email,
+        organization: 'CEU',
+        age: '22',
+        description: 'Me gusta ayudar a mi comunidad.',
+        locality: 'Madrid',
+        password_hash: 'ignorado',
+      })
+      .expect(303)
+      .expect('Location', '/perfil?guardado=ok');
+
+    const {
+      rows: [user],
+    } = await pool.query(
+      `SELECT username, first_name, last_name, email, organization, age,
+              description, locality, avatar_filename, password_hash
+       FROM users WHERE email=$1`,
+      [data.email],
+    );
+    expect(user).toMatchObject({
+      first_name: 'Ana María',
+      last_name: 'García',
+      email: data.email,
+      organization: 'CEU',
+      age: 22,
+      description: 'Me gusta ayudar a mi comunidad.',
+      locality: 'Madrid',
+      avatar_filename: null,
+    });
+    expect(user.password_hash).toMatch(/^\$argon2id\$/);
+    const publicPage = await request(app)
+      .get(`/u/${user.username}`)
+      .expect(200);
+    expect(publicPage.text).toContain('Ana María García');
+    expect(publicPage.text).toContain('@' + user.username);
+    expect(publicPage.text).toContain('Me gusta ayudar a mi comunidad.');
+    expect(publicPage.text).not.toContain(data.email);
+    await request(app).get(`/u/${user.username}-missing`).expect(404);
+    await agent
+      .get('/perfil?guardado=ok')
+      .expect(200)
+      .expect(/Tus datos se han actualizado/);
+  });
+
+  test('sube una foto de perfil validada y permite quitarla', async () => {
+    const data = payload();
+    const agent = request.agent(app);
+    const registrationCsrf = await token(agent, '/registro');
+    await agent
+      .post('/registro')
+      .type('form')
+      .send({ ...data, _csrf: registrationCsrf })
+      .expect(303);
+    const loginCsrf = await token(agent, '/iniciar-sesion');
+    await agent
+      .post('/iniciar-sesion')
+      .type('form')
+      .send({ email: data.email, password: data.password, _csrf: loginCsrf })
+      .expect(303);
+    const profilePage = await agent.get('/perfil').expect(200);
+    const profileCsrf = profilePage.text.match(
+      /name="_csrf" value="([a-f0-9]+)"/,
+    )[1];
+    const image = await sharp({
+      create: {
+        width: 20,
+        height: 20,
+        channels: 3,
+        background: '#227766',
+      },
+    })
+      .png()
+      .toBuffer();
+    await agent
+      .post('/perfil')
+      .field('_csrf', profileCsrf)
+      .field('username', data.username)
+      .field('first_name', data.first_name)
+      .field('last_name', data.last_name)
+      .field('email', data.email)
+      .field('organization', data.organization)
+      .attach('avatar', image, {
+        filename: 'profile.png',
+        contentType: 'image/png',
+      })
+      .expect(303);
+    const {
+      rows: [user],
+    } = await pool.query(
+      'SELECT username, avatar_filename FROM users WHERE email=$1',
+      [data.email],
+    );
+    expect(user.avatar_filename).toMatch(/^[a-f0-9-]{36}\.webp$/);
+    await request(app)
+      .get(`/uploads/avatars/${user.avatar_filename}`)
+      .expect(200)
+      .expect('Content-Type', /image\/webp/);
+    const updatedPage = await agent.get('/perfil').expect(200);
+    const removeCsrf = updatedPage.text.match(
+      /name="_csrf" value="([a-f0-9]+)"/,
+    )[1];
+    await agent
+      .post('/perfil')
+      .type('form')
+      .send({
+        _csrf: removeCsrf,
+        username: data.username,
+        first_name: data.first_name,
+        last_name: data.last_name,
+        email: data.email,
+        organization: data.organization,
+        remove_avatar: 'on',
+      })
+      .expect(303);
+    expect(
+      (
+        await pool.query('SELECT avatar_filename FROM users WHERE email=$1', [
+          data.email,
+        ])
+      ).rows[0].avatar_filename,
+    ).toBeNull();
+    await request(app)
+      .get(`/uploads/avatars/${user.avatar_filename}`)
+      .expect(404);
+  });
+
   /** Para qué sirve: evitar cuentas duplicadas sin distinguir mayúsculas.
    * Qué comprueba: devuelve 409 y mantiene una única fila tras el segundo intento. */
   test('rechaza un correo ya registrado', async () => {
@@ -98,6 +258,31 @@ describe('Formularios reales', () => {
       ).rows[0].total,
     ).toBe(1);
     expect(response.text).not.toContain(data.password);
+  });
+
+  test('rechaza nombres de usuario duplicados sin crear otra cuenta', async () => {
+    const agent = request.agent(app);
+    const original = payload();
+    const csrf = await token(agent, '/registro');
+    await agent
+      .post('/registro')
+      .type('form')
+      .send({ ...original, _csrf: csrf })
+      .expect(303);
+    const duplicate = payload();
+    const response = await agent
+      .post('/registro')
+      .type('form')
+      .send({ ...duplicate, username: original.username, _csrf: csrf })
+      .expect(409);
+    expect(response.text).toContain('Ese nombre de usuario ya está en uso');
+    expect(
+      (
+        await pool.query('SELECT id FROM users WHERE email=$1', [
+          duplicate.email,
+        ])
+      ).rows,
+    ).toHaveLength(0);
   });
 
   /** Para qué sirve: validar en servidor sin devolver contraseñas al formulario.

@@ -17,6 +17,16 @@ const password = z
 
 export const registrationSchema = z
   .object({
+    username: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .min(3, 'El nombre de usuario debe tener al menos 3 caracteres.')
+      .max(30, 'El nombre de usuario admite hasta 30 caracteres.')
+      .regex(
+        /^[a-z0-9](?:[a-z0-9_-]{1,28}[a-z0-9])$/,
+        'Usa letras, números, guiones o guiones bajos; empieza y termina con una letra o número.',
+      ),
     first_name: z
       .string()
       .trim()
@@ -50,12 +60,71 @@ export const loginSchema = z.object({
     .max(128, 'La contraseña admite hasta 128 caracteres.'),
 });
 
+export const profileSchema = z.object({
+  username: z
+    .string()
+    .trim()
+    .toLowerCase()
+    .min(3, 'El nombre de usuario debe tener al menos 3 caracteres.')
+    .max(30, 'El nombre de usuario admite hasta 30 caracteres.')
+    .regex(
+      /^[a-z0-9](?:[a-z0-9_-]{1,28}[a-z0-9])$/,
+      'Usa letras, números, guiones o guiones bajos; empieza y termina con una letra o número.',
+    ),
+  first_name: z
+    .string()
+    .trim()
+    .min(1, 'Introduce tu nombre.')
+    .max(100, 'El nombre admite hasta 100 caracteres.'),
+  last_name: z
+    .string()
+    .trim()
+    .min(1, 'Introduce tus apellidos.')
+    .max(150, 'Los apellidos admiten hasta 150 caracteres.'),
+  email,
+  organization: z
+    .string()
+    .trim()
+    .max(200, 'La organización admite hasta 200 caracteres.')
+    .optional()
+    .transform((value) => value || null),
+  age: z
+    .union([z.literal(''), z.coerce.number().int().min(13).max(120)])
+    .optional()
+    .transform((value) => (value === '' || value === undefined ? null : value)),
+  description: z
+    .string()
+    .trim()
+    .max(500, 'La descripción admite hasta 500 caracteres.')
+    .optional()
+    .transform((value) => value || null),
+  locality: z
+    .string()
+    .trim()
+    .max(100, 'La localidad admite hasta 100 caracteres.')
+    .optional()
+    .transform((value) => value || null),
+  remove_avatar: z
+    .enum(['on'])
+    .optional()
+    .transform((value) => Boolean(value)),
+});
+
 /** Conserva solo campos públicos para volver a dibujar el formulario tras un error. */
 export function formValues(body = {}) {
   return Object.fromEntries(
-    ['first_name', 'last_name', 'email', 'organization'].map((key) => [
+    [
+      'username',
+      'first_name',
+      'last_name',
+      'email',
+      'organization',
+      'age',
+      'description',
+      'locality',
+    ].map((key) => [
       key,
-      typeof body[key] === 'string' ? body[key].slice(0, 254) : '',
+      typeof body[key] === 'string' ? body[key].slice(0, 500) : '',
     ]),
   );
 }

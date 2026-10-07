@@ -5,10 +5,12 @@ import pg from 'pg';
 import { readConfig } from '../../src/config.js';
 const pool = new pg.Pool({ connectionString: readConfig('e2e').DATABASE_URL });
 let email;
+let username;
 const password = 'Una frase segura 42';
 const tokens = new Set();
 test.beforeEach(async ({ page }) => {
   email = `browser-${randomUUID()}@example.test`;
+  username = `browser-${randomUUID().slice(0, 8)}`;
   // Recoger tokens de nuestras propias respuestas para retirar sesiones anónimas de prueba.
   page.on('response', async (response) => {
     if (response.request().resourceType() !== 'document') return;
@@ -48,6 +50,7 @@ test.afterAll(async () => {
 });
 
 async function fillRegistration(page) {
+  await page.getByLabel('Nombre de usuario').fill(username);
   await page.getByLabel('Nombre', { exact: true }).fill('Ana');
   await page.getByLabel('Apellidos', { exact: true }).fill('García');
   await page.getByLabel('Correo electrónico', { exact: true }).fill(email);
@@ -87,11 +90,46 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   await expect(
     page.getByText('Sesión iniciada', { exact: true }),
   ).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Mi perfil' })).toBeVisible();
+  await expect(page.getByRole('link', { name: 'Mi perfil' })).toBeVisible();
   await expect(
     page.getByRole('button', { name: 'Cambiar contraseña' }),
   ).toBeVisible();
-  // Mientras no exista su página, Cambiar contraseña informa de que está pendiente.
+  await page.getByRole('link', { name: 'Mi perfil' }).click();
+  await expect(page).toHaveURL(/\/perfil$/);
+  await expect(page.getByRole('heading', { name: 'Mi perfil' })).toBeVisible();
+  await expect(page.getByLabel('Nombre', { exact: true })).toHaveValue('Ana');
+  await expect(page.getByLabel('Apellidos', { exact: true })).toHaveValue(
+    'García',
+  );
+  await page.getByLabel('Nombre', { exact: true }).fill('Ana María');
+  await page.getByLabel('Nombre de usuario').fill(username + '-edit');
+  await page.getByLabel('Organización', { exact: false }).fill('CEU');
+  await page.getByLabel('Edad').fill('22');
+  await page.getByLabel('Localidad').fill('Madrid');
+  await page.getByLabel('Descripción').fill('Me gusta ayudar a mi comunidad.');
+  await page.getByRole('button', { name: 'Guardar cambios' }).click();
+  await expect(page).toHaveURL(/\/perfil\?guardado=ok$/);
+  await expect(page.getByRole('status')).toContainText(
+    'Tus datos se han actualizado',
+  );
+  await expect(page.getByLabel('Nombre', { exact: true })).toHaveValue(
+    'Ana María',
+  );
+  await expect(page.getByLabel('Organización', { exact: false })).toHaveValue(
+    'CEU',
+  );
+  await page.getByRole('link', { name: 'Ver mi perfil público' }).click();
+  await expect(page).toHaveURL(new RegExp(`/u/${username}-edit$`));
+  await expect(
+    page.getByRole('heading', { name: 'Ana María García' }),
+  ).toBeVisible();
+  await expect(page.getByText('Madrid', { exact: true })).toBeVisible();
+  await expect(page.getByText('22', { exact: true })).toBeVisible();
+  await expect(page.getByText('Me gusta ayudar a mi comunidad.')).toBeVisible();
+  await expect(page.getByText(email, { exact: true })).toHaveCount(0);
+  await page.goto('/');
+  await account.click();
+  // Cambiar contraseña sigue pendiente; no se confunde con la gestión del perfil.
   await page.getByRole('button', { name: 'Cambiar contraseña' }).click();
   const dialog = page.getByRole('dialog');
   await expect(dialog).toContainText('todavía no está disponible');

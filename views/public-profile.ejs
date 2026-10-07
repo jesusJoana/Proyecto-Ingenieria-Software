@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · Perfil público ReFind</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/refind.css">
+  <link rel="stylesheet" href="/css/auth.css">
+</head>
+<body class="home-page auth-page">
+  <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('partials/icons') %>
+  <header class="site-header">
+    <nav class="container d-flex align-items-center justify-content-between" aria-label="Navegación principal">
+      <a class="brand" href="/" aria-label="ReFind, inicio"><svg class="icon brand-mark" aria-hidden="true"><use href="#icon-brand"></use></svg>ReFind</a>
+      <a class="auth-home-link" href="/">Volver al inicio <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+  <main id="contenido" class="container auth-main">
+    <section class="public-profile-card" aria-labelledby="profile-title">
+      <% if (profile.avatar_filename) { %>
+        <img class="public-profile-avatar" src="/uploads/avatars/<%= profile.avatar_filename %>" alt="Foto de <%= profile.first_name %>" width="144" height="144">
+      <% } else { %>
+        <div class="public-profile-avatar public-profile-avatar-placeholder" aria-hidden="true"><%= profile.first_name.slice(0, 1).toUpperCase() %></div>
+      <% } %>
+      <p class="auth-kicker">Perfil público</p>
+      <h1 id="profile-title"><%= profile.first_name %> <%= profile.last_name %></h1>
+      <p class="public-profile-username">@<%= profile.username %></p>
+      <% if (profile.description) { %><p class="public-profile-description"><%= profile.description %></p><% } %>
+      <dl class="public-profile-details">
+        <% if (profile.age !== null) { %><div><dt>Edad</dt><dd><%= profile.age %></dd></div><% } %>
+        <% if (profile.locality) { %><div><dt>Localidad</dt><dd><%= profile.locality %></dd></div><% } %>
+        <% if (profile.organization) { %><div><dt>Organización</dt><dd><%= profile.organization %></dd></div><% } %>
+      </dl>
+      <section class="profile-placeholder-grid" aria-label="Actividad">
+        <article class="profile-placeholder">
+          <h2>Objetos encontrados y perdidos</h2>
+          <p>Las publicaciones de este usuario aparecerán aquí cuando la función esté disponible.</p>
+        </article>
+        <article class="profile-placeholder">
+          <h2>Valoración</h2>
+          <p>El sistema de valoraciones todavía no está disponible.</p>
+        </article>
+      </section>
+      <a class="btn btn-teal mt-4" href="/">Volver a ReFind</a>
+    </section>
+  </main>
+</body>
+</html>
