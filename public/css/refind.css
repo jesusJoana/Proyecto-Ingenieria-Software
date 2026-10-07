@@ -108,6 +108,38 @@ body {
 .session-label {
   color: var(--rf-muted);
 }
+/* Menú «Mi cuenta» de la cabecera. */
+.account-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.home-page .account-button .icon {
+  width: 20px;
+  height: 20px;
+}
+.account-menu .dropdown-menu {
+  min-width: 220px;
+  padding: 8px;
+  border: 1px solid #e3e9ec;
+  border-radius: 12px;
+  box-shadow: 0 12px 30px rgba(16, 20, 62, 0.12);
+}
+.account-menu .dropdown-item {
+  padding: 10px 12px;
+  border-radius: 8px;
+  color: var(--rf-ink);
+  font-weight: 500;
+}
+.account-menu .dropdown-item:hover,
+.account-menu .dropdown-item:focus {
+  background: #eef8f7;
+  color: var(--rf-ink);
+}
+.account-menu .dropdown-item-text {
+  padding: 6px 12px;
+  font-size: 14px;
+}
 .hero {
   background: linear-gradient(110deg, #fbfcfb, #f7faf9 65%, #edf8f7);
   overflow: hidden;

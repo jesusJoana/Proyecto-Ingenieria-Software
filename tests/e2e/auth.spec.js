@@ -79,10 +79,25 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   await page
     .getByRole('button', { name: 'Iniciar sesión', exact: false })
     .click();
+  const account = page.getByRole('button', { name: 'Mi cuenta' });
+  await expect(account).toBeVisible();
+  await page.reload();
+  // El menú de la cuenta muestra sus opciones al desplegarlo.
+  await account.click();
   await expect(
     page.getByText('Sesión iniciada', { exact: true }),
   ).toBeVisible();
-  await page.reload();
+  await expect(page.getByRole('button', { name: 'Mi perfil' })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: 'Cambiar contraseña' }),
+  ).toBeVisible();
+  // Mientras no exista su página, Cambiar contraseña informa de que está pendiente.
+  await page.getByRole('button', { name: 'Cambiar contraseña' }).click();
+  const dialog = page.getByRole('dialog');
+  await expect(dialog).toContainText('todavía no está disponible');
+  await dialog.getByRole('button', { name: 'Entendido' }).click();
+  await expect(dialog).toBeHidden();
+  await account.click();
   await page.getByRole('button', { name: 'Cerrar sesión' }).click();
   await expect(page).toHaveURL(/\/iniciar-sesion$/);
   await page.goto('/');

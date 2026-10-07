@@ -23,11 +23,25 @@
       <a class="brand" href="/" aria-label="ReFind, inicio"><%- icon('brand', 'brand-mark') %><span>ReFind</span></a>
       <div class="d-flex align-items-center header-actions">
         <% if (userId) { %>
-          <span class="session-label"><%- icon('user') %> Sesión iniciada</span>
-          <form action="/cerrar-sesion" method="post" class="m-0">
-            <input type="hidden" name="_csrf" value="<%= csrf %>">
-            <button class="btn btn-teal" type="submit">Cerrar sesión</button>
-          </form>
+          <%# Menú de la cuenta: Bootstrap lo despliega con bootstrap.bundle.min.js. %>
+          <div class="dropdown account-menu">
+            <button id="account-button" class="btn btn-teal dropdown-toggle account-button" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <%- icon('user') %> Mi cuenta
+            </button>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="account-button">
+              <li><span class="dropdown-item-text session-label">Sesión iniciada</span></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="profile">Mi perfil</button></li>
+              <li><button class="dropdown-item" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="password">Cambiar contraseña</button></li>
+              <li><hr class="dropdown-divider"></li>
+              <li>
+                <form action="/cerrar-sesion" method="post" class="m-0">
+                  <input type="hidden" name="_csrf" value="<%= csrf %>">
+                  <button class="dropdown-item" type="submit">Cerrar sesión</button>
+                </form>
+              </li>
+            </ul>
+          </div>
         <% } else { %>
           <a class="btn register-button" href="/registro">Registrarse</a>
           <a class="btn btn-teal" href="/iniciar-sesion">Iniciar sesión</a>

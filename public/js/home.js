@@ -70,6 +70,14 @@ const messages = {
     "Términos",
     "Las condiciones de uso están pendientes de publicación.",
   ],
+  profile: [
+    "Mi perfil",
+    "La página de perfil todavía no está disponible. Pronto podrás consultar y editar los datos de tu cuenta.",
+  ],
+  password: [
+    "Cambiar contraseña",
+    "El cambio de contraseña todavía no está disponible. Pronto podrás cambiarla desde aquí.",
+  ],
 };
 document
   .querySelector("#infoModal")
