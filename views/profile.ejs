@@ -29,14 +29,31 @@
         </div>
       </aside>
       <section class="auth-panel" aria-labelledby="profile-title">
-        <div class="auth-form-heading">
-          <span class="auth-kicker">Gestiona tu cuenta</span>
-          <h1 id="profile-title">Mi perfil</h1>
-          <p>Consulta y actualiza los datos de tu cuenta.</p>
+        <div class="profile-intro">
+          <div class="profile-avatar-preview">
+            <% if (avatarFilename) { %>
+              <img src="/uploads/avatars/<%= avatarFilename %>" alt="Foto de perfil actual" width="88" height="88">
+            <% } else { %>
+              <span class="profile-avatar-placeholder" aria-hidden="true"><%= (values.first_name || 'R').slice(0, 1).toUpperCase() %></span>
+            <% } %>
+          </div>
+          <div class="auth-form-heading">
+            <span class="auth-kicker">Gestiona tu cuenta</span>
+            <h1 id="profile-title">Mi perfil</h1>
+            <p>Consulta y actualiza los datos de tu cuenta.</p>
+            <span class="profile-current-username">@<%= values.username || '' %></span>
+          </div>
         </div>
         <% if (saved) { %>
           <div class="alert alert-success" role="status">Tus datos se han actualizado correctamente.</div>
         <% } %>
+        <% if (exchangeNotice === 'solicitado') { %><div class="alert alert-success" role="status">Propuesta enviada. La otra persona debe aceptarla y ambas confirmar el intercambio.</div><% } %>
+        <% if (exchangeNotice === 'aceptado') { %><div class="alert alert-success" role="status">Propuesta aceptada. Cuando se complete, las dos personas deben confirmarlo.</div><% } %>
+        <% if (exchangeNotice === 'confirmacion-pendiente') { %><div class="alert alert-info" role="status">Tu confirmación está guardada; falta la de la otra persona.</div><% } %>
+        <% if (exchangeNotice === 'completado') { %><div class="alert alert-success" role="status">Intercambio completado. Ya podéis valorarlo.</div><% } %>
+        <% if (exchangeNotice === 'no-disponible') { %><div class="alert alert-warning" role="status">Ese intercambio ya no está disponible para esa acción.</div><% } %>
+        <% if (reviewNotice === 'publicada') { %><div class="alert alert-success" role="status">Tu valoración se ha publicado y no se puede editar.</div><% } %>
+        <% if (reviewNotice === 'ya-enviada') { %><div class="alert alert-info" role="status">Ya has valorado ese intercambio.</div><% } %>
         <% if (Object.keys(errors).length) { %>
           <div class="alert alert-danger auth-errors" role="alert" tabindex="-1" id="form-errors">
             <strong><%= errors.form || 'Revisa los campos indicados.' %></strong>
@@ -45,11 +62,6 @@
                 <li><a href="#<%= field %>"><%= message %></a></li>
               <% }); %>
             </ul><% } %>
-          </div>
-        <% } %>
-        <% if (avatarFilename) { %>
-          <div class="profile-avatar-preview mb-3">
-            <img src="/uploads/avatars/<%= avatarFilename %>" alt="Foto de perfil actual" width="112" height="112">
           </div>
         <% } %>
         <form action="/perfil" method="post" enctype="multipart/form-data" class="auth-form" novalidate>
@@ -124,11 +136,48 @@
         <h2>Objetos encontrados y perdidos</h2>
         <p>Cuando estén disponibles las publicaciones, los objetos que publiques aparecerán aquí automáticamente.</p>
       </article>
-      <article class="profile-placeholder">
-        <h2>Valoración</h2>
-        <p>El sistema de valoraciones todavía no está disponible.</p>
-      </article>
     </section>
+    <section class="exchange-section" aria-labelledby="exchange-title">
+      <div class="section-heading">
+        <div><p class="auth-kicker">Actividad entre personas</p><h2 id="exchange-title">Intercambios</h2></div>
+        <span class="exchange-count"><%= exchangeRecords.length %></span>
+      </div>
+      <% if (!exchangeRecords.length) { %>
+        <p class="exchange-empty">Todavía no tienes intercambios propuestos.</p>
+      <% } %>
+      <div class="exchange-list">
+        <% exchangeRecords.forEach(exchange => { %>
+          <article class="exchange-item">
+            <div class="exchange-item-heading">
+              <div><h3><a href="/u/<%= encodeURIComponent(exchange.other_username) %>">@<%= exchange.other_username %></a></h3><p><%= exchange.description %></p></div>
+              <span class="exchange-status status-<%= exchange.status %>"><%= exchange.status === 'pending' ? 'Pendiente' : exchange.status === 'accepted' ? 'Aceptado' : 'Completado' %></span>
+            </div>
+            <% if (exchange.status === 'pending' && exchange.is_recipient) { %>
+              <form action="/intercambios/<%= exchange.id %>/aceptar" method="post"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-teal" type="submit">Aceptar propuesta</button></form>
+            <% } else if (exchange.status === 'pending') { %>
+              <p class="exchange-hint">Esperando a que acepten la propuesta.</p>
+            <% } else if (exchange.status === 'accepted' && !exchange.my_confirmed_at) { %>
+              <form action="/intercambios/<%= exchange.id %>/confirmar" method="post"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-teal" type="submit">Confirmar que se completó</button></form>
+            <% } else if (exchange.status === 'accepted') { %>
+              <p class="exchange-hint">Has confirmado; falta la confirmación de la otra persona.</p>
+            <% } else if (exchange.status === 'completed' && !exchange.reviewed_by_me) { %>
+              <form class="exchange-review-form" action="/intercambios/<%= exchange.id %>/valoraciones" method="post">
+                <input type="hidden" name="_csrf" value="<%= csrf %>">
+                <fieldset class="star-picker"><legend>Tu valoración</legend><div class="star-picker-options">
+                  <% [1, 2, 3, 4, 5].forEach(star => { %><label><input type="radio" name="rating" value="<%= star %>" required><span aria-hidden="true">★</span><span class="visually-hidden"><%= star %> <%= star === 1 ? 'estrella' : 'estrellas' %></span></label><% }); %>
+                </div></fieldset>
+                <label class="form-label" for="review-<%= exchange.id %>">Comentario</label>
+                <textarea class="form-control" id="review-<%= exchange.id %>" name="comment" maxlength="1000" rows="3" required></textarea>
+                <button class="btn btn-teal" type="submit">Publicar valoración</button>
+              </form>
+            <% } else if (exchange.status === 'completed') { %>
+              <p class="exchange-hint">Ya has valorado este intercambio.</p>
+            <% } %>
+          </article>
+        <% }); %>
+      </div>
+    </section>
+    <%- include('partials/reviews', { rating }) %>
   </main>
 </body>
 </html>

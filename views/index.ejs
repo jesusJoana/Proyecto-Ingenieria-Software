@@ -25,8 +25,15 @@
         <% if (userId) { %>
           <%# Menú de la cuenta: Bootstrap lo despliega con bootstrap.bundle.min.js. %>
           <div class="dropdown account-menu">
-            <button id="account-button" class="btn btn-teal dropdown-toggle account-button" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-              <%- icon('user') %> Mi cuenta
+            <button id="account-button" class="btn btn-teal dropdown-toggle account-button" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<%= accountUsername ? 'Cuenta de @' + accountUsername : 'Mi cuenta' %>">
+              <% if (accountAvatarFilename) { %>
+                <img class="account-avatar" src="/uploads/avatars/<%= accountAvatarFilename %>" alt="">
+              <% } else if (accountUsername) { %>
+                <span class="account-avatar account-avatar-placeholder" aria-hidden="true"><%= accountUsername.slice(0, 1).toUpperCase() %></span>
+              <% } else { %>
+                <%- icon('user') %>
+              <% } %>
+              <span class="account-name"><%= accountUsername ? '@' + accountUsername : 'Mi cuenta' %></span>
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="account-button">
               <li><span class="dropdown-item-text session-label">Sesión iniciada</span></li>

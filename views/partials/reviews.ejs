@@ -1,0 +1,30 @@
+<section class="reviews-section" aria-labelledby="reviews-title">
+  <div class="section-heading">
+    <div><p class="auth-kicker">Opiniones verificadas</p><h2 id="reviews-title">Valoraciones</h2></div>
+    <% if (rating.reviewCount) { %>
+      <div class="rating-summary">
+        <span class="rating-stars" aria-label="<%= rating.averageRating.toFixed(1) %> de 5 estrellas"><% for (let star = 1; star <= 5; star++) { const fill = Math.min(1, Math.max(0, rating.averageRating - star + 1)) * 100; %><span class="rating-star" style="--star-fill: <%= fill %>%" aria-hidden="true">★</span><% } %></span>
+        <strong><%= rating.averageRating.toFixed(1) %></strong>
+        <span><%= rating.reviewCount %> <%= rating.reviewCount === 1 ? 'valoración' : 'valoraciones' %></span>
+      </div>
+    <% } %>
+  </div>
+  <% if (!rating.reviewCount) { %>
+    <p class="reviews-empty">Aún no hay valoraciones. Solo se publican después de un intercambio completado.</p>
+  <% } else { %>
+    <div class="review-list">
+      <% rating.reviews.forEach(review => { %>
+        <article class="review-item">
+          <header class="review-header">
+            <a class="review-author" href="/u/<%= encodeURIComponent(review.username) %>">
+              <% if (review.avatar_filename) { %><img src="/uploads/avatars/<%= review.avatar_filename %>" alt="" width="42" height="42"><% } else { %><span class="review-avatar-placeholder" aria-hidden="true"><%= review.first_name.slice(0, 1).toUpperCase() %></span><% } %>
+              <span><strong><%= review.first_name %> <%= review.last_name %></strong><small>@<%= review.username %></small></span>
+            </a>
+            <div class="review-score"><span class="rating-stars" aria-label="<%= review.rating %> de 5 estrellas"><% for (let star = 1; star <= 5; star++) { const fill = star <= review.rating ? 100 : 0; %><span class="rating-star" style="--star-fill: <%= fill %>%" aria-hidden="true">★</span><% } %></span><time datetime="<%= review.created_at.toISOString() %>"><%= review.created_at.toLocaleDateString('es-ES') %></time></div>
+          </header>
+          <p class="review-comment"><%= review.comment %></p>
+        </article>
+      <% }); %>
+    </div>
+  <% } %>
+</section>

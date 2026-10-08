@@ -114,6 +114,28 @@ body {
   align-items: center;
   gap: 8px;
 }
+.account-avatar {
+  width: 30px;
+  height: 30px;
+  flex: 0 0 30px;
+  border: 2px solid rgba(255, 255, 255, 0.72);
+  border-radius: 50%;
+  object-fit: cover;
+}
+.account-avatar-placeholder {
+  display: inline-grid;
+  place-items: center;
+  color: var(--rf-teal);
+  background: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.account-name {
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .home-page .account-button .icon {
   width: 20px;
   height: 20px;

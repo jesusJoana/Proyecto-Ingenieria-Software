@@ -48,11 +48,23 @@ export function createApp(config) {
   app.use(sessions.middleware);
 
   // Dejar disponible en todas las vistas si hay un usuario conectado.
-  app.use((req, res, next) => {
+  app.use(async (req, res, next) => {
     res.locals.userId = req.session.userId ?? null;
+    res.locals.accountUsername = null;
+    res.locals.accountAvatarFilename = null;
     // La portada anónima no crea sesión; el token se necesita allí solo para salir.
     res.locals.csrf = req.session.userId ? csrfToken(req) : null;
-    if (req.session.userId) res.set('Cache-Control', 'no-store');
+    if (req.session.userId) {
+      const {
+        rows: [account],
+      } = await pool.query(
+        'SELECT username, avatar_filename FROM users WHERE id = $1',
+        [req.session.userId],
+      );
+      res.locals.accountUsername = account?.username ?? null;
+      res.locals.accountAvatarFilename = account?.avatar_filename ?? null;
+      res.set('Cache-Control', 'no-store');
+    }
     next();
   });
 

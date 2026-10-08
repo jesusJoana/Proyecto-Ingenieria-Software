@@ -8,14 +8,16 @@ const pool = new pg.Pool({ connectionString: readConfig('e2e').DATABASE_URL });
 const oldPassword = 'Contraseña actual 1';
 const newPassword = 'Una frase nueva 42';
 let email;
+let username;
 
 test.beforeEach(async () => {
   email = `browser-account-${randomUUID()}@example.test`;
+  username = `cuenta-${randomUUID().slice(0, 8)}`;
   const hash = await argon2.hash(oldPassword, { type: argon2.argon2id });
   await pool.query(
     `INSERT INTO users (username, first_name, last_name, email, password_hash)
      VALUES ($3, 'Ana', 'García', $1, $2)`,
-    [email, hash, `cuenta-${randomUUID().slice(0, 8)}`],
+    [email, hash, username],
   );
 });
 test.afterEach(async () => {
@@ -41,7 +43,7 @@ async function login(page, password) {
  * incorrecta, confirma el cambio y, tras salir, solo permite entrar con la nueva. */
 test('permite cambiar la contraseña desde Mi cuenta', async ({ page }) => {
   await login(page, oldPassword);
-  await page.getByRole('button', { name: 'Mi cuenta' }).click();
+  await page.getByRole('button', { name: `Cuenta de @${username}` }).click();
   await page.getByRole('link', { name: 'Cambiar contraseña' }).click();
   await expect(page).toHaveURL(/\/cambiar-contrasena$/);
   await expect(
@@ -69,12 +71,14 @@ test('permite cambiar la contraseña desde Mi cuenta', async ({ page }) => {
 
   // Salir y comprobar que solo vale la nueva.
   await page.goto('/');
-  await page.getByRole('button', { name: 'Mi cuenta' }).click();
+  await page.getByRole('button', { name: `Cuenta de @${username}` }).click();
   await page.getByRole('button', { name: 'Cerrar sesión' }).click();
   await login(page, oldPassword);
   await expect(page.getByRole('alert')).toContainText('Correo o contraseña incorrectos');
   await login(page, newPassword);
-  await expect(page.getByRole('button', { name: 'Mi cuenta' })).toBeVisible();
+  await expect(
+    page.getByRole('button', { name: `Cuenta de @${username}` }),
+  ).toBeVisible();
 });
 
 /** Para qué sirve: impedir el acceso a la página sin sesión iniciada.

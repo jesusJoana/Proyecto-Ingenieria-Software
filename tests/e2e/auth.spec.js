@@ -82,7 +82,9 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   await page
     .getByRole('button', { name: 'Iniciar sesión', exact: false })
     .click();
-  const account = page.getByRole('button', { name: 'Mi cuenta' });
+  const account = page.getByRole('button', {
+    name: `Cuenta de @${username}`,
+  });
   await expect(account).toBeVisible();
   await page.reload();
   // El menú de la cuenta muestra sus opciones al desplegarlo.

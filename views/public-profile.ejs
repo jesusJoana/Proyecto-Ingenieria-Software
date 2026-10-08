@@ -33,18 +33,21 @@
         <% if (profile.locality) { %><div><dt>Localidad</dt><dd><%= profile.locality %></dd></div><% } %>
         <% if (profile.organization) { %><div><dt>Organización</dt><dd><%= profile.organization %></dd></div><% } %>
       </dl>
-      <section class="profile-placeholder-grid" aria-label="Actividad">
-        <article class="profile-placeholder">
-          <h2>Objetos encontrados y perdidos</h2>
-          <p>Las publicaciones de este usuario aparecerán aquí cuando la función esté disponible.</p>
-        </article>
-        <article class="profile-placeholder">
-          <h2>Valoración</h2>
-          <p>El sistema de valoraciones todavía no está disponible.</p>
-        </article>
-      </section>
-      <a class="btn btn-teal mt-4" href="/">Volver a ReFind</a>
     </section>
+      <% if (userId && String(userId) !== String(profile.id)) { %>
+        <form class="exchange-proposal" action="/u/<%= encodeURIComponent(profile.username) %>/intercambios" method="post">
+          <h2>Proponer un intercambio</h2>
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <label class="form-label" for="exchange-description">Objeto o detalle</label>
+          <textarea class="form-control" id="exchange-description" name="description" minlength="3" maxlength="300" rows="2" required></textarea>
+          <p>La otra persona tendrá que aceptar la propuesta. La valoración se habilita cuando ambas confirméis que se completó.</p>
+          <button class="btn btn-teal" type="submit">Enviar propuesta</button>
+        </form>
+      <% } else if (!userId) { %>
+        <p class="exchange-sign-in"><a href="/iniciar-sesion">Inicia sesión</a> para proponer un intercambio.</p>
+      <% } %>
+      <%- include('partials/reviews', { rating: profile }) %>
+      <a class="btn btn-teal mt-4" href="/">Volver a ReFind</a>
   </main>
 </body>
 </html>

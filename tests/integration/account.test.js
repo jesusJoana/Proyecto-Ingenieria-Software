@@ -103,7 +103,7 @@ describe('Cambio de contraseña', () => {
       .get('/cambiar-contrasena?cambio=ok')
       .expect(200);
     expect(confirmation.text).toContain('Tu contraseña se ha cambiado');
-    expect((await agent.get('/').expect(200)).text).toContain('Mi cuenta');
+    expect((await agent.get('/').expect(200)).text).toContain('@cuenta-');
 
     // Un acceso nuevo funciona con la nueva contraseña y no con la antigua.
     const other = request.agent(app);

@@ -159,7 +159,7 @@ export function createAuthService(pool) {
       const {
         rows: [profile],
       } = await pool.query(
-        `SELECT username, first_name, last_name, organization, age,
+        `SELECT id, username, first_name, last_name, organization, age,
                 description, locality, avatar_filename
          FROM users WHERE username = $1`,
         [username],

@@ -15,12 +15,18 @@ import {
   fieldErrors,
 } from './validation.js';
 import { createAuthService } from './service.js';
+import { createExchangeService } from '../exchanges/service.js';
+import {
+  exchangeProposalSchema,
+  exchangeReviewSchema,
+} from '../exchanges/validation.js';
 import { csrfToken, verifyCsrf, createAuthLimiter } from './security.js';
 import { startSession, endSession, requireAuth } from '../session.js';
 
 export function createAuthRouter(pool) {
   const router = Router();
   const service = createAuthService(pool);
+  const exchanges = createExchangeService(pool);
   const limit = createAuthLimiter();
   const avatarDirectory = fileURLToPath(
     new URL('../../public/uploads/avatars/', import.meta.url),
@@ -101,15 +107,32 @@ export function createAuthRouter(pool) {
       if (error.code !== 'ENOENT') console.error(error);
     }
   }
-  function avatarError(req, res, error, profile) {
-    if (error.code !== 'INVALID_AVATAR') return false;
+  async function renderProfilePage(req, res, options) {
+    const [exchangeRecords, rating] = await Promise.all([
+      exchanges.getForUser(req.session.userId),
+      exchanges.getRatingSummary(req.session.userId),
+    ]);
     res.set('Cache-Control', 'no-store');
-    res.status(422).render('profile', {
+    return res.status(options.status ?? 200).render('profile', {
       title: 'Mi perfil',
+      values: options.values,
+      errors: options.errors ?? {},
+      csrf: csrfToken(req),
+      saved: options.saved ?? false,
+      avatarFilename: options.avatarFilename ?? null,
+      publicProfileUrl: options.publicProfileUrl,
+      exchangeRecords,
+      rating,
+      exchangeNotice: req.query.intercambio ?? null,
+      reviewNotice: req.query.valoracion ?? null,
+    });
+  }
+  async function avatarError(req, res, error, profile) {
+    if (error.code !== 'INVALID_AVATAR') return false;
+    await renderProfilePage(req, res, {
       values: formValues(req.body),
       errors: { avatar: 'Sube una imagen JPG, PNG o WebP válida.' },
-      csrf: csrfToken(req),
-      saved: false,
+      status: 422,
       avatarFilename: profile.avatar_filename,
       publicProfileUrl: `/u/${encodeURIComponent(profile.username)}`,
     });
@@ -141,12 +164,8 @@ export function createAuthRouter(pool) {
         title: 'Perfil no encontrado',
         message: 'No se ha encontrado la cuenta asociada a esta sesión.',
       });
-    res.set('Cache-Control', 'no-store');
-    return res.render('profile', {
-      title: 'Mi perfil',
+    return renderProfilePage(req, res, {
       values: profile,
-      errors: {},
-      csrf: csrfToken(req),
       saved: req.query.guardado === 'ok',
       avatarFilename: profile.avatar_filename,
       publicProfileUrl: `/u/${encodeURIComponent(profile.username)}`,
@@ -159,8 +178,117 @@ export function createAuthRouter(pool) {
         title: 'Perfil no encontrado',
         message: 'No se ha encontrado ese perfil.',
       });
-    return res.render('public-profile', { title: profile.username, profile });
+    const rating = await exchanges.getRatingSummary(profile.id);
+    return res.render('public-profile', {
+      title: profile.username,
+      profile: { ...profile, ...rating },
+    });
   });
+  router.post(
+    '/u/:username/intercambios',
+    requireAuth,
+    verifyCsrf,
+    async (req, res) => {
+      const result = exchangeProposalSchema.safeParse(req.body);
+      if (!result.success)
+        return res.status(422).render('error', {
+          title: 'No se pudo proponer el intercambio',
+          message: result.error.issues[0].message,
+        });
+      try {
+        await exchanges.create(
+          req.session.userId,
+          req.params.username,
+          result.data.description,
+        );
+        return res.redirect(303, '/perfil?intercambio=solicitado');
+      } catch (error) {
+        if (error.code !== 'EXCHANGE_TARGET_INVALID') throw error;
+        return res.status(404).render('error', {
+          title: 'No se pudo proponer el intercambio',
+          message: error.message,
+        });
+      }
+    },
+  );
+  router.post(
+    '/intercambios/:exchangeId/aceptar',
+    requireAuth,
+    verifyCsrf,
+    async (req, res) => {
+      if (!isValidExchangeId(req.params.exchangeId))
+        return res.status(404).render('error', {
+          title: 'Intercambio no encontrado',
+          message: 'No se ha encontrado ese intercambio.',
+        });
+      const exchange = await exchanges.accept(
+        req.params.exchangeId,
+        req.session.userId,
+      );
+      if (!exchange)
+        return res.redirect(303, '/perfil?intercambio=no-disponible');
+      return res.redirect(303, '/perfil?intercambio=aceptado');
+    },
+  );
+  router.post(
+    '/intercambios/:exchangeId/confirmar',
+    requireAuth,
+    verifyCsrf,
+    async (req, res) => {
+      if (!isValidExchangeId(req.params.exchangeId))
+        return res.status(404).render('error', {
+          title: 'Intercambio no encontrado',
+          message: 'No se ha encontrado ese intercambio.',
+        });
+      const exchange = await exchanges.confirm(
+        req.params.exchangeId,
+        req.session.userId,
+      );
+      if (!exchange)
+        return res.redirect(303, '/perfil?intercambio=no-disponible');
+      return res.redirect(
+        303,
+        exchange.status === 'completed'
+          ? '/perfil?intercambio=completado'
+          : '/perfil?intercambio=confirmacion-pendiente',
+      );
+    },
+  );
+  router.post(
+    '/intercambios/:exchangeId/valoraciones',
+    requireAuth,
+    verifyCsrf,
+    async (req, res) => {
+      if (!isValidExchangeId(req.params.exchangeId))
+        return res.status(404).render('error', {
+          title: 'Intercambio no encontrado',
+          message: 'No se ha encontrado ese intercambio.',
+        });
+      const result = exchangeReviewSchema.safeParse(req.body);
+      if (!result.success)
+        return res.status(422).render('error', {
+          title: 'No se pudo publicar la valoración',
+          message: result.error.issues[0].message,
+        });
+      try {
+        await exchanges.review(
+          req.params.exchangeId,
+          req.session.userId,
+          result.data,
+        );
+        return res.redirect(303, '/perfil?valoracion=publicada');
+      } catch (error) {
+        if (error.code === 'REVIEW_EXISTS')
+          return res.redirect(303, '/perfil?valoracion=ya-enviada');
+        if (error.code === 'REVIEW_NOT_ALLOWED')
+          return res.status(403).render('error', {
+            title: 'Valoración no disponible',
+            message: error.message,
+          });
+        throw error;
+      }
+    },
+  );
   router.post(
     '/perfil',
     requireAuth,
@@ -175,13 +303,10 @@ export function createAuthRouter(pool) {
           message: 'No se ha encontrado la cuenta asociada a esta sesión.',
         });
       if (!result.success) {
-        res.set('Cache-Control', 'no-store');
-        return res.status(422).render('profile', {
-          title: 'Mi perfil',
+        return renderProfilePage(req, res, {
           values: formValues(req.body),
           errors: fieldErrors(result.error),
-          csrf: csrfToken(req),
-          saved: false,
+          status: 422,
           avatarFilename: currentProfile.avatar_filename,
           publicProfileUrl: `/u/${encodeURIComponent(currentProfile.username)}`,
         });
@@ -206,19 +331,16 @@ export function createAuthRouter(pool) {
         return res.redirect(303, '/perfil?guardado=ok');
       } catch (error) {
         await removeAvatar(avatarFilename);
-        if (avatarError(req, res, error, currentProfile)) return;
+        if (await avatarError(req, res, error, currentProfile)) return;
         if (!['EMAIL_EXISTS', 'USERNAME_EXISTS'].includes(error.code))
           throw error;
-        res.set('Cache-Control', 'no-store');
-        return res.status(409).render('profile', {
-          title: 'Mi perfil',
+        return renderProfilePage(req, res, {
           values: formValues(req.body),
           errors: {
             [error.code === 'EMAIL_EXISTS' ? 'email' : 'username']:
               error.message,
           },
-          csrf: csrfToken(req),
-          saved: false,
+          status: 409,
           avatarFilename: currentProfile.avatar_filename,
           publicProfileUrl: `/u/${encodeURIComponent(currentProfile.username)}`,
         });
@@ -303,4 +425,9 @@ export function createAuthRouter(pool) {
     res.redirect(303, '/iniciar-sesion');
   });
   return router;
+}
+
+function isValidExchangeId(value) {
+  if (!/^[1-9]\d{0,18}$/.test(value)) return false;
+  return BigInt(value) <= 9223372036854775807n;
 }
