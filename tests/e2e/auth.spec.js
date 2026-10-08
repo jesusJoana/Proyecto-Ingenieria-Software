@@ -92,7 +92,7 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   ).toBeVisible();
   await expect(page.getByRole('link', { name: 'Mi perfil' })).toBeVisible();
   await expect(
-    page.getByRole('button', { name: 'Cambiar contraseña' }),
+    page.getByRole('link', { name: 'Cambiar contraseña' }),
   ).toBeVisible();
   await page.getByRole('link', { name: 'Mi perfil' }).click();
   await expect(page).toHaveURL(/\/perfil$/);
@@ -128,13 +128,7 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   await expect(page.getByText('Me gusta ayudar a mi comunidad.')).toBeVisible();
   await expect(page.getByText(email, { exact: true })).toHaveCount(0);
   await page.goto('/');
-  await account.click();
-  // Cambiar contraseña sigue pendiente; no se confunde con la gestión del perfil.
-  await page.getByRole('button', { name: 'Cambiar contraseña' }).click();
-  const dialog = page.getByRole('dialog');
-  await expect(dialog).toContainText('todavía no está disponible');
-  await dialog.getByRole('button', { name: 'Entendido' }).click();
-  await expect(dialog).toBeHidden();
+  // El cambio de contraseña tiene su propia prueba en account.spec.js.
   await account.click();
   await page.getByRole('button', { name: 'Cerrar sesión' }).click();
   await expect(page).toHaveURL(/\/iniciar-sesion$/);

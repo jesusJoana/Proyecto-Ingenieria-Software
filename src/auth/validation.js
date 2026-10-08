@@ -52,6 +52,21 @@ export const registrationSchema = z
     message: 'Las contraseñas no coinciden.',
   });
 
+/** Cambio de contraseña con sesión iniciada: la nueva cumple las mismas reglas que en el registro. */
+export const passwordChangeSchema = z
+  .object({
+    current_password: z
+      .string()
+      .min(1, 'Introduce tu contraseña actual.')
+      .max(128, 'La contraseña admite hasta 128 caracteres.'),
+    new_password: password,
+    confirm_password: z.string().min(1, 'Repite la nueva contraseña.'),
+  })
+  .refine((data) => data.new_password === data.confirm_password, {
+    path: ['confirm_password'],
+    message: 'Las contraseñas no coinciden.',
+  });
+
 export const loginSchema = z.object({
   email,
   password: z

@@ -6,16 +6,19 @@ import argon2 from 'argon2';
 const DUMMY_HASH =
   '$argon2id$v=19$m=19456,p=1,t=2$B41g+RXhmiEerU/wg72rSA$EHWlWeX7yteZx8yKgsdVESodS5daoNXrBCsWQuuYv7c';
 
+// Parámetros de Argon2id compartidos por el registro y el cambio de contraseña.
+const HASH_OPTIONS = {
+  type: argon2.argon2id,
+  memoryCost: 19456,
+  timeCost: 2,
+  parallelism: 1,
+};
+
 export function createAuthService(pool) {
   return {
     /** Recibe datos ya validados; la restricción UNIQUE resuelve registros concurrentes. */
     async register(data) {
-      const hash = await argon2.hash(data.password, {
-        type: argon2.argon2id,
-        memoryCost: 19456,
-        timeCost: 2,
-        parallelism: 1,
-      });
+      const hash = await argon2.hash(data.password, HASH_OPTIONS);
       try {
         const {
           rows: [user],
@@ -70,6 +73,22 @@ export function createAuthService(pool) {
       );
       if (!user || !matches) return null;
       return { id: user.id, first_name: user.first_name, email: user.email };
+    },
+    /** Comprueba la contraseña actual y guarda el hash de la nueva. Devuelve false si no coincide. */
+    async changePassword(userId, data) {
+      const {
+        rows: [user],
+      } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [
+        userId,
+      ]);
+      if (!user || !(await argon2.verify(user.password_hash, data.current_password)))
+        return false;
+      const hash = await argon2.hash(data.new_password, HASH_OPTIONS);
+      await pool.query(
+        'UPDATE users SET password_hash = $1, updated_at = now() WHERE id = $2',
+        [hash, userId],
+      );
+      return true;
     },
     async getProfile(userId) {
       const {

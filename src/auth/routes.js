@@ -1,4 +1,4 @@
-/** Rutas de registro, inicio y cierre de sesión. Formularios HTML con respuestas accesibles. */
+/** Rutas de registro, inicio y cierre de sesión, perfil y cambio de contraseña. Formularios HTML con respuestas accesibles. */
 import { mkdir, unlink, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import path from 'node:path';
@@ -10,6 +10,7 @@ import {
   registrationSchema,
   loginSchema,
   profileSchema,
+  passwordChangeSchema,
   formValues,
   fieldErrors,
 } from './validation.js';
@@ -255,6 +256,46 @@ export function createAuthRouter(pool) {
         });
       await startSession(req, user.id);
       res.redirect(303, '/');
+    },
+  );
+  // Cambio de contraseña (requisito 4). Sin sesión iniciada, lleva al acceso.
+  const onlyUser = (req, res, next) =>
+    req.session.userId ? next() : res.redirect(303, '/iniciar-sesion');
+  function renderPassword(req, res, status = 200, errors = {}) {
+    res.set('Cache-Control', 'no-store');
+    return res.status(status).render('password', {
+      title: 'Cambiar contraseña',
+      errors,
+      csrf: csrfToken(req),
+      changed: req.method === 'GET' && req.query.cambio === 'ok',
+    });
+  }
+  // Mostrar el formulario.
+  router.get('/cambiar-contrasena', onlyUser, (req, res) =>
+    renderPassword(req, res),
+  );
+  // Procesar el formulario.
+  router.post(
+    '/cambiar-contrasena',
+    verifyCsrf,
+    onlyUser,
+    limit,
+    async (req, res) => {
+      // 1. Comprobar el formato: contraseña actual, nueva (12-128) y confirmación.
+      const result = passwordChangeSchema.safeParse(req.body);
+      if (!result.success)
+        return renderPassword(req, res, 422, fieldErrors(result.error));
+      // 2. Comprobar la contraseña actual y, si es correcta, guardar la nueva.
+      const changed = await service.changePassword(
+        req.session.userId,
+        result.data,
+      );
+      if (!changed)
+        return renderPassword(req, res, 422, {
+          current_password: 'La contraseña actual no es correcta.',
+        });
+      // 3. Volver al formulario con el mensaje de confirmación. La sesión sigue iniciada.
+      res.redirect(303, '/cambiar-contrasena?cambio=ok');
     },
   );
   router.post('/cerrar-sesion', verifyCsrf, async (req, res) => {
