@@ -50,14 +50,6 @@ document.querySelector("#show-all").addEventListener("click", () => {
 
 // Las pantallas pendientes no navegan a rutas inexistentes ni simulan acciones completadas.
 const messages = {
-  lost: [
-    "Publicar objeto perdido",
-    "La publicación todavía no está disponible. Pronto podrás describir el objeto que has perdido y dónde lo viste por última vez.",
-  ],
-  found: [
-    "Publicar objeto encontrado",
-    "La publicación todavía no está disponible. Pronto podrás compartir el objeto que has encontrado para ayudar a devolverlo.",
-  ],
   privacy: [
     "Privacidad",
     "La información de privacidad está pendiente de publicación.",

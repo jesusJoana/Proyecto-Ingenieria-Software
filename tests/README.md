@@ -18,8 +18,11 @@ Ejecutar desde la raíz del proyecto, en la terminal de VS Code, después de ins
 - `unit/auth-validation.test.js`: validación de registro/acceso y datos públicos del formulario.
 - `unit/auth-service.test.js`: hash, SQL parametrizado, duplicados y credenciales, con dependencias simuladas.
 - `unit/auth-security.test.js`: protección CSRF y límite de envíos, sin esperas reales.
+- `unit/posts-validation.test.js`: validación de publicaciones (límites, tipo y categoría permitidos, fecha no futura) e identificadores, con fecha fija.
 
 Los flujos de autenticación se comprueban en `integration/auth.test.js` y `e2e/auth.spec.js`, con usuarios únicos que se eliminan al finalizar. Detalle y campos: [Registro y acceso](../docs/Registro_acceso_ReFind.md).
+
+Las publicaciones de objetos se comprueban en `integration/posts.test.js` (acceso sin sesión, CSRF, publicación válida, errores de validación conservando lo escrito, foto válida y no permitida, listado, detalle y Mis publicaciones) y `e2e/posts.spec.js` (iniciar sesión, publicar y verlo en el detalle, el listado y Mis publicaciones). Sus usuarios, publicaciones y fotos se eliminan al finalizar.
 
 Cada `test` o grupo `test.each` tiene una cabecera **Para qué sirve / Qué comprueba**. `test.each` ejecuta una prueba por cada caso de su tabla.
 

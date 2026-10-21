@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · ReFind</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/refind.css">
+  <link rel="stylesheet" href="/css/auth.css">
+  <link rel="stylesheet" href="/css/posts.css">
+</head>
+<body class="home-page auth-page posts-page">
+  <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('partials/icons') %>
+  <%- include('partials/posts-header', { current: null }) %>
+  <% const formatDate = (value) => value.split('-').reverse().join('/');
+     const publishedAt = new Intl.DateTimeFormat('es-ES', { dateStyle: 'long', timeStyle: 'short', timeZone: 'Europe/Madrid' }).format(post.created_at); %>
+  <main id="contenido" class="container auth-main posts-main">
+    <p class="post-back"><a href="/publicaciones">← Volver a publicaciones</a></p>
+    <% if (published) { %>
+      <div class="alert alert-success" role="status">Tu publicación se ha creado correctamente.</div>
+    <% } %>
+    <article class="post-detail">
+      <img class="post-detail-photo" src="<%= post.photo_filename ? '/uploads/posts/' + post.photo_filename : '/images/post-placeholder.svg' %>" alt="<%= post.photo_filename ? 'Foto de ' + post.title : 'Publicación sin foto' %>" width="600" height="450">
+      <div class="post-detail-body">
+        <div class="post-badges">
+          <span class="post-kind post-kind-<%= post.kind %>"><%= kinds[post.kind] %></span>
+          <span class="post-category"><%= categories[post.category] %></span>
+          <span class="post-status"><%= statuses[post.status] %></span>
+        </div>
+        <h1><%= post.title %></h1>
+        <p class="post-description"><%= post.description %></p>
+        <dl class="post-facts">
+          <div><dt>Tipo</dt><dd><%= kinds[post.kind] %></dd></div>
+          <div><dt>Categoría</dt><dd><%= categories[post.category] %></dd></div>
+          <div><dt>Lugar</dt><dd><%= post.location %></dd></div>
+          <div><dt><%= post.kind === 'lost' ? 'Fecha en que se perdió' : 'Fecha en que se encontró' %></dt><dd><%= formatDate(post.event_date) %></dd></div>
+          <div><dt>Color</dt><dd><%= post.color ?? 'No indicado' %></dd></div>
+          <div><dt>Marca</dt><dd><%= post.brand ?? 'No indicada' %></dd></div>
+          <div><dt>Publicado</dt><dd><%= publishedAt %></dd></div>
+        </dl>
+        <section class="post-author" aria-labelledby="author-title">
+          <h2 id="author-title" class="visually-hidden">Autor</h2>
+          <% if (post.author_avatar_filename) { %><img class="post-author-avatar" src="/uploads/avatars/<%= post.author_avatar_filename %>" alt="" width="48" height="48"><% } else { %><span class="post-author-avatar post-author-placeholder" aria-hidden="true"><%= post.author_first_name.slice(0, 1).toUpperCase() %></span><% } %>
+          <div>
+            <p class="post-author-label"><%= isAuthor ? 'Publicado por ti' : 'Publicado por' %></p>
+            <a href="/u/<%= encodeURIComponent(post.author_username) %>"><%= post.author_first_name %> <%= post.author_last_name %> <span>@<%= post.author_username %></span></a>
+          </div>
+        </section>
+      </div>
+    </article>
+  </main>
+</body>
+</html>

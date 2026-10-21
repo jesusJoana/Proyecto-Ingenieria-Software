@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · ReFind</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/refind.css">
+  <link rel="stylesheet" href="/css/auth.css">
+  <link rel="stylesheet" href="/css/posts.css">
+</head>
+<body class="home-page auth-page posts-page">
+  <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('partials/icons') %>
+  <%- include('partials/posts-header', { current: mine ? 'mine' : 'list' }) %>
+  <% const formatDate = (value) => value.split('-').reverse().join('/'); %>
+  <main id="contenido" class="container auth-main posts-main">
+    <header class="posts-heading">
+      <div>
+        <p class="auth-kicker"><%= mine ? 'Tu actividad' : 'Objetos perdidos y encontrados' %></p>
+        <h1><%= title %></h1>
+        <p><%= mine ? 'Los objetos que has publicado, de los más recientes a los más antiguos.' : 'Las publicaciones más recientes de la comunidad.' %></p>
+      </div>
+      <span class="posts-count"><%= posts.length %> <%= posts.length === 1 ? 'publicación' : 'publicaciones' %></span>
+    </header>
+
+    <% if (!posts.length) { %>
+      <div class="posts-empty">
+        <p><%= mine ? 'Todavía no has publicado ningún objeto.' : 'Todavía no hay publicaciones.' %></p>
+        <% if (userId) { %><a class="btn btn-teal" href="/publicaciones/nueva">Publicar objeto</a><% } %>
+      </div>
+    <% } else { %>
+      <ul class="posts-grid" aria-label="<%= title %>">
+        <% posts.forEach(post => { %>
+          <li>
+            <article class="post-card">
+              <img class="post-card-photo" src="<%= post.photo_filename ? '/uploads/posts/' + post.photo_filename : '/images/post-placeholder.svg' %>" alt="" width="400" height="300" loading="lazy">
+              <div class="post-card-body">
+                <div class="post-badges">
+                  <span class="post-kind post-kind-<%= post.kind %>"><%= kinds[post.kind] %></span>
+                  <span class="post-category"><%= categories[post.category] %></span>
+                  <% if (mine) { %><span class="post-status"><%= statuses[post.status] %></span><% } %>
+                </div>
+                <h2><a class="stretched-link" href="/publicaciones/<%= post.id %>"><%= post.title %></a></h2>
+                <p class="post-card-meta"><svg class="icon" aria-hidden="true"><use href="#icon-pin"></use></svg><%= post.location %> · <%= formatDate(post.event_date) %></p>
+                <% if (!mine) { %><p class="post-card-author">Publicado por @<%= post.author_username %></p><% } %>
+              </div>
+            </article>
+          </li>
+        <% }); %>
+      </ul>
+    <% } %>
+  </main>
+</body>
+</html>

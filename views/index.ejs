@@ -22,6 +22,7 @@
     <nav class="container d-flex align-items-center justify-content-between" aria-label="Navegación principal">
       <a class="brand" href="/" aria-label="ReFind, inicio"><%- icon('brand', 'brand-mark') %><span>ReFind</span></a>
       <div class="d-flex align-items-center header-actions">
+        <a class="header-link" href="/publicaciones">Publicaciones</a>
         <% if (userId) { %>
           <%# Menú de la cuenta: Bootstrap lo despliega con bootstrap.bundle.min.js. %>
           <div class="dropdown account-menu">
@@ -37,6 +38,9 @@
             </button>
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="account-button">
               <li><span class="dropdown-item-text session-label">Sesión iniciada</span></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item" href="/publicaciones/nueva">Publicar objeto</a></li>
+              <li><a class="dropdown-item" href="/mis-publicaciones">Mis publicaciones</a></li>
               <li><hr class="dropdown-divider"></li>
               <li><a class="dropdown-item" href="/perfil">Mi perfil</a></li>
               <li><a class="dropdown-item" href="/amigos">Amigos</a></li>
@@ -110,7 +114,7 @@
             <div>
               <h2>He perdido un objeto</h2>
               <p>Publica lo que has perdido para encontrar coincidencias.</p>
-              <button class="btn btn-indigo" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="lost">Publicar objeto perdido <%- icon('arrow') %></button>
+              <a class="btn btn-indigo" href="/publicaciones/nueva?tipo=perdido">Publicar objeto perdido <%- icon('arrow') %></a>
             </div>
           </article>
         </div>
@@ -120,7 +124,7 @@
             <div>
               <h2>He encontrado un objeto</h2>
               <p>Ayuda a devolver un objeto a su propietario.</p>
-              <button class="btn btn-teal" type="button" data-bs-toggle="modal" data-bs-target="#infoModal" data-action="found">Publicar objeto encontrado <%- icon('arrow') %></button>
+              <a class="btn btn-teal" href="/publicaciones/nueva?tipo=encontrado">Publicar objeto encontrado <%- icon('arrow') %></a>
             </div>
           </article>
         </div>

@@ -148,3 +148,6 @@ test-results/
 
 # Fotos de perfil subidas localmente
 /public/uploads/avatars/
+
+# Fotos de publicaciones subidas localmente
+/public/uploads/posts/

@@ -62,14 +62,15 @@ test("permite filtrar los ejemplos y recuperarse de una búsqueda sin resultados
 });
 
 /**
- * Para qué sirve: Comprobar que la publicación todavía informa de que está pendiente.
- * Qué comprueba: Publicar objeto perdido abre el aviso y Entendido lo cierra.
+ * Para qué sirve: Comprobar que las acciones aún pendientes informan sin simular un registro.
+ * Qué comprueba: Contacto abre el aviso y Entendido lo cierra. (Publicar ya lleva al formulario
+ * real; se comprueba en posts.spec.js.)
  */
 test("las acciones pendientes informan sin simular un registro", async ({
   page,
 }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Publicar objeto perdido", exact: true }).click();
+  await page.getByRole("button", { name: "Contacto", exact: true }).click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.getByRole("dialog")).toContainText(
     "todavía no está disponible",

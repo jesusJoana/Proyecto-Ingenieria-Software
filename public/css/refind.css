@@ -835,3 +835,17 @@ body {
     transition: none;
   }
 }
+/* Enlace de texto de la cabecera (Publicaciones). */
+.header-link {
+  color: #40536c;
+  font-weight: 600;
+  text-decoration: none;
+}
+.header-link:hover {
+  color: var(--rf-teal);
+}
+@media (max-width: 575px) {
+  .header-link {
+    font-size: 13px;
+  }
+}
