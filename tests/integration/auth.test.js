@@ -78,7 +78,7 @@ describe('Formularios reales', () => {
   test('permite consultar y actualizar el perfil solo con sesión autenticada', async () => {
     const data = payload();
     const agent = request.agent(app);
-    await agent.get('/perfil').expect(401);
+    await agent.get('/perfil/editar').expect(401);
 
     const registrationCsrf = await token(agent, '/registro');
     await agent
@@ -93,7 +93,7 @@ describe('Formularios reales', () => {
       .send({ email: data.email, password: data.password, _csrf: loginCsrf })
       .expect(303);
 
-    const profilePage = await agent.get('/perfil').expect(200);
+    const profilePage = await agent.get('/perfil/editar').expect(200);
     expect(profilePage.text).toContain('value="Ana"');
     expect(profilePage.text).toContain('value="García"');
     const profileCsrf = profilePage.text.match(
@@ -115,7 +115,7 @@ describe('Formularios reales', () => {
         password_hash: 'ignorado',
       })
       .expect(303)
-      .expect('Location', '/perfil?guardado=ok');
+      .expect('Location', '/perfil/editar?guardado=ok');
 
     const {
       rows: [user],
@@ -145,7 +145,7 @@ describe('Formularios reales', () => {
     expect(publicPage.text).not.toContain(data.email);
     await request(app).get(`/u/${user.username}-missing`).expect(404);
     await agent
-      .get('/perfil?guardado=ok')
+      .get('/perfil/editar?guardado=ok')
       .expect(200)
       .expect(/Tus datos se han actualizado/);
   });
@@ -165,7 +165,7 @@ describe('Formularios reales', () => {
       .type('form')
       .send({ email: data.email, password: data.password, _csrf: loginCsrf })
       .expect(303);
-    const profilePage = await agent.get('/perfil').expect(200);
+    const profilePage = await agent.get('/perfil/editar').expect(200);
     const profileCsrf = profilePage.text.match(
       /name="_csrf" value="([a-f0-9]+)"/,
     )[1];
@@ -203,7 +203,7 @@ describe('Formularios reales', () => {
       .get(`/uploads/avatars/${user.avatar_filename}`)
       .expect(200)
       .expect('Content-Type', /image\/webp/);
-    const updatedPage = await agent.get('/perfil').expect(200);
+    const updatedPage = await agent.get('/perfil/editar').expect(200);
     const removeCsrf = updatedPage.text.match(
       /name="_csrf" value="([a-f0-9]+)"/,
     )[1];

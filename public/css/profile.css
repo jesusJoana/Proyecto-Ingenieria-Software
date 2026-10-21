@@ -1,0 +1,488 @@
+/* Espacio de cuenta: perfil, actividad y edición. */
+.account-page .profile-main {
+  max-width: 1100px;
+}
+.object-collection {
+  display: flex;
+  flex-direction: column;
+}
+.object-collection footer {
+  margin-top: auto;
+}
+.account-page {
+  background: #f4f7f5;
+  color: #203d35;
+}
+.account-page .auth-main {
+  padding-top: 30px;
+  padding-bottom: 64px;
+}
+.account-page .profile-tabs {
+  margin-bottom: 28px;
+  background: #e7eeea;
+}
+.account-page a:focus-visible {
+  outline: 3px solid #187c70;
+  outline-offset: 5px;
+}
+.account-page .profile-cover {
+  position: relative;
+  min-height: 190px;
+  background:
+    linear-gradient(90deg, #123f37e8, #124a3ccc),
+    url("/images/campus.webp") center 58% / cover;
+  overflow: hidden;
+}
+.account-page .profile-cover::after {
+  content: "";
+  position: absolute;
+  width: 340px;
+  height: 340px;
+  border: 1px solid #ffffff20;
+  border-radius: 50%;
+  right: -65px;
+  top: -180px;
+  box-shadow:
+    0 0 0 40px #ffffff05,
+    0 0 0 80px #ffffff05;
+}
+.account-page .profile-cover span {
+  z-index: 1;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+}
+.account-page .profile-overview {
+  border-radius: 24px;
+  box-shadow: 0 12px 40px #254a3507;
+}
+.account-page .profile-overview-body {
+  padding: 0 36px 32px;
+}
+.account-page .profile-identity {
+  gap: 22px;
+}
+.account-page .profile-identity .profile-avatar-preview {
+  box-shadow: 0 4px 16px #193f3412;
+}
+.account-page .profile-identity .profile-avatar-preview img {
+  border: 0;
+}
+.account-page .profile-identity h1 {
+  letter-spacing: -1px;
+}
+.account-page .profile-bio {
+  font-size: 15px;
+  max-width: 660px;
+}
+.account-page .profile-facts {
+  border-top: 1px solid #edf0ed;
+  padding-top: 22px;
+}
+.account-page .profile-facts dt {
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  font-size: 10px;
+}
+.account-page .profile-stats {
+  gap: 14px;
+  margin-bottom: 42px;
+}
+.account-page .profile-stats > div {
+  position: relative;
+  padding: 24px 28px;
+  border-radius: 18px;
+}
+.account-page .profile-stats > div::before {
+  content: "";
+  position: absolute;
+  top: 27px;
+  bottom: 27px;
+  left: 0;
+  width: 3px;
+  border-radius: 3px;
+  background: #92baab;
+}
+.account-page .profile-stats strong {
+  font-size: 32px;
+  line-height: 1.2;
+  font-weight: 700;
+  letter-spacing: -1px;
+}
+.profile-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 18px;
+  margin-bottom: 20px;
+}
+.profile-section-heading h2 {
+  margin: 4px 0 0;
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -0.6px;
+}
+.profile-section-heading > p {
+  font-size: 13px;
+  color: #667b70;
+  margin: 0 0 3px;
+}
+.profile-objects {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px;
+}
+.object-collection {
+  --object-color: #976327;
+  --object-tint: #fcf4e8;
+  border: 1px solid #e1e8e2;
+  border-radius: 22px;
+  background: white;
+  overflow: hidden;
+}
+.object-collection-found {
+  --object-color: #247263;
+  --object-tint: #edf6f1;
+}
+.object-collection-heading {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  padding: 24px;
+  border-bottom: 1px solid #edf0ed;
+}
+.object-section-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  color: var(--object-color);
+  background: var(--object-tint);
+  border-radius: 14px;
+}
+.object-collection-heading p {
+  color: #6e7c73;
+  margin: 0 0 4px;
+  font-size: 11px;
+}
+.object-collection-heading h3 {
+  margin: 0;
+  font-size: 19px;
+  font-weight: 700;
+  letter-spacing: -0.3px;
+}
+.object-empty-state {
+  text-align: center;
+  padding: 30px 28px;
+}
+.object-empty-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 90px;
+  height: 90px;
+  margin: 0 auto 22px;
+  border-radius: 50%;
+  color: var(--object-color);
+  background: var(--object-tint);
+}
+.object-empty-art > .icon {
+  width: 40px;
+  height: 40px;
+  stroke-width: 1.5;
+}
+.object-empty-art > span {
+  position: absolute;
+  right: -3px;
+  bottom: 1px;
+  display: grid;
+  place-items: center;
+  width: 27px;
+  height: 27px;
+  border: 3px solid white;
+  border-radius: 50%;
+  color: white;
+  background: var(--object-color);
+  font-size: 13px;
+  font-weight: 700;
+}
+.object-empty-state h4 {
+  font-size: 15px;
+  font-weight: 650;
+  margin-bottom: 10px;
+}
+.object-empty-state p {
+  max-width: 315px;
+  margin: auto;
+  color: #718078;
+  font-size: 13px;
+  line-height: 1.8;
+}
+.object-collection footer {
+  padding: 14px 20px;
+  color: var(--object-color);
+  background: var(--object-tint);
+  text-align: center;
+  font-size: 11px;
+}
+.account-page .exchange-section,
+.account-page .reviews-section {
+  margin-top: 28px;
+  padding: 28px;
+  border-radius: 22px;
+}
+.account-page .exchange-empty,
+.account-page .reviews-empty {
+  padding: 28px 24px;
+  border: 1px dashed #dbe6df;
+  border-radius: 14px;
+  background: #f9fbf9;
+  font-size: 14px;
+}
+.account-page .exchange-item,
+.account-page .review-item {
+  box-shadow: none;
+  border-color: #e7ede8;
+  border-radius: 16px;
+}
+.account-page .btn-teal {
+  border-radius: 11px;
+  padding: 12px 20px;
+  font-size: 13px;
+}
+.profile-edit-page .auth-layout {
+  grid-template-columns: 300px minmax(0, 1fr);
+  align-items: start;
+  background: transparent;
+  overflow: visible;
+  box-shadow: none;
+  border: 0;
+  gap: 28px;
+}
+.profile-edit-page .auth-story {
+  min-height: 0;
+  position: sticky;
+  top: 24px;
+  background: #e7efe9;
+  border: 1px solid #dce7df;
+  border-radius: 22px;
+}
+.profile-edit-page .auth-campus {
+  display: none;
+}
+.profile-edit-page .auth-story::after {
+  display: none;
+}
+.profile-edit-page .auth-story-content {
+  padding: 30px 24px;
+}
+.profile-edit-page .auth-story h2 {
+  font-size: 34px;
+  line-height: 1.2;
+  letter-spacing: -1px;
+}
+.profile-edit-page .auth-story-content > p {
+  font-size: 13px;
+}
+.profile-edit-index {
+  display: grid;
+  margin-top: 30px;
+}
+.profile-edit-index a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 0;
+  border-bottom: 1px solid #d3e0d6;
+  color: #315c4b;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 600;
+}
+.profile-edit-index a:hover {
+  color: #007b69;
+}
+.profile-edit-index a span:first-child {
+  font-size: 10px;
+  color: #738f7d;
+}
+.profile-edit-index a span:last-child {
+  margin-left: auto;
+}
+.profile-edit-note {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+  margin-top: 30px;
+  color: #587664;
+}
+.profile-edit-note .icon {
+  flex-shrink: 0;
+}
+.profile-edit-note p {
+  font-size: 12px;
+  line-height: 1.8;
+  margin: 0;
+}
+.profile-edit-page .auth-panel {
+  padding: 32px;
+  border: 1px solid #e0e8e2;
+  border-radius: 22px;
+  background: white;
+  min-width: 0;
+}
+.profile-edit-page .auth-form-heading h1 {
+  font-size: 29px;
+  letter-spacing: -0.8px;
+}
+.profile-edit-page .profile-intro {
+  padding-bottom: 26px;
+  border-bottom: 1px solid #edf0ed;
+}
+.profile-form-group {
+  min-width: 0;
+  margin: 0 0 28px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid #edf0ed;
+  scroll-margin-top: 24px;
+}
+.profile-form-group legend {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  float: none;
+  font-size: 17px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+.profile-form-group legend > span {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 9px;
+  background: #edf5ef;
+  color: #527e65;
+  font-size: 10px;
+}
+.profile-group-description {
+  font-size: 12px;
+  color: #718078;
+  margin-bottom: 22px;
+}
+.profile-edit-page .form-control {
+  border-color: #dce5de;
+  background-color: #fcfdfc;
+  border-radius: 10px;
+  padding: 11px 13px;
+}
+.profile-edit-page .form-control:focus {
+  background: white;
+  border-color: #5a9e85;
+  box-shadow: 0 0 0 3px #3b937418;
+}
+.profile-edit-page .form-label {
+  font-size: 12px;
+}
+.profile-edit-page .form-text {
+  font-size: 11px;
+  line-height: 1.7;
+}
+.profile-edit-page input[type="file"] {
+  border-style: dashed;
+  padding: 16px;
+}
+.profile-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.profile-form-actions > a {
+  color: #61796c;
+  font-size: 13px;
+  text-decoration: none;
+}
+.profile-form-actions .auth-submit {
+  margin: 0;
+}
+@media (max-width: 991px) {
+  .profile-edit-page .auth-layout {
+    grid-template-columns: 230px minmax(0, 1fr);
+    gap: 20px;
+  }
+  .profile-edit-page .auth-panel {
+    padding: 26px;
+  }
+}
+@media (max-width: 767px) {
+  .account-page .auth-main {
+    padding-top: 20px;
+    padding-bottom: 36px;
+  }
+  .profile-edit-page .auth-layout {
+    display: block;
+  }
+  .profile-objects {
+    grid-template-columns: 1fr;
+    gap: 18px;
+  }
+  .profile-section-heading {
+    display: block;
+  }
+  .profile-section-heading > p {
+    margin-top: 10px;
+  }
+  .account-page .profile-cover {
+    min-height: 145px;
+    padding: 22px;
+  }
+  .account-page .profile-cover span {
+    font-size: 10px;
+    letter-spacing: 2px;
+  }
+  .account-page .profile-overview-body {
+    padding: 0 22px 24px;
+  }
+  .account-page .profile-identity {
+    gap: 14px;
+  }
+  .account-page .profile-stats > div {
+    padding: 18px 14px;
+  }
+  .account-page .profile-stats strong {
+    font-size: 25px;
+  }
+  .account-page .profile-stats span {
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .account-page .exchange-section,
+  .account-page .reviews-section {
+    padding: 22px 18px;
+  }
+  .profile-edit-page .auth-panel {
+    padding: 24px 20px;
+  }
+}
+@media (max-width: 400px) {
+  .account-page .profile-stats {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .account-page .profile-stats > div {
+    flex-direction: row;
+    align-items: center;
+    gap: 18px;
+  }
+  .account-page .profile-stats strong {
+    min-width: 60px;
+  }
+  .profile-form-actions {
+    flex-direction: column-reverse;
+  }
+  .profile-form-actions .auth-submit {
+    width: 100%;
+  }
+}

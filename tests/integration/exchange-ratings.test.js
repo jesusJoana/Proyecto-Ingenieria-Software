@@ -39,7 +39,7 @@ async function login(person) {
 }
 
 async function completeAndReview(reviewer, recipient, rating, comment) {
-  const proposalCsrf = await getCsrf(reviewer.agent, '/perfil');
+  const proposalCsrf = await getCsrf(reviewer.agent, '/perfil/editar');
   await reviewer.agent
     .post(`/u/${recipient.username}/intercambios`)
     .type('form')
@@ -56,7 +56,7 @@ async function completeAndReview(reviewer, recipient, rating, comment) {
   );
   exchanges.push(exchange.id);
 
-  const acceptCsrf = await getCsrf(recipient.agent, '/perfil');
+  const acceptCsrf = await getCsrf(recipient.agent, '/perfil/editar');
   await recipient.agent
     .post(`/intercambios/${exchange.id}/aceptar`)
     .type('form')
@@ -64,14 +64,14 @@ async function completeAndReview(reviewer, recipient, rating, comment) {
     .expect(303)
     .expect('Location', '/perfil?intercambio=aceptado');
 
-  const prematureCsrf = await getCsrf(reviewer.agent, '/perfil');
+  const prematureCsrf = await getCsrf(reviewer.agent, '/perfil/editar');
   await reviewer.agent
     .post(`/intercambios/${exchange.id}/valoraciones`)
     .type('form')
     .send({ rating, comment, _csrf: prematureCsrf })
     .expect(403);
 
-  const reviewerConfirmCsrf = await getCsrf(reviewer.agent, '/perfil');
+  const reviewerConfirmCsrf = await getCsrf(reviewer.agent, '/perfil/editar');
   await reviewer.agent
     .post(`/intercambios/${exchange.id}/confirmar`)
     .type('form')
@@ -79,7 +79,7 @@ async function completeAndReview(reviewer, recipient, rating, comment) {
     .expect(303)
     .expect('Location', '/perfil?intercambio=confirmacion-pendiente');
 
-  const recipientConfirmCsrf = await getCsrf(recipient.agent, '/perfil');
+  const recipientConfirmCsrf = await getCsrf(recipient.agent, '/perfil/editar');
   await recipient.agent
     .post(`/intercambios/${exchange.id}/confirmar`)
     .type('form')
@@ -87,7 +87,7 @@ async function completeAndReview(reviewer, recipient, rating, comment) {
     .expect(303)
     .expect('Location', '/perfil?intercambio=completado');
 
-  const reviewCsrf = await getCsrf(reviewer.agent, '/perfil');
+  const reviewCsrf = await getCsrf(reviewer.agent, '/perfil/editar');
   await reviewer.agent
     .post(`/intercambios/${exchange.id}/valoraciones`)
     .type('form')
@@ -166,7 +166,7 @@ describe('Intercambios y valoraciones', () => {
     expect(profile.text).toContain(`@${people[0].username}`);
     expect(profile.text).toContain(`@${people[2].username}`);
 
-    const duplicateCsrf = await getCsrf(people[0].agent, '/perfil');
+    const duplicateCsrf = await getCsrf(people[0].agent, '/perfil/editar');
     await people[0].agent
       .post(`/intercambios/${firstExchange}/valoraciones`)
       .type('form')

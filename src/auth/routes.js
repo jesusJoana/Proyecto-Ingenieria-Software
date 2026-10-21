@@ -113,8 +113,8 @@ export function createAuthRouter(pool) {
       exchanges.getRatingSummary(req.session.userId),
     ]);
     res.set('Cache-Control', 'no-store');
-    return res.status(options.status ?? 200).render('profile', {
-      title: 'Mi perfil',
+    return res.status(options.status ?? 200).render(options.edit || options.errors || options.saved ? 'profile-edit' : 'profile', {
+      title: options.edit || options.errors || options.saved ? 'Editar perfil' : 'Mi perfil',
       values: options.values,
       errors: options.errors ?? {},
       csrf: csrfToken(req),
@@ -157,7 +157,7 @@ export function createAuthRouter(pool) {
   router.get('/iniciar-sesion', onlyGuest, (req, res) =>
     render(req, res, 'login'),
   );
-  router.get('/perfil', requireAuth, async (req, res) => {
+  router.get(['/perfil', '/perfil/editar'], requireAuth, async (req, res) => {
     const profile = await service.getProfile(req.session.userId);
     if (!profile)
       return res.status(404).render('error', {
@@ -166,6 +166,7 @@ export function createAuthRouter(pool) {
       });
     return renderProfilePage(req, res, {
       values: profile,
+      edit: req.path === '/perfil/editar',
       saved: req.query.guardado === 'ok',
       avatarFilename: profile.avatar_filename,
       publicProfileUrl: `/u/${encodeURIComponent(profile.username)}`,
@@ -328,7 +329,7 @@ export function createAuthRouter(pool) {
           currentProfile.avatar_filename !== profile.avatar_filename
         )
           await removeAvatar(currentProfile.avatar_filename);
-        return res.redirect(303, '/perfil?guardado=ok');
+        return res.redirect(303, '/perfil/editar?guardado=ok');
       } catch (error) {
         await removeAvatar(avatarFilename);
         if (await avatarError(req, res, error, currentProfile)) return;

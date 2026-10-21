@@ -98,7 +98,11 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   ).toBeVisible();
   await page.getByRole('link', { name: 'Mi perfil' }).click();
   await expect(page).toHaveURL(/\/perfil$/);
-  await expect(page.getByRole('heading', { name: 'Mi perfil' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Ana García' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Objetos perdidos', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Objetos encontrados', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Guardar cambios' })).toHaveCount(0);
+  await page.getByRole('link', { name: 'Editar perfil', exact: true }).first().click();
   await expect(page.getByLabel('Nombre', { exact: true })).toHaveValue('Ana');
   await expect(page.getByLabel('Apellidos', { exact: true })).toHaveValue(
     'García',
@@ -110,7 +114,7 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   await page.getByLabel('Localidad').fill('Madrid');
   await page.getByLabel('Descripción').fill('Me gusta ayudar a mi comunidad.');
   await page.getByRole('button', { name: 'Guardar cambios' }).click();
-  await expect(page).toHaveURL(/\/perfil\?guardado=ok$/);
+  await expect(page).toHaveURL(/\/perfil\/editar\?guardado=ok$/);
   await expect(page.getByRole('status')).toContainText(
     'Tus datos se han actualizado',
   );
@@ -120,13 +124,13 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   await expect(page.getByLabel('Organización', { exact: false })).toHaveValue(
     'CEU',
   );
-  await page.getByRole('link', { name: 'Ver mi perfil público' }).click();
-  await expect(page).toHaveURL(new RegExp(`/u/${username}-edit$`));
+  await page.getByRole('link', { name: 'Mi perfil', exact: true }).click();
+  await expect(page).toHaveURL(/\/perfil$/);
   await expect(
     page.getByRole('heading', { name: 'Ana María García' }),
   ).toBeVisible();
   await expect(page.getByText('Madrid', { exact: true })).toBeVisible();
-  await expect(page.getByText('22', { exact: true })).toBeVisible();
+  await expect(page.getByText('22 años', { exact: true })).toBeVisible();
   await expect(page.getByText('Me gusta ayudar a mi comunidad.')).toBeVisible();
   await expect(page.getByText(email, { exact: true })).toHaveCount(0);
   await page.goto('/');
