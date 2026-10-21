@@ -12,6 +12,7 @@ import pg from 'pg';
 import { createSessionMiddleware } from './session.js';
 import { createAuthRouter } from './auth/routes.js';
 import { csrfToken } from './auth/security.js';
+import { createFriendsRouter } from './friends/routes.js';
 
 // Carpeta raíz del proyecto, para localizar vistas y recursos.
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -69,6 +70,7 @@ export function createApp(config) {
   });
 
   app.use(createAuthRouter(pool));
+  app.use(createFriendsRouter(pool));
 
   // Página de inicio.
   app.get('/', (req, res) => {

@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · ReFind</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/refind.css">
+  <link rel="stylesheet" href="/css/auth.css">
+  <link rel="stylesheet" href="/css/profile.css">
+  <link rel="stylesheet" href="/css/friends.css">
+</head>
+<body class="home-page auth-page account-page friends-page">
+  <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('partials/icons') %>
+  <header class="site-header">
+    <nav class="container d-flex align-items-center justify-content-between" aria-label="Navegación principal">
+      <a class="brand" href="/" aria-label="ReFind, inicio"><svg class="icon brand-mark" aria-hidden="true"><use href="#icon-brand"></use></svg>ReFind</a>
+      <a class="auth-home-link" href="/">Volver al inicio <span aria-hidden="true">↗</span></a>
+    </nav>
+  </header>
+  <main id="contenido" class="container auth-main profile-main">
+    <nav class="profile-tabs" aria-label="Secciones de tu cuenta">
+      <a href="/perfil">Mi perfil</a><a href="/perfil/editar">Editar perfil</a><a href="/amigos" aria-current="page">Amigos</a>
+    </nav>
+    <header class="friends-heading">
+      <div><p class="auth-kicker">Tu comunidad, más cerca</p><h1>Amigos</h1><p>Conecta con personas de ReFind y conversa en privado.</p></div>
+      <span class="friends-count"><%= friends.length %> <%= friends.length === 1 ? 'amistad' : 'amistades' %></span>
+    </header>
+
+    <% const notices = {
+      sent: ['success', 'Solicitud enviada.'],
+      pending: ['info', 'La solicitud ya está pendiente.'],
+      'incoming-pending': ['info', 'Ya tienes una solicitud recibida de esa persona.'],
+      friends: ['info', 'Ya sois amigos.'],
+      aceptada: ['success', 'Solicitud aceptada. Ya podéis conversar.'],
+      rechazada: ['info', 'Solicitud rechazada.'],
+      cancelada: ['info', 'Solicitud cancelada.'],
+      eliminada: ['info', 'Amistad eliminada. El chat ya no está disponible.'],
+      'no-disponible': ['warning', 'La solicitud o amistad ya no está disponible para esa acción.'],
+      'no-encontrado': ['warning', 'No se encontró esa cuenta.'],
+      propia: ['warning', 'No puedes enviarte una solicitud a ti.'],
+    };
+    if (notices[resultado]) { %>
+      <div class="alert alert-<%= notices[resultado][0] %>" role="status"><%= notices[resultado][1] %></div>
+    <% } %>
+    <% if (searchError) { %><p class="alert alert-warning" role="alert"><%= searchError %></p><% } %>
+    <% if (query && query.length < 2) { %><p class="alert alert-info" role="status">Escribe al menos dos caracteres para buscar.</p><% } %>
+
+    <section class="friends-section" aria-labelledby="search-title">
+      <div class="friends-section-heading"><div><p class="auth-kicker">Encuentra a tu gente</p><h2 id="search-title">Buscar usuarios</h2></div></div>
+      <form class="friends-search" action="/amigos" method="get">
+        <label class="visually-hidden" for="friends-query">Nombre de usuario o correo electrónico</label>
+        <input class="form-control" id="friends-query" name="q" type="search" value="<%= query %>" placeholder="Usuario o correo electrónico" maxlength="100" autocomplete="off">
+        <button class="btn btn-teal" type="submit">Buscar</button>
+      </form>
+      <% if (query.length >= 2) { %>
+        <% if (searchResults.length) { %>
+          <div class="friends-list search-results" aria-live="polite">
+            <% searchResults.forEach(person => { %>
+              <article class="friend-row">
+                <div class="friend-identity">
+                  <% if (person.avatar_filename) { %><img class="friend-avatar" src="/uploads/avatars/<%= person.avatar_filename %>" alt="" width="48" height="48"><% } else { %><span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.first_name.slice(0, 1).toUpperCase() %></span><% } %>
+                  <div><h3><%= person.first_name %> <%= person.last_name %></h3><p>@<%= person.username %></p></div>
+                </div>
+                <% if (person.relationship_status === 'accepted') { %>
+                  <button class="btn btn-outline-secondary" type="button" disabled>Amigos</button>
+                <% } else if (person.relationship_status === 'pending') { %>
+                  <button class="btn btn-outline-secondary" type="button" disabled>Pendiente</button>
+                <% } else { %>
+                  <form action="/amigos/solicitudes/<%= person.id %>" method="post">
+                    <input type="hidden" name="_csrf" value="<%= csrf %>">
+                    <button class="btn btn-teal" type="submit">Añadir amigo</button>
+                  </form>
+                <% } %>
+              </article>
+            <% }); %>
+          </div>
+        <% } else { %><p class="friends-empty">No hay usuarios que coincidan con esa búsqueda.</p><% } %>
+      <% } %>
+    </section>
+
+    <div class="friends-columns">
+      <section class="friends-section" aria-labelledby="my-friends-title">
+        <div class="friends-section-heading"><div><p class="auth-kicker">Conexiones aceptadas</p><h2 id="my-friends-title">Mis amigos</h2></div><span class="friends-section-count"><%= friends.length %></span></div>
+        <% if (!friends.length) { %><p class="friends-empty">Cuando aceptéis una solicitud, aparecerá aquí.</p><% } else { %>
+          <div class="friends-list">
+            <% friends.forEach(person => { %>
+              <article class="friend-row">
+                <div class="friend-identity">
+                  <% if (person.avatar_filename) { %><img class="friend-avatar" src="/uploads/avatars/<%= person.avatar_filename %>" alt="" width="48" height="48"><% } else { %><span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.first_name.slice(0, 1).toUpperCase() %></span><% } %>
+                  <div><h3><%= person.first_name %> <%= person.last_name %></h3><p>@<%= person.username %></p></div>
+                </div>
+                <div class="friend-actions">
+                  <a class="btn btn-teal" href="/amigos/<%= person.id %>/chat">Chat</a>
+                  <form action="/amigos/<%= person.id %>/eliminar" method="post" data-confirm="¿Eliminar esta amistad? El historial del chat también se borrará.">
+                    <input type="hidden" name="_csrf" value="<%= csrf %>">
+                    <button class="btn btn-outline-secondary" type="submit">Eliminar</button>
+                  </form>
+                </div>
+              </article>
+            <% }); %>
+          </div>
+        <% } %>
+      </section>
+
+      <section class="friends-section" aria-labelledby="received-title">
+        <div class="friends-section-heading"><div><p class="auth-kicker">Decide quién entra</p><h2 id="received-title">Solicitudes recibidas</h2></div><span class="friends-section-count"><%= received.length %></span></div>
+        <% if (!received.length) { %><p class="friends-empty">No tienes solicitudes pendientes.</p><% } else { %>
+          <div class="friends-list">
+            <% received.forEach(person => { %>
+              <article class="friend-row">
+                <div class="friend-identity">
+                  <% if (person.avatar_filename) { %><img class="friend-avatar" src="/uploads/avatars/<%= person.avatar_filename %>" alt="" width="48" height="48"><% } else { %><span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.first_name.slice(0, 1).toUpperCase() %></span><% } %>
+                  <div><h3><%= person.first_name %> <%= person.last_name %></h3><p>@<%= person.username %></p></div>
+                </div>
+                <div class="friend-actions">
+                  <form action="/amigos/solicitudes/<%= person.id %>/aceptar" method="post"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-teal" type="submit">Aceptar</button></form>
+                  <form action="/amigos/solicitudes/<%= person.id %>/rechazar" method="post"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-outline-secondary" type="submit">Rechazar</button></form>
+                </div>
+              </article>
+            <% }); %>
+          </div>
+        <% } %>
+      </section>
+    </div>
+
+    <section class="friends-section sent-section" aria-labelledby="sent-title">
+      <div class="friends-section-heading"><div><p class="auth-kicker">A la espera de respuesta</p><h2 id="sent-title">Solicitudes enviadas</h2></div><span class="friends-section-count"><%= sent.length %></span></div>
+      <% if (!sent.length) { %><p class="friends-empty">No tienes solicitudes enviadas pendientes.</p><% } else { %>
+        <div class="friends-list">
+          <% sent.forEach(person => { %>
+            <article class="friend-row">
+              <div class="friend-identity">
+                <% if (person.avatar_filename) { %><img class="friend-avatar" src="/uploads/avatars/<%= person.avatar_filename %>" alt="" width="48" height="48"><% } else { %><span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.first_name.slice(0, 1).toUpperCase() %></span><% } %>
+                <div><h3><%= person.first_name %> <%= person.last_name %></h3><p>@<%= person.username %></p></div>
+              </div>
+              <form action="/amigos/solicitudes/<%= person.id %>/cancelar" method="post"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-outline-secondary" type="submit">Cancelar</button></form>
+            </article>
+          <% }); %>
+        </div>
+      <% } %>
+    </section>
+  </main>
+  <script src="/js/friends.js" defer></script>
+</body>
+</html>
