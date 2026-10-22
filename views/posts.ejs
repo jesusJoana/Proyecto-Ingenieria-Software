@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/css/refind.css">
   <link rel="stylesheet" href="/css/auth.css">
   <link rel="stylesheet" href="/css/posts.css">
+  <link rel="stylesheet" href="/css/design.css">
 </head>
 <body class="home-page auth-page posts-page">
   <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
@@ -17,10 +18,11 @@
   <main id="contenido" class="container auth-main posts-main">
     <header class="posts-heading">
       <div>
-        <p class="auth-kicker"><%= mine ? 'Tu actividad' : 'Objetos perdidos y encontrados' %></p>
+        <p class="auth-kicker"><% if (!mine && accountUsername) { %>Hola, <%= accountUsername %> · <% } %><%= mine ? 'Tu actividad' : 'Objetos perdidos y encontrados' %></p>
         <h1><%= title %></h1>
         <p><%= mine ? 'Los objetos que has publicado, de los más recientes a los más antiguos.' : 'Las publicaciones más recientes de la comunidad.' %></p>
       </div>
+      <% if (userId && posts.length) { %><a class="btn btn-teal" href="/publicaciones/nueva">Publicar objeto</a><% } %>
       <span class="posts-count"><%= posts.length %> <%= posts.length === 1 ? 'publicación' : 'publicaciones' %></span>
     </header>
 
@@ -30,9 +32,23 @@
         <% if (userId) { %><a class="btn btn-teal" href="/publicaciones/nueva">Publicar objeto</a><% } %>
       </div>
     <% } else { %>
+      <section class="posts-tools" aria-label="Buscar y filtrar publicaciones" hidden>
+        <div class="posts-controls">
+          <div><label class="visually-hidden" for="posts-query">Buscar por objeto o ubicación</label><input id="posts-query" type="search" class="form-control" placeholder="Buscar mochila, llaves, móvil…"></div>
+          <div><label class="visually-hidden" for="posts-category">Categoría</label><select id="posts-category" class="form-select"><option value="">Todas las categorías</option><% Object.entries(categories).forEach(([value, label]) => { %><option value="<%= value %>"><%= label %></option><% }); %></select></div>
+          <div><label class="visually-hidden" for="posts-sort">Ordenar por</label><select id="posts-sort" class="form-select"><option value="recent">Más recientes</option><option value="oldest">Más antiguas</option><option value="title">Título: A–Z</option></select></div>
+        </div>
+        <div class="posts-filter-buttons" role="group" aria-label="Tipo de objeto">
+          <button type="button" data-post-kind="" aria-pressed="true">Todos</button>
+          <button type="button" data-post-kind="lost" aria-pressed="false">Objetos perdidos</button>
+          <button type="button" data-post-kind="found" aria-pressed="false">Objetos encontrados</button>
+        </div>
+        <p class="posts-result-summary" id="posts-results" role="status" aria-live="polite"></p>
+      </section>
+      <p id="posts-no-results" class="posts-empty" hidden>No hay publicaciones que coincidan. <button class="btn btn-outline-secondary" id="posts-reset" type="button">Restablecer filtros</button></p>
       <ul class="posts-grid" aria-label="<%= title %>">
         <% posts.forEach(post => { %>
-          <li>
+          <li data-post data-kind="<%= post.kind %>" data-category="<%= post.category %>" data-title="<%= post.title %>" data-location="<%= post.location %>">
             <article class="post-card">
               <img class="post-card-photo" src="<%= post.photo_filename ? '/uploads/posts/' + post.photo_filename : '/images/post-placeholder.svg' %>" alt="" width="400" height="300" loading="lazy">
               <div class="post-card-body">
@@ -51,5 +67,7 @@
       </ul>
     <% } %>
   </main>
+  <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/posts.js" defer></script>
 </body>
 </html>

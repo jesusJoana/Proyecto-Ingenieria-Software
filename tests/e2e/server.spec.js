@@ -20,10 +20,10 @@ test("la página inicial carga y permite navegar sin errores de JavaScript", asy
   const response = await page.goto("/");
   expect(response.status()).toBe(200);
   await expect(
-    page.getByRole("heading", { name: "Encuéntralo con ReFind", exact: true }),
+    page.getByRole("heading", { name: "Objetos que vuelven a historias", exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "Iniciar sesión", exact: true }),
+    page.getByRole("navigation", { name: "Navegación principal" }).getByRole("link", { name: "Iniciar sesión", exact: true }),
   ).toBeVisible();
 
   // Verificar también la respuesta y página de una ruta inexistente.

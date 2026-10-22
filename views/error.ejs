@@ -6,12 +6,16 @@
     <title><%= title %> · ReFind</title>
     <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
     <link rel="stylesheet" href="/css/refind.css">
-  </head>
-  <body>
-    <main class="container py-4">
+    <link rel="stylesheet" href="/css/design.css">
+</head>
+  <body class="home-page">
+    <%- include('partials/icons') %>
+    <%- include('partials/site-header', { current: 'error' }) %>
+    <main class="container py-4" id="contenido">
       <h1><%= title %></h1>
       <p><%= message %></p>
       <a href="/">Volver al inicio</a>
     </main>
-  </body>
+    <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+</body>
 </html>

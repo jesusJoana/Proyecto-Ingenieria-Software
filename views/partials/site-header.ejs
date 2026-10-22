@@ -1,0 +1,60 @@
+<%
+const signedIn = typeof userId !== 'undefined' && Boolean(userId);
+const username = typeof accountUsername !== 'undefined' ? accountUsername : null;
+const avatar = typeof accountAvatarFilename !== 'undefined' ? accountAvatarFilename : null;
+const activeSection = typeof current !== 'undefined' ? current : '';
+const navigation = [
+  ['home', '/', 'Inicio', 'home'],
+  ['list', '/publicaciones', 'Publicaciones', 'search'],
+  ['new', '/publicaciones/nueva', 'Publicar', 'plus'],
+  ['mine', '/mis-publicaciones', 'Mis publicaciones', 'list'],
+  ['friends', '/amigos', 'Amigos y mensajes', 'chat'],
+  ['profile', '/perfil', 'Mi perfil', 'user'],
+  ['edit', '/perfil/editar', 'Editar perfil', 'settings'],
+  ['password', '/cambiar-contrasena', 'Seguridad', 'shield']
+];
+%>
+<header class="site-header redesigned-header">
+  <nav class="container" aria-label="Navegación principal">
+    <a class="brand" href="/" aria-label="ReFind, inicio"><svg class="icon brand-mark" aria-hidden="true"><use href="#icon-brand"></use></svg><span>ReFind</span></a>
+    <% if (!signedIn) { %>
+      <div class="public-navigation">
+        <a href="/" <%= activeSection === 'home' ? 'aria-current=page' : '' %>>Inicio</a>
+        <a href="/#como-funciona">Cómo funciona</a>
+        <a href="/#sobre-nosotros">Sobre nosotros</a>
+        <a href="/publicaciones">Publicaciones</a>
+      </div>
+      <div class="header-actions">
+        <a class="header-link" href="/iniciar-sesion">Iniciar sesión</a>
+        <a class="btn btn-teal" href="/registro">Registrarse</a>
+      </div>
+    <% } else { %>
+      <div class="header-actions">
+        <a class="header-community" href="/publicaciones">Tu comunidad universitaria</a>
+        <div class="dropdown account-menu">
+          <button id="account-button" class="btn dropdown-toggle account-button" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<%= username ? 'Cuenta de @' + username : 'Mi cuenta' %>">
+            <% if (avatar) { %><img class="account-avatar" src="/uploads/avatars/<%= avatar %>" alt=""><% } else { %><span class="account-avatar account-avatar-placeholder" aria-hidden="true"><%= (username || 'R').slice(0, 2).toUpperCase() %></span><% } %>
+            <span class="account-name"><%= username || 'Mi cuenta' %></span>
+          </button>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="account-button">
+            <li><span class="dropdown-item-text session-label">Sesión iniciada</span></li>
+            <li><a class="dropdown-item" href="/perfil">Ver mi cuenta</a></li>
+            <li><a class="dropdown-item" href="/cambiar-contrasena">Cambiar contraseña</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><form action="/cerrar-sesion" method="post" class="m-0"><input type="hidden" name="_csrf" value="<%= typeof csrf !== 'undefined' ? csrf : '' %>"><button class="dropdown-item" type="submit">Cerrar sesión</button></form></li>
+          </ul>
+        </div>
+      </div>
+    <% } %>
+  </nav>
+</header>
+<% if (signedIn) { %>
+<aside class="app-sidebar" aria-label="Tu espacio ReFind">
+  <nav class="sidebar-links" aria-label="Secciones de ReFind">
+    <% navigation.forEach(([key, url, label, symbol]) => { %>
+      <a href="<%= url %>" <% if (activeSection === key) { %>aria-current="page"<% } %>><svg class="icon" aria-hidden="true"><use href="#icon-<%= symbol %>"></use></svg><span><%= label %></span></a>
+    <% }); %>
+  </nav>
+  <div class="sidebar-note"><svg class="icon" aria-hidden="true"><use href="#icon-graduation"></use></svg><strong>Una comunidad<br>que se ayuda</strong><p>Juntos hacemos que las cosas vuelvan a su dueño.</p></div>
+</aside>
+<% } %>

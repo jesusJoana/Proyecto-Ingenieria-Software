@@ -9,16 +9,12 @@
   <link rel="stylesheet" href="/css/auth.css">
   <link rel="stylesheet" href="/css/profile.css">
   <link rel="stylesheet" href="/css/friends.css">
+  <link rel="stylesheet" href="/css/design.css">
 </head>
 <body class="home-page auth-page account-page friends-page">
   <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
   <%- include('partials/icons') %>
-  <header class="site-header">
-    <nav class="container d-flex align-items-center justify-content-between" aria-label="Navegación principal">
-      <a class="brand" href="/" aria-label="ReFind, inicio"><svg class="icon brand-mark" aria-hidden="true"><use href="#icon-brand"></use></svg>ReFind</a>
-      <a class="auth-home-link" href="/">Volver al inicio <span aria-hidden="true">↗</span></a>
-    </nav>
-  </header>
+  <%- include('partials/site-header', { current: 'friends' }) %>
   <main id="contenido" class="container auth-main profile-main">
     <nav class="profile-tabs" aria-label="Secciones de tu cuenta">
       <a href="/perfil">Mi perfil</a><a href="/perfil/editar">Editar perfil</a><a href="/amigos" aria-current="page">Amigos</a>
@@ -143,5 +139,6 @@
     </section>
   </main>
   <script src="/js/friends.js" defer></script>
+  <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

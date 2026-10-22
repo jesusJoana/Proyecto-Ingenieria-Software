@@ -1,15 +1,1 @@
-<%# Cabecera común de las páginas de publicaciones. %>
-<header class="site-header">
-  <nav class="container d-flex align-items-center justify-content-between flex-wrap gap-2" aria-label="Navegación principal">
-    <a class="brand" href="/" aria-label="ReFind, inicio"><svg class="icon brand-mark" aria-hidden="true"><use href="#icon-brand"></use></svg>ReFind</a>
-    <div class="posts-nav">
-      <a href="/publicaciones" <% if (current === 'list') { %>aria-current="page"<% } %>>Publicaciones</a>
-      <% if (userId) { %>
-        <a href="/mis-publicaciones" <% if (current === 'mine') { %>aria-current="page"<% } %>>Mis publicaciones</a>
-        <a class="btn btn-teal" href="/publicaciones/nueva" <% if (current === 'new') { %>aria-current="page"<% } %>>Publicar objeto</a>
-      <% } else { %>
-        <a class="btn btn-teal" href="/iniciar-sesion">Iniciar sesión</a>
-      <% } %>
-    </div>
-  </nav>
-</header>
+<%- include('site-header', { current }) %>

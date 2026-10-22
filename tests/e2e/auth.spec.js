@@ -65,7 +65,7 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   page,
 }) => {
   await page.goto('/');
-  await page.getByRole('link', { name: 'Registrarse', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Registrarse', exact: true }).click();
   await expect(
     page.getByRole('heading', { name: 'Crear una cuenta' }),
   ).toBeVisible();
@@ -124,7 +124,7 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   await expect(page.getByLabel('Organización', { exact: false })).toHaveValue(
     'CEU',
   );
-  await page.getByRole('link', { name: 'Mi perfil', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Secciones de ReFind' }).getByRole('link', { name: 'Mi perfil', exact: true }).click();
   await expect(page).toHaveURL(/\/perfil$/);
   await expect(
     page.getByRole('heading', { name: 'Ana María García' }),
@@ -140,7 +140,7 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   await expect(page).toHaveURL(/\/iniciar-sesion$/);
   await page.goto('/');
   await expect(
-    page.getByRole('link', { name: 'Iniciar sesión', exact: true }),
+    page.getByRole('navigation', { name: 'Navegación principal' }).getByRole('link', { name: 'Iniciar sesión', exact: true }),
   ).toBeVisible();
 });
 

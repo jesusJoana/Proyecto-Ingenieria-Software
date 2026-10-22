@@ -117,6 +117,6 @@ describe('Vistas de intercambios y valoraciones', () => {
     });
     expect(html).toContain('Cuenta de @ana');
     expect(html).toContain('/uploads/avatars/ana.webp');
-    expect(html).toContain('>@ana</span>');
+    expect(html).toContain(`class="account-name">ana</span>`);
   });
 });

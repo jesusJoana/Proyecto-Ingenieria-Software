@@ -7,6 +7,7 @@
   <title><%= title %> · Objetos que vuelven a historias</title>
   <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
   <link rel="stylesheet" href="/css/refind.css">
+  <link rel="stylesheet" href="/css/design.css">
 </head>
 <body class="home-page">
   <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
@@ -18,93 +19,49 @@
     { title: 'Llaves con llavero azul', image: 'keys', status: 'lost', label: 'Perdidas', place: 'Cafetería', time: 'hace 5 horas' },
     { title: 'Auriculares inalámbricos', image: 'earbuds', status: 'found', label: 'Encontrados', place: 'Aula 2.3', time: 'hace 1 día' }
   ]; %>
-  <header class="site-header">
-    <nav class="container d-flex align-items-center justify-content-between" aria-label="Navegación principal">
-      <a class="brand" href="/" aria-label="ReFind, inicio"><%- icon('brand', 'brand-mark') %><span>ReFind</span></a>
-      <div class="d-flex align-items-center header-actions">
-        <a class="header-link" href="/publicaciones">Publicaciones</a>
-        <% if (userId) { %>
-          <%# Menú de la cuenta: Bootstrap lo despliega con bootstrap.bundle.min.js. %>
-          <div class="dropdown account-menu">
-            <button id="account-button" class="btn btn-teal dropdown-toggle account-button" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="<%= accountUsername ? 'Cuenta de @' + accountUsername : 'Mi cuenta' %>">
-              <% if (accountAvatarFilename) { %>
-                <img class="account-avatar" src="/uploads/avatars/<%= accountAvatarFilename %>" alt="">
-              <% } else if (accountUsername) { %>
-                <span class="account-avatar account-avatar-placeholder" aria-hidden="true"><%= accountUsername.slice(0, 1).toUpperCase() %></span>
-              <% } else { %>
-                <%- icon('user') %>
-              <% } %>
-              <span class="account-name"><%= accountUsername ? '@' + accountUsername : 'Mi cuenta' %></span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="account-button">
-              <li><span class="dropdown-item-text session-label">Sesión iniciada</span></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="/publicaciones/nueva">Publicar objeto</a></li>
-              <li><a class="dropdown-item" href="/mis-publicaciones">Mis publicaciones</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li><a class="dropdown-item" href="/perfil">Mi perfil</a></li>
-              <li><a class="dropdown-item" href="/amigos">Amigos</a></li>
-              <li><a class="dropdown-item" href="/perfil/editar">Editar perfil</a></li><li><a class="dropdown-item" href="/cambiar-contrasena">Cambiar contraseña</a></li>
-              <li><hr class="dropdown-divider"></li>
-              <li>
-                <form action="/cerrar-sesion" method="post" class="m-0">
-                  <input type="hidden" name="_csrf" value="<%= csrf %>">
-                  <button class="dropdown-item" type="submit">Cerrar sesión</button>
-                </form>
-              </li>
-            </ul>
-          </div>
-        <% } else { %>
-          <a class="btn register-button" href="/registro">Registrarse</a>
-          <a class="btn btn-teal" href="/iniciar-sesion">Iniciar sesión</a>
-        <% } %>
-      </div>
-    </nav>
-  </header>
+  <%- include('partials/site-header', { current: 'home' }) %>
   <main id="contenido">
-    <section class="hero" aria-labelledby="hero-title">
-      <div class="container">
-        <div class="row align-items-center g-0">
-          <div class="col-lg-6 hero-copy">
-            <p class="eyebrow">¿Has perdido algo?</p>
-            <h1 id="hero-title">Encuéntralo con <span>ReFind</span></h1>
-            <p class="hero-description">Busca objetos perdidos y encontrados en tu universidad<br class="d-none d-xl-block"> o publica uno para ayudar a que vuelva a su dueño.</p>
-            <form id="object-search" class="search-box" role="search">
-              <label for="search-query" class="visually-hidden">Buscar objetos de ejemplo</label>
-              <%- icon('search') %>
-              <input id="search-query" class="form-control" type="search" placeholder="Buscar mochila, llaves, móvil..." autocomplete="off" maxlength="120">
-              <button class="btn btn-indigo" type="submit">Buscar</button>
-            </form>
-            <div class="filter-group d-flex gap-2" role="group" aria-label="Filtrar objetos por estado">
-              <button type="button" class="btn filter-button active" data-filter="all" aria-pressed="true">Todos</button>
-              <button type="button" class="btn filter-button" data-filter="lost" aria-pressed="false">Perdidos</button>
-              <button type="button" class="btn filter-button" data-filter="found" aria-pressed="false">Encontrados</button>
-            </div>
+
+    <section class="welcome-hero" aria-labelledby="hero-title">
+      <div class="container welcome-layout">
+        <div class="welcome-copy">
+          <p class="eyebrow">Tu comunidad universitaria</p>
+          <h1 id="hero-title">Objetos que<br>vuelven a historias</h1>
+          <p class="welcome-description">ReFind es la plataforma universitaria para publicar y buscar objetos perdidos o encontrados. Juntos hacemos que lo que pierdes vuelva a su dueño.</p>
+          <div class="welcome-actions">
+            <% if (userId) { %>
+              <a class="btn btn-teal" href="/publicaciones">Buscar objetos <%- icon('search') %></a>
+              <a class="btn btn-outline-secondary" href="/publicaciones/nueva">Publicar objeto</a>
+            <% } else { %>
+              <a class="btn btn-teal" href="/registro">Registrarse <%- icon('arrow') %></a>
+              <a class="btn btn-outline-secondary" href="/iniciar-sesion">Iniciar sesión</a>
+            <% } %>
           </div>
-          <div class="col-lg-6 hero-art" aria-hidden="true">
-            <img class="campus-image" src="/images/campus.webp" alt="" fetchpriority="high">
-            <div class="mint-shape shape-one"></div><div class="mint-shape shape-two"></div>
-            <div class="preview-window">
-              <div class="preview-header">
-                <span class="brand"><%- icon('brand', 'brand-mark') %>ReFind</span>
-                <span class="preview-search"><%- icon('search') %></span>
-                <%- icon('bell') %><span class="preview-user"><%- icon('user') %></span>
-              </div>
-              <div class="preview-objects">
-                <% objects.forEach(object => { %>
-                  <div class="preview-object">
-                    <img src="/images/<%= object.image %>.webp" alt="">
-                    <strong><%= object.title %></strong>
-                    <span><%- icon('pin') %><%= object.place %></span>
-                    <i></i><i></i>
-                  </div>
-                <% }); %>
-              </div>
-            </div>
-            <p class="hero-note">Las cosas también<br>encuentran su camino<span></span></p>
+          <div class="welcome-values">
+            <span><%- icon('users') %>Comunidad<br>universitaria</span>
+            <span><%- icon('shield') %>Seguro<br>y confiable</span>
+            <span><%- icon('leaf') %>Más sostenible</span>
+          </div>
+        </div>
+        <div class="welcome-photo">
+          <img class="welcome-campus" src="/images/campus.webp" alt="Patio universitario con jardines y soportales" fetchpriority="high">
+          <div class="floating-objects" aria-hidden="true">
+            <% objects.forEach(object => { %>
+              <div class="floating-object"><img src="/images/<%= object.image %>.webp" alt=""><div><strong><%= object.title %></strong><span><%= object.label %></span><small><%= object.place %></small></div></div>
+            <% }); %>
           </div>
         </div>
       </div>
+    </section>
+    <section class="container how-section" id="como-funciona" aria-labelledby="how-title">
+      <div><h2 id="how-title">¿Cómo funciona?</h2><p>Recuperar un objeto es muy sencillo.</p></div>
+      <article><span class="step-icon"><%- icon('plus') %></span><div><small>01</small><h3>Publica</h3><p>Describe el objeto perdido o encontrado y añade una foto.</p></div></article>
+      <article><span class="step-icon"><%- icon('search') %></span><div><small>02</small><h3>Busca</h3><p>Consulta los objetos publicados por la comunidad.</p></div></article>
+      <article><span class="step-icon"><%- icon('users') %></span><div><small>03</small><h3>Conecta</h3><p>Contacta con la persona y ayuda a recuperar el objeto.</p></div></article>
+    </section>
+    <section class="container about-section" id="sobre-nosotros" aria-labelledby="about-title">
+      <img src="/images/campus.webp" alt="Un espacio de encuentro en la universidad" loading="lazy">
+      <div><p class="eyebrow">Sobre ReFind</p><h2 id="about-title">Una pequeña acción,<br>un gran impacto</h2><p>ReFind nace con una idea sencilla: facilitar que los objetos perdidos dentro de la universidad vuelvan a sus propietarios. Una comunidad más conectada, responsable y sostenible, donde colaborar hace la vida universitaria un poco mejor.</p></div>
     </section>
     <div class="container home-content">
       <section class="row g-4 action-cards" aria-label="Publicar un objeto">
@@ -134,6 +91,17 @@
           <div class="d-flex align-items-center flex-wrap gap-2 gap-sm-3"><h2 id="recent-title">Objetos recientes</h2><span class="example-badge">Ejemplos</span></div>
           <button id="show-all" class="btn view-all" type="button">Ver todos <%- icon('arrow') %></button>
         </div>
+            <form id="object-search" class="search-box" role="search">
+              <label for="search-query" class="visually-hidden">Buscar objetos de ejemplo</label>
+              <%- icon('search') %>
+              <input id="search-query" class="form-control" type="search" placeholder="Buscar mochila, llaves, móvil..." autocomplete="off" maxlength="120">
+              <button class="btn btn-indigo" type="submit">Buscar</button>
+            </form>
+            <div class="filter-group d-flex gap-2" role="group" aria-label="Filtrar objetos por estado">
+              <button type="button" class="btn filter-button active" data-filter="all" aria-pressed="true">Todos</button>
+              <button type="button" class="btn filter-button" data-filter="lost" aria-pressed="false">Perdidos</button>
+              <button type="button" class="btn filter-button" data-filter="found" aria-pressed="false">Encontrados</button>
+            </div>
         <p id="search-status" class="visually-hidden" role="status" aria-live="polite" aria-atomic="true">3 objetos de ejemplo.</p>
         <div class="row g-3">
           <% objects.forEach(object => { %>

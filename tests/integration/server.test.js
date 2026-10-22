@@ -35,7 +35,7 @@ describe("Servidor base", () => {
    */
   test("la página de inicio se muestra con Bootstrap", async () => {
     const response = await request(app).get("/").expect(200);
-    expect(response.text).toContain("Encuéntralo con");
+    expect(response.text).toContain("Objetos que");
     expect(response.text).toContain("Objetos recientes");
     await request(app)
       .get("/vendor/bootstrap/css/bootstrap.min.css")

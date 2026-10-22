@@ -33,7 +33,7 @@ test.afterAll(async () => {
 });
 
 /** Para qué sirve: validar el flujo completo de publicación.
- * Qué comprueba: tras iniciar sesión, publicar desde el menú muestra un error de validación
+ * Qué comprueba: tras iniciar sesión, publicar desde la navegación lateral muestra un error de validación
  * conservando lo escrito; al corregirlo, el objeto aparece en su detalle con el autor, en el
  * listado público y en Mis publicaciones. */
 test('publica un objeto y lo muestra en el detalle y en el listado', async ({ page }) => {
@@ -43,8 +43,7 @@ test('publica un objeto y lo muestra en el detalle y en el listado', async ({ pa
   await page.getByLabel('Contraseña', { exact: true }).fill(password);
   await page.getByRole('button', { name: 'Iniciar sesión', exact: false }).click();
 
-  await page.getByRole('button', { name: `Cuenta de @${username}` }).click();
-  await page.getByRole('link', { name: 'Publicar objeto', exact: true }).click();
+  await page.getByRole('navigation', { name: 'Secciones de ReFind' }).getByRole('link', { name: 'Publicar', exact: true }).click();
   await expect(page).toHaveURL(/\/publicaciones\/nueva$/);
 
   await page.getByLabel('He encontrado un objeto').check();
@@ -80,6 +79,20 @@ test('publica un objeto y lo muestra en el detalle y en el listado', async ({ pa
   const card = page.getByRole('article').filter({ hasText: title });
   await expect(card).toContainText('Encontrado');
   await expect(card).toContainText('Accesorios');
+  await page.getByRole('searchbox', { name: 'Buscar por objeto o ubicación' }).fill(title);
+  await expect(page.locator('[data-post]:visible')).toHaveCount(1);
+  await page.getByRole('button', { name: 'Objetos perdidos', exact: true }).click();
+  await expect(card).not.toBeVisible();
+  await expect(page.locator('#posts-no-results')).toBeVisible();
+  await page.getByRole('button', { name: 'Restablecer filtros' }).click();
+  await page.getByLabel('Categoría', { exact: true }).selectOption('accessories');
+  await expect(card).toBeVisible();
+  await page.getByLabel('Categoría', { exact: true }).selectOption('keys');
+  await expect(card).not.toBeVisible();
+  await page.getByLabel('Categoría', { exact: true }).selectOption('');
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.getByRole('navigation', { name: 'Secciones de ReFind' })).toBeVisible();
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
   await card.getByRole('link', { name: title }).click();
   await expect(page).toHaveURL(new RegExp(`${detailUrl}$`));
 
