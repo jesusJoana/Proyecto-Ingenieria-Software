@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="/css/auth.css">
   <link rel="stylesheet" href="/css/posts.css">
   <link rel="stylesheet" href="/css/design.css">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/locations.css">
 </head>
 <body class="home-page auth-page posts-page">
   <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
@@ -82,10 +84,17 @@
             <% if (errors.event_date) { %><div class="invalid-feedback d-block" id="event_date-error"><%= errors.event_date %></div><% } %>
           </div>
 
+          <%- include('partials/post-location-form', { values, errors }) %>
           <div class="col-12">
-            <label class="form-label" for="location">Lugar</label>
+            <label class="form-label" for="location" id="event-location-label">Lugar de la pérdida o del hallazgo</label>
             <input class="form-control <%= invalid('location') %>" id="location" name="location" type="text" maxlength="150" minlength="2" required value="<%= values.location %>" placeholder="Ej.: Biblioteca, segunda planta" aria-invalid="<%= Boolean(errors.location) %>" <% if (errors.location) { %>aria-describedby="location-error"<% } %>>
             <% if (errors.location) { %><div class="invalid-feedback d-block" id="location-error"><%= errors.location %></div><% } %>
+          </div>
+          <div class="col-12" id="deposit-field">
+            <label class="form-label" for="deposit_location">Dónde está depositado ahora (solo objetos encontrados)</label>
+            <input class="form-control <%= invalid('deposit_location') %>" id="deposit_location" name="deposit_location" maxlength="250" value="<%= values.deposit_location || '' %>" placeholder="Ej.: Conserjería del edificio A o Conmigo" aria-invalid="<%= Boolean(errors.deposit_location) %>" aria-describedby="deposit-help">
+            <p class="form-text" id="deposit-help">Puede ser diferente del lugar del hallazgo. No publiques tu domicilio ni datos personales.</p>
+            <% if (errors.deposit_location) { %><p class="invalid-feedback d-block"><%= errors.deposit_location %></p><% } %>
           </div>
 
           <div class="col-md-6">
@@ -113,6 +122,9 @@
     </section>
   </main>
   <script src="/js/auth.js" defer></script>
+  <script src="/vendor/leaflet/leaflet.js" defer></script>
+  <script src="/js/locations.js" defer></script>
+  <script src="/js/post-location-kind.js" defer></script>
   <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

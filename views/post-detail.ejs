@@ -9,6 +9,8 @@
   <link rel="stylesheet" href="/css/auth.css">
   <link rel="stylesheet" href="/css/posts.css">
   <link rel="stylesheet" href="/css/design.css">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/locations.css">
 </head>
 <body class="home-page auth-page posts-page">
   <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
@@ -21,6 +23,7 @@
     <% if (published) { %>
       <div class="alert alert-success" role="status">Tu publicación se ha creado correctamente.</div>
     <% } %>
+    <% if (typeof locationSaved !== 'undefined' && locationSaved) { %><div class="alert alert-success" role="status">La ubicación se ha actualizado correctamente.</div><% } %>
     <article class="post-detail">
       <img class="post-detail-photo" src="<%= post.photo_filename ? '/uploads/posts/' + post.photo_filename : '/images/post-placeholder.svg' %>" alt="<%= post.photo_filename ? 'Foto de ' + post.title : 'Publicación sin foto' %>" width="600" height="450">
       <div class="post-detail-body">
@@ -34,7 +37,14 @@
         <dl class="post-facts">
           <div><dt>Tipo</dt><dd><%= kinds[post.kind] %></dd></div>
           <div><dt>Categoría</dt><dd><%= categories[post.category] %></dd></div>
-          <div><dt>Lugar</dt><dd><%= post.location %></dd></div>
+          <div><dt><%= post.kind === 'lost' ? 'Último lugar conocido' : 'Lugar del hallazgo' %></dt><dd><%= post.location %></dd></div>
+          <% if (post.university) { %>
+            <div><dt>Universidad</dt><dd><%= post.university %></dd></div>
+            <div><dt>Campus o sede</dt><dd><%= post.campus %></dd></div>
+            <div><dt>Ciudad y país</dt><dd><%= post.city %>, <%= post.country %></dd></div>
+            <div><dt>Dirección del campus</dt><dd><%= post.campus_address %></dd></div>
+          <% } %>
+          <% if (post.kind === 'found' && post.deposit_location) { %><div><dt>Depositado actualmente en</dt><dd><%= post.deposit_location %></dd></div><% } %>
           <div><dt><%= post.kind === 'lost' ? 'Fecha en que se perdió' : 'Fecha en que se encontró' %></dt><dd><%= formatDate(post.event_date) %></dd></div>
           <div><dt>Color</dt><dd><%= post.color ?? 'No indicado' %></dd></div>
           <div><dt>Marca</dt><dd><%= post.brand ?? 'No indicada' %></dd></div>
@@ -50,7 +60,20 @@
         </section>
       </div>
     </article>
+    <section class="post-location-panel" aria-labelledby="location-title">
+      <h2 id="location-title">Ubicación</h2>
+      <% if (isAuthor) { %><p><a href="/publicaciones/<%= post.id %>/ubicacion">Editar ubicación</a></p><% } %>
+      <% if (post.latitude !== null && post.latitude !== undefined) { %>
+        <p><%= post.location_mode === 'campus' ? 'Referencia general del campus; no indica el punto exacto del objeto.' : 'Punto exacto de la pérdida o del hallazgo indicado por el autor.' %></p>
+        <p><%= post.university %> · <%= post.campus %> · <%= post.city %>, <%= post.country %></p>
+        <div class="location-map" data-post-map data-lat="<%= post.latitude %>" data-lng="<%= post.longitude %>" data-mode="<%= post.location_mode %>" data-kind="<%= post.kind %>" data-label="<%= post.location %>" aria-label="Mapa de ubicación"></div>
+        <p class="form-text">Coordenadas: <%= post.latitude %>, <%= post.longitude %></p>
+        <a href="https://www.openstreetmap.org/?mlat=<%= post.latitude %>&amp;mlon=<%= post.longitude %>#map=17/<%= post.latitude %>/<%= post.longitude %>" target="_blank" rel="noopener noreferrer">Abrir ubicación en OpenStreetMap</a>
+      <% } else { %><p>Esta publicación es anterior a las ubicaciones universitarias. Lugar indicado: <%= post.location %>.</p><% } %>
+    </section>
   </main>
   <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/vendor/leaflet/leaflet.js" defer></script>
+  <script src="/js/locations.js" defer></script>
 </body>
 </html>

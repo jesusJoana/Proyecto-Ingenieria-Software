@@ -44,6 +44,7 @@ export function createApp(config) {
 
   // Recursos estáticos: Bootstrap desde node_modules y los propios en public/.
   app.use('/vendor/bootstrap', express.static(path.join(root, 'node_modules', 'bootstrap', 'dist')));
+  app.use('/vendor/leaflet', express.static(path.join(root, 'node_modules', 'leaflet', 'dist')));
   app.use(express.static(path.join(root, 'public')));
 
   // Sesiones de usuario.

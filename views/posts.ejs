@@ -59,6 +59,7 @@
                 </div>
                 <h2><a class="stretched-link" href="/publicaciones/<%= post.id %>"><%= post.title %></a></h2>
                 <p class="post-card-meta"><svg class="icon" aria-hidden="true"><use href="#icon-pin"></use></svg><%= post.location %> · <%= formatDate(post.event_date) %></p>
+                <% if (post.university) { %><p class="post-card-meta"><%= post.university %> · <%= post.campus %> · <%= post.city %>, <%= post.country %></p><% } %>
                 <% if (!mine) { %><p class="post-card-author">Publicado por @<%= post.author_username %></p><% } %>
               </div>
             </article>

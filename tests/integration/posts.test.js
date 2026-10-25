@@ -29,6 +29,15 @@ const photoDirectory = fileURLToPath(
 );
 
 const validPost = () => ({
+  university: 'Universidad de prueba',
+  campus: 'Campus central',
+  city: 'Madrid',
+  country: 'España',
+  campus_address: 'Calle del Campus 1',
+  location_mode: 'campus',
+  latitude: '40.4',
+  longitude: '-3.7',
+  deposit_location: 'Conserjería',
   kind: 'lost',
   title: `Mochila negra ${randomUUID().slice(0, 6)}`,
   description: 'Mochila negra con un parche verde y un portátil dentro.',
@@ -138,7 +147,9 @@ describe('Publicaciones de objetos', () => {
     const values = validPost();
     const response = await publish(author, values).expect(303);
     const post = await postByTitle(values.title);
-    expect(response.headers.location).toBe(`/publicaciones/${post.id}?publicada=ok`);
+    expect(response.headers.location).toBe(
+      `/publicaciones/${post.id}?publicada=ok`,
+    );
     expect(post).toMatchObject({
       author_id: author.id,
       kind: 'lost',
@@ -148,13 +159,26 @@ describe('Publicaciones de objetos', () => {
       location: 'Biblioteca, segunda planta',
       photo_filename: null,
       status: 'active',
+      university: values.university,
+      campus: values.campus,
+      city: values.city,
+      country: values.country,
+      campus_address: values.campus_address,
+      latitude: 40.4,
+      longitude: -3.7,
+      location_mode: 'campus',
+      deposit_location: null,
     });
     expect(post.created_at).toBeInstanceOf(Date);
     expect(post.updated_at).toBeInstanceOf(Date);
 
-    const detail = await author.agent.get(response.headers.location).expect(200);
+    const detail = await author.agent
+      .get(response.headers.location)
+      .expect(200);
     expect(detail.text).toContain('Tu publicación se ha creado correctamente.');
     expect(detail.text).toContain('/images/post-placeholder.svg');
+    expect(detail.text).toContain('Referencia general del campus');
+    expect(detail.text).toContain(values.university);
   });
 
   /** Para qué sirve: aceptar que color y marca queden vacíos.
@@ -165,25 +189,149 @@ describe('Publicaciones de objetos', () => {
     const post = await postByTitle(values.title);
     expect(post.color).toBeNull();
     expect(post.brand).toBeNull();
-    const detail = await request(app).get(response.headers.location.split('?')[0]).expect(200);
+    const detail = await request(app)
+      .get(response.headers.location.split('?')[0])
+      .expect(200);
     expect(detail.text).toContain('No indicado');
     expect(detail.text).toContain('Fecha en que se encontró');
+    expect(post.deposit_location).toBe('Conserjería');
+    expect(detail.text).toContain('Depositado actualmente en');
+  });
+
+  test('solo el autor puede corregir la ubicación y se valida antes de guardar', async () => {
+    const values = { ...validPost(), kind: 'found' };
+    await publish(author, values).expect(303);
+    const post = await postByTitle(values.title);
+    const url = `/publicaciones/${post.id}/ubicacion`;
+    await request(app).get(url).expect(303);
+    await other.agent.get(url).expect(403);
+    await other.agent
+      .post(url)
+      .type('form')
+      .send({ ...values, _csrf: other.csrf })
+      .expect(403);
+    await author.agent.post(url).type('form').send(values).expect(403);
+    const invalid = await author.agent
+      .post(url)
+      .type('form')
+      .send({ ...values, latitude: '200', _csrf: author.csrf })
+      .expect(422);
+    expect(invalid.text).toContain('value="200"');
+    expect((await postByTitle(values.title)).latitude).toBe(40.4);
+    await author.agent.get(url).expect(200);
+    await author.agent
+      .post(url)
+      .type('form')
+      .send({
+        ...values,
+        latitude: '40.5',
+        location_mode: 'exact',
+        deposit_location: 'Conserjería B',
+        author_id: other.id,
+        _csrf: author.csrf,
+      })
+      .expect(303);
+    expect(await postByTitle(values.title)).toMatchObject({
+      latitude: 40.5,
+      location_mode: 'exact',
+      deposit_location: 'Conserjería B',
+      author_id: author.id,
+    });
+    expect(
+      (await request(app).get(`/publicaciones/${post.id}`)).text,
+    ).toContain('Punto exacto de la pérdida');
+  });
+
+  test('mapa público filtra universidad, campus y tipo y excluye resueltas', async () => {
+    const university = `Universidad ${randomUUID()}`;
+    const values = {
+      ...validPost(),
+      university,
+      campus: 'Campus único',
+      kind: 'found',
+      location_mode: 'exact',
+    };
+    await publish(author, values).expect(303);
+    const post = await postByTitle(values.title);
+    const url = `/objetos-por-zonas?university=${encodeURIComponent(university)}&campus=${encodeURIComponent(values.campus)}`;
+    const page = await request(app).get(url).expect(200);
+    expect(page.text).toContain(values.title);
+    expect(page.text).toContain('data-mode="exact"');
+    expect((await request(app).get(url + '&kind=lost')).text).not.toContain(
+      values.title,
+    );
+    expect(
+      (
+        await request(app).get(
+          `/objetos-por-zonas?university=${encodeURIComponent(university)}&campus=Otro`,
+        )
+      ).text,
+    ).not.toContain(values.title);
+    await pool.query(
+      "UPDATE object_posts SET status = 'resolved' WHERE id=$1",
+      [post.id],
+    );
+    expect((await request(app).get(url)).text).not.toContain(values.title);
   });
 
   /** Para qué sirve: mostrar los errores en el formulario sin perder lo escrito.
    * Qué comprueba: cada valor no válido responde 422 con su mensaje, conserva el resto y no guarda nada. */
   test.each([
-    ['tipo no permitido', { kind: 'stolen' }, 'Indica si has perdido o encontrado el objeto.'],
-    ['título vacío', { title: '  ' }, 'El título debe tener al menos 3 caracteres.'],
-    ['título largo', { title: 'a'.repeat(101) }, 'El título admite hasta 100 caracteres.'],
-    ['descripción corta', { description: 'Corta' }, 'Describe el objeto con al menos 10 caracteres.'],
-    ['descripción larga', { description: 'a'.repeat(2001) }, 'La descripción admite hasta 2000 caracteres.'],
-    ['categoría no permitida', { category: 'vehicles' }, 'Selecciona una categoría de la lista.'],
-    ['color largo', { color: 'a'.repeat(41) }, 'El color admite hasta 40 caracteres.'],
-    ['marca larga', { brand: 'a'.repeat(61) }, 'La marca admite hasta 60 caracteres.'],
-    ['lugar vacío', { location: '' }, 'Indica el lugar con al menos 2 caracteres.'],
-    ['fecha futura', { event_date: '2999-01-01' }, 'La fecha no puede ser posterior a hoy.'],
-    ['fecha inexistente', { event_date: '2024-02-30' }, 'Indica una fecha válida.'],
+    [
+      'tipo no permitido',
+      { kind: 'stolen' },
+      'Indica si has perdido o encontrado el objeto.',
+    ],
+    [
+      'título vacío',
+      { title: '  ' },
+      'El título debe tener al menos 3 caracteres.',
+    ],
+    [
+      'título largo',
+      { title: 'a'.repeat(101) },
+      'El título admite hasta 100 caracteres.',
+    ],
+    [
+      'descripción corta',
+      { description: 'Corta' },
+      'Describe el objeto con al menos 10 caracteres.',
+    ],
+    [
+      'descripción larga',
+      { description: 'a'.repeat(2001) },
+      'La descripción admite hasta 2000 caracteres.',
+    ],
+    [
+      'categoría no permitida',
+      { category: 'vehicles' },
+      'Selecciona una categoría de la lista.',
+    ],
+    [
+      'color largo',
+      { color: 'a'.repeat(41) },
+      'El color admite hasta 40 caracteres.',
+    ],
+    [
+      'marca larga',
+      { brand: 'a'.repeat(61) },
+      'La marca admite hasta 60 caracteres.',
+    ],
+    [
+      'lugar vacío',
+      { location: '' },
+      'Indica el lugar con al menos 2 caracteres.',
+    ],
+    [
+      'fecha futura',
+      { event_date: '2999-01-01' },
+      'La fecha no puede ser posterior a hoy.',
+    ],
+    [
+      'fecha inexistente',
+      { event_date: '2024-02-30' },
+      'Indica una fecha válida.',
+    ],
   ])('rechaza %s', async (_name, change, message) => {
     const values = { ...validPost(), ...change };
     const marker = `Marcador ${randomUUID().slice(0, 8)}`;
@@ -191,7 +339,8 @@ describe('Publicaciones de objetos', () => {
     const response = await publish(author, values).expect(422);
     expect(response.text).toContain(message);
     expect(response.text).toContain('Revisa los campos indicados.');
-    if (!('location' in change)) expect(response.text).toContain(`value="${marker}"`);
+    if (!('location' in change))
+      expect(response.text).toContain(`value="${marker}"`);
     const { rowCount } = await pool.query(
       'SELECT 1 FROM object_posts WHERE location = $1',
       [values.location],
@@ -202,9 +351,16 @@ describe('Publicaciones de objetos', () => {
   /** Para qué sirve: comprobar que se conservan todos los campos tras un error.
    * Qué comprueba: con una fecha futura, se mantienen tipo, título, descripción, categoría, color y marca. */
   test('conserva lo escrito cuando hay errores', async () => {
-    const values = { ...validPost(), kind: 'found', category: 'keys', event_date: '2999-12-31' };
+    const values = {
+      ...validPost(),
+      kind: 'found',
+      category: 'keys',
+      event_date: '2999-12-31',
+    };
     const response = await publish(author, values).expect(422);
-    expect(response.text).toMatch(/id="kind-found" name="kind" value="found" required\s+checked/);
+    expect(response.text).toMatch(
+      /id="kind-found" name="kind" value="found" required\s+checked/,
+    );
     expect(response.text).toContain(`value="${values.title}"`);
     expect(response.text).toContain(`>${values.description}</textarea>`);
     expect(response.text).toMatch(/value="keys"\s+selected/);
@@ -233,7 +389,9 @@ describe('Publicaciones de objetos', () => {
       .get(`/uploads/posts/${post.photo_filename}`)
       .expect(200)
       .expect('Content-Type', /image\/webp/);
-    const detail = await request(app).get(`/publicaciones/${post.id}`).expect(200);
+    const detail = await request(app)
+      .get(`/publicaciones/${post.id}`)
+      .expect(200);
     expect(detail.text).toContain(`/uploads/posts/${post.photo_filename}`);
     const list = await request(app).get('/publicaciones').expect(200);
     expect(list.text).toContain(`/uploads/posts/${post.photo_filename}`);
@@ -244,8 +402,16 @@ describe('Publicaciones de objetos', () => {
    * Qué comprueba: un tipo no admitido y un archivo que se hace pasar por PNG responden 422 en el
    * formulario, conservan lo escrito y no guardan la publicación ni el archivo. */
   test.each([
-    ['tipo no permitido', { filename: 'notas.txt', contentType: 'text/plain' }, 'Sube una imagen JPG, PNG o WebP.'],
-    ['contenido falso', { filename: 'falsa.png', contentType: 'image/png' }, 'Sube una imagen JPG, PNG o WebP válida.'],
+    [
+      'tipo no permitido',
+      { filename: 'notas.txt', contentType: 'text/plain' },
+      'Sube una imagen JPG, PNG o WebP.',
+    ],
+    [
+      'contenido falso',
+      { filename: 'falsa.png', contentType: 'image/png' },
+      'Sube una imagen JPG, PNG o WebP válida.',
+    ],
   ])('rechaza una foto con %s', async (_name, options, message) => {
     const values = validPost();
     const response = await publish(author, values, {
@@ -264,11 +430,16 @@ describe('Publicaciones de objetos', () => {
     const second = { ...validPost(), kind: 'found', category: 'electronics' };
     await publish(other, first).expect(303);
     await publish(other, second).expect(303);
-    const [older, newer] = [await postByTitle(first.title), await postByTitle(second.title)];
+    const [older, newer] = [
+      await postByTitle(first.title),
+      await postByTitle(second.title),
+    ];
 
     const list = await request(app).get('/publicaciones').expect(200);
     expect(list.text.indexOf(second.title)).toBeGreaterThan(-1);
-    expect(list.text.indexOf(second.title)).toBeLessThan(list.text.indexOf(first.title));
+    expect(list.text.indexOf(second.title)).toBeLessThan(
+      list.text.indexOf(first.title),
+    );
     expect(list.text).toContain(`href="/publicaciones/${newer.id}"`);
     expect(list.text).toContain(`href="/publicaciones/${older.id}"`);
     expect(list.text).toContain('Encontrado');
@@ -282,7 +453,9 @@ describe('Publicaciones de objetos', () => {
     const values = validPost();
     await publish(author, values).expect(303);
     const post = await postByTitle(values.title);
-    const detail = await request(app).get(`/publicaciones/${post.id}`).expect(200);
+    const detail = await request(app)
+      .get(`/publicaciones/${post.id}`)
+      .expect(200);
     for (const text of [
       values.title,
       values.description,
@@ -298,17 +471,27 @@ describe('Publicaciones de objetos', () => {
     ])
       expect(detail.text).toContain(text);
 
-    for (const id of ['0', 'abc', '99999999999999999999', '9223372036854775807'])
+    for (const id of [
+      '0',
+      'abc',
+      '99999999999999999999',
+      '9223372036854775807',
+    ])
       await request(app).get(`/publicaciones/${id}`).expect(404);
   });
 
   /** Para qué sirve: escapar el contenido escrito por los usuarios.
    * Qué comprueba: un título con HTML se muestra como texto en el listado y el detalle. */
   test('no interpreta HTML de las publicaciones', async () => {
-    const values = { ...validPost(), title: `<script>alert(1)</script> ${suffix}` };
+    const values = {
+      ...validPost(),
+      title: `<script>alert(1)</script> ${suffix}`,
+    };
     await publish(author, values).expect(303);
     const post = await postByTitle(values.title);
-    const detail = await request(app).get(`/publicaciones/${post.id}`).expect(200);
+    const detail = await request(app)
+      .get(`/publicaciones/${post.id}`)
+      .expect(200);
     expect(detail.text).not.toContain('<script>alert(1)</script>');
     expect(detail.text).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
   });
@@ -336,12 +519,17 @@ describe('Publicaciones de objetos', () => {
   test('la navegación enlaza a las publicaciones', async () => {
     const anonymous = await request(app).get('/').expect(200);
     expect(anonymous.text).toContain('href="/publicaciones"');
-    expect(anonymous.text).toContain('href="/publicaciones/nueva?tipo=perdido"');
+    expect(anonymous.text).toContain(
+      'href="/publicaciones/nueva?tipo=perdido"',
+    );
     const logged = await author.agent.get('/').expect(200);
     expect(logged.text).toContain('href="/publicaciones/nueva"');
     expect(logged.text).toContain('href="/mis-publicaciones"');
-    const form = await author.agent.get('/publicaciones/nueva?tipo=encontrado').expect(200);
-    expect(form.text).toMatch(/id="kind-found" name="kind" value="found" required\s+checked/);
+    const form = await author.agent
+      .get('/publicaciones/nueva?tipo=encontrado')
+      .expect(200);
+    expect(form.text).toMatch(
+      /id="kind-found" name="kind" value="found" required\s+checked/,
+    );
   });
 });
-

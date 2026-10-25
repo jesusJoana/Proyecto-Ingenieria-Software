@@ -1,0 +1,32 @@
+.zones-intro {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  background: white;
+  border: 1px solid #dfe8e2;
+  border-radius: 24px;
+  overflow: hidden;
+}
+.zones-preview {
+  min-height: 340px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 20px;
+  color: #476d5f;
+  background-color: #eaf1eb;
+  background-image: linear-gradient(#759c8010 1px, transparent 1px), linear-gradient(90deg, #759c8010 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+.zones-preview .icon { width: 64px; height: 64px; stroke-width: 1.2; }
+.zones-preview span { font-size: 13px; }
+.zones-intro-content { padding: 40px; align-self: center; }
+.zones-stage { display: inline-block; padding: 6px 12px; border-radius: 30px; background: #fcf1de; color: #815c20; font-size: 12px; margin-bottom: 20px; }
+.zones-intro h2 { font-size: 28px; font-weight: 700; letter-spacing: -.7px; }
+.zones-intro p { color: #607269; font-size: 14px; line-height: 1.8; }
+.zones-next-step { margin-bottom: 26px; }
+@media (max-width: 767px) {
+  .zones-intro { grid-template-columns: 1fr; }
+  .zones-preview { min-height: 190px; }
+  .zones-intro-content { padding: 26px; }
+}

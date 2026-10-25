@@ -6,6 +6,7 @@ const activeSection = typeof current !== 'undefined' ? current : '';
 const navigation = [
   ['home', '/', 'Inicio', 'home'],
   ['list', '/publicaciones', 'Publicaciones', 'search'],
+  ['zones', '/objetos-por-zonas', 'Objetos por zonas', 'pin'],
   ['new', '/publicaciones/nueva', 'Publicar', 'plus'],
   ['mine', '/mis-publicaciones', 'Mis publicaciones', 'list'],
   ['friends', '/amigos', 'Amigos y mensajes', 'chat'],
@@ -23,6 +24,7 @@ const navigation = [
         <a href="/#como-funciona">Cómo funciona</a>
         <a href="/#sobre-nosotros">Sobre nosotros</a>
         <a href="/publicaciones">Publicaciones</a>
+        <a href="/objetos-por-zonas" <%= activeSection === 'zones' ? 'aria-current=page' : '' %>>Objetos por zonas</a>
       </div>
       <div class="header-actions">
         <a class="header-link" href="/iniciar-sesion">Iniciar sesión</a>

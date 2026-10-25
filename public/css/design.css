@@ -24,7 +24,7 @@ a:focus-visible,button:focus-visible { outline:3px solid #478f81; outline-offset
 .sidebar-links { display:flex; flex-direction:column; gap:7px; }
 .sidebar-links a { display:flex; align-items:center; gap:16px; color:#34434a; text-decoration:none; padding:13px 14px; border-radius:8px; font-size:14px; }
 .sidebar-links a[aria-current="page"],.sidebar-links a:hover { background:#e7eeea; color:#15584b; }
-.sidebar-links a:nth-child(6) { margin-top:20px; border-top:1px solid #e3e7e1; }
+.sidebar-links a[href="/perfil"] { margin-top:20px; border-top:1px solid #e3e7e1; }
 .sidebar-note { margin-top:36px; padding:24px 20px; background:#edf0e8; border-radius:12px; }
 .sidebar-note .icon { width:42px; height:42px; color:var(--rf-teal); margin-bottom:18px; }
 .sidebar-note strong { display:block; font-size:19px; line-height:1.35; }
@@ -114,7 +114,7 @@ body:has(.app-sidebar) .brand { font-family:"Segoe UI",Arial,sans-serif; font-si
  .app-sidebar { position:static; width:auto; padding:10px 16px; }
  .sidebar-links { flex-direction:row; overflow-x:auto; gap:5px; }
  .sidebar-links a { flex-shrink:0; padding:10px; font-size:13px; gap:7px; }
- .sidebar-links a:nth-child(6) { margin:0; border:0; } .sidebar-note { display:none; }
+ .sidebar-links a[href="/perfil"] { margin:0; border:0; } .sidebar-note { display:none; }
  body:has(.app-sidebar) { padding-left:0; } body:has(.app-sidebar) .site-header { margin-left:0; }
  .posts-grid { grid-template-columns:repeat(3,minmax(0,1fr)); }
  .welcome-layout { grid-template-columns:1fr 1fr; } .welcome-copy h1 { font-size:40px; }
@@ -162,4 +162,11 @@ body:has(.app-sidebar) .brand { font-family:"Segoe UI",Arial,sans-serif; font-si
  .home-page .brand-mark { width:24px; height:32px; }
  .profile-tabs { max-width:100%; overflow-x:auto; }
  .profile-tabs a { white-space:nowrap; }
+}
+/* La entrada al futuro mapa también está disponible sin sesión en móvil. */
+@media(max-width:767px) {
+ .redesigned-header > nav:has(.public-navigation) { flex-wrap:wrap; gap:12px; }
+ .redesigned-header .public-navigation { display:flex; order:3; width:100%; padding-top:8px; border-top:1px solid #eceee9; }
+ .redesigned-header .public-navigation a:not([href="/objetos-por-zonas"]) { display:none; }
+ .redesigned-header .public-navigation a[aria-current] { text-underline-offset:4px; }
 }

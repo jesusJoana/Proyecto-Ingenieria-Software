@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · ReFind</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/refind.css">
+  <link rel="stylesheet" href="/css/auth.css">
+  <link rel="stylesheet" href="/css/posts.css">
+  <link rel="stylesheet" href="/css/design.css">
+  <link rel="stylesheet" href="/css/zones.css">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/locations.css">
+</head>
+<body class="home-page auth-page posts-page">
+  <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('partials/icons') %>
+  <%- include('partials/site-header', { current: 'zones' }) %>
+  <main id="contenido" class="container auth-main posts-main">
+    <header class="posts-heading">
+      <div>
+        <p class="auth-kicker">Explora tu comunidad</p>
+        <h1>Objetos por zonas</h1>
+        <p>Consulta los objetos perdidos y encontrados de cada universidad y campus.</p>
+      </div>
+    </header>
+    <form class="zone-filter" method="get" action="/objetos-por-zonas">
+      <div><label for="university-filter" class="form-label">Universidad</label><input class="form-control" id="university-filter" name="university" maxlength="180" value="<%= university %>" placeholder="Buscar por nombre"></div>
+      <div><label for="campus-filter" class="form-label">Campus o sede</label><input class="form-control" id="campus-filter" name="campus" maxlength="180" value="<%= campus %>" placeholder="Buscar campus"></div>
+      <div><label for="kind-filter" class="form-label">Tipo de objeto</label><select class="form-select" id="kind-filter" name="kind"><option value="">Todos</option><option value="lost" <%= kind === 'lost' ? 'selected' : '' %>>Perdidos</option><option value="found" <%= kind === 'found' ? 'selected' : '' %>>Encontrados</option></select></div>
+      <button class="btn btn-teal" type="submit">Buscar</button><a href="/objetos-por-zonas">Limpiar filtros</a>
+    </form>
+    <p><%= posts.length %> publicaciones activas con ubicación<%= posts.length === 200 ? ' (se muestran las 200 más recientes; concreta la universidad)' : '' %>.</p>
+    <p class="form-text">Los puntos con círculo son referencias generales del campus. Los demás indican el lugar exacto del suceso, según su autor. Ámbar: perdido (?). Verde: encontrado (✓).</p>
+    <div class="zone-results">
+      <div><div class="location-map" data-zones-map aria-label="Mapa de objetos por universidades"></div><noscript><p>Activa JavaScript para consultar el mapa. Las publicaciones están disponibles en la lista.</p></noscript></div>
+      <ul class="zone-result-list" aria-label="Publicaciones por universidad">
+        <% posts.forEach(post => { %>
+          <li data-zone-post data-lat="<%= post.latitude %>" data-lng="<%= post.longitude %>" data-mode="<%= post.location_mode %>" data-kind="<%= post.kind %>" data-title="<%= post.title %>" data-place="<%= post.university %> · <%= post.campus %>">
+            <span class="post-kind post-kind-<%= post.kind %>"><%= kinds[post.kind] %></span>
+            <h2><a href="/publicaciones/<%= post.id %>"><%= post.title %></a></h2>
+            <p><%= post.university %> · <%= post.campus %><br><%= post.city %>, <%= post.country %></p>
+            <p><%= post.kind === 'lost' ? 'Último lugar conocido' : 'Hallazgo' %>: <%= post.location %></p>
+            <% if (post.deposit_location) { %><p>Depositado en: <%= post.deposit_location %></p><% } %>
+            <button class="btn btn-outline-secondary" type="button" data-show-location hidden>Ver en el mapa</button>
+          </li>
+        <% }); %>
+        <% if (!posts.length) { %><li>No hay publicaciones activas con ubicación para esta búsqueda. <a href="/publicaciones">Ver todas las publicaciones</a>.</li><% } %>
+      </ul>
+    </div>
+  </main>
+  <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/vendor/leaflet/leaflet.js" defer></script>
+  <script src="/js/locations.js" defer></script>
+</body>
+</html>

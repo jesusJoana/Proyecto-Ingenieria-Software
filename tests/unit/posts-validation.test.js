@@ -10,6 +10,15 @@ import {
 // Fecha fija para que las pruebas no dependan del día en que se ejecutan.
 const schema = createPostSchema(() => new Date(2026, 9, 21, 23, 30));
 const valid = {
+  university: 'Universidad de prueba',
+  campus: 'Campus central',
+  city: 'Madrid',
+  country: 'España',
+  campus_address: 'Calle del Campus 1',
+  location_mode: 'campus',
+  latitude: '40.4',
+  longitude: '-3.7',
+  deposit_location: 'Conserjería',
   kind: 'found',
   title: '  Cartera marrón  ',
   description: 'Cartera de piel con documentos.',
@@ -21,6 +30,39 @@ const valid = {
 };
 
 describe('Validación de publicaciones', () => {
+  test.each([
+    { university: '' },
+    { campus: '' },
+    { city: '' },
+    { country: '' },
+    { campus_address: '' },
+    { latitude: '' },
+    { longitude: '' },
+    { latitude: 'NaN' },
+    { longitude: 'Infinity' },
+    { latitude: '86' },
+    { longitude: '181' },
+    { location_mode: 'unknown' },
+    { kind: 'found', deposit_location: '' },
+    { deposit_location: 'a'.repeat(251) },
+  ])('rechaza ubicación universitaria inválida: %o', (change) => {
+    expect(schema.safeParse({ ...valid, ...change }).success).toBe(false);
+  });
+  test('admite coordenadas cero y punto exacto', () => {
+    expect(
+      schema.parse({
+        ...valid,
+        location_mode: 'exact',
+        latitude: '0',
+        longitude: '0',
+      }),
+    ).toMatchObject({ latitude: 0, longitude: 0, location_mode: 'exact' });
+  });
+  test('no guarda depósito en los objetos perdidos', () => {
+    expect(
+      schema.parse({ ...valid, kind: 'lost' }).deposit_location,
+    ).toBeNull();
+  });
   /** Para qué sirve: normalizar los datos antes de guardarlos.
    * Qué comprueba: recorta espacios y convierte los opcionales vacíos en null. */
   test('acepta datos válidos y los normaliza', () => {
@@ -29,6 +71,8 @@ describe('Validación de publicaciones', () => {
       title: 'Cartera marrón',
       color: null,
       brand: 'Tous',
+      latitude: 40.4,
+      longitude: -3.7,
     });
   });
 
@@ -65,7 +109,11 @@ describe('Validación de publicaciones', () => {
   /** Para qué sirve: volver a mostrar el formulario de forma segura.
    * Qué comprueba: solo copia campos conocidos de tipo texto. */
   test('postFormValues ignora campos desconocidos o no textuales', () => {
-    const values = postFormValues({ title: 'Llaves', kind: ['lost'], extra: 'x' });
+    const values = postFormValues({
+      title: 'Llaves',
+      kind: ['lost'],
+      extra: 'x',
+    });
     expect(values.title).toBe('Llaves');
     expect(values.kind).toBe('');
     expect(values).not.toHaveProperty('extra');

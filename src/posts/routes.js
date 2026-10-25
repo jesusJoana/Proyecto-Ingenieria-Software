@@ -24,6 +24,29 @@ export function createPostsRouter(pool) {
   const router = Router();
   const posts = createPostsService(pool);
 
+  router.get('/objetos-por-zonas', async (req, res) => {
+    const university =
+      typeof req.query.university === 'string'
+        ? req.query.university.trim().slice(0, 180)
+        : '';
+    const kind = ['lost', 'found'].includes(req.query.kind)
+      ? req.query.kind
+      : '';
+    const campus =
+      typeof req.query.campus === 'string'
+        ? req.query.campus.trim().slice(0, 180)
+        : '';
+    const list = await posts.listLocated({ university, campus, kind });
+    res.render('post-zones', {
+      title: 'Objetos por zonas',
+      posts: list,
+      university,
+      campus,
+      kind,
+      ...labels,
+    });
+  });
+
   function renderForm(req, res, { status = 200, values, errors = {} }) {
     res.set('Cache-Control', 'no-store');
     return res.status(status).render('post-new', {
@@ -42,6 +65,100 @@ export function createPostsRouter(pool) {
       message: 'La publicación que buscas no existe o ya no está disponible.',
     });
   }
+
+  const locationFields = [
+    'university',
+    'campus',
+    'city',
+    'country',
+    'campus_address',
+    'location_mode',
+    'latitude',
+    'longitude',
+    'location',
+    'deposit_location',
+  ];
+  async function ownedPost(req, res) {
+    if (!isValidPostId(req.params.id)) {
+      notFound(res);
+      return null;
+    }
+    const post = await posts.findById(req.params.id);
+    if (!post) {
+      notFound(res);
+      return null;
+    }
+    if (String(post.author_id) !== String(req.session.userId)) {
+      res
+        .status(403)
+        .render('error', {
+          title: 'Acceso no permitido',
+          message: 'Solo el autor puede modificar la ubicación.',
+        });
+      return null;
+    }
+    return post;
+  }
+  function renderLocation(req, res, post, values, errors = {}, status = 200) {
+    res.set('Cache-Control', 'no-store');
+    return res
+      .status(status)
+      .render('post-location-edit', {
+        title: 'Editar ubicación',
+        post,
+        values,
+        errors,
+        csrf: csrfToken(req),
+      });
+  }
+  router.get('/publicaciones/:id/ubicacion', onlyUser, async (req, res) => {
+    const post = await ownedPost(req, res);
+    if (!post) return;
+    const values = Object.fromEntries(
+      locationFields.map((key) => [
+        key,
+        post[key] == null ? '' : String(post[key]),
+      ]),
+    );
+    return renderLocation(req, res, post, values);
+  });
+  router.post(
+    '/publicaciones/:id/ubicacion',
+    onlyUser,
+    verifyCsrf,
+    async (req, res) => {
+      const post = await ownedPost(req, res);
+      if (!post) return;
+      const values = Object.fromEntries(
+        locationFields.map((key) => [
+          key,
+          typeof req.body[key] === 'string' ? req.body[key].slice(0, 2100) : '',
+        ]),
+      );
+      const result = postSchema.safeParse({
+        ...post,
+        color: post.color ?? '',
+        brand: post.brand ?? '',
+        ...values,
+      });
+      if (!result.success)
+        return renderLocation(
+          req,
+          res,
+          post,
+          values,
+          fieldErrors(result.error),
+          422,
+        );
+      const updated = await posts.updateLocation(
+        post.id,
+        req.session.userId,
+        result.data,
+      );
+      if (!updated) return notFound(res);
+      return res.redirect(303, `/publicaciones/${post.id}?ubicacion=ok`);
+    },
+  );
 
   router.get('/publicaciones', async (req, res) => {
     const list = await posts.listRecent();
@@ -104,6 +221,7 @@ export function createPostsRouter(pool) {
       post,
       isAuthor: String(post.author_id) === res.locals.userId,
       published: req.query.publicada === 'ok',
+      locationSaved: req.query.ubicacion === 'ok',
       ...labels,
     });
   });

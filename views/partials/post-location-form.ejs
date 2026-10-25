@@ -1,0 +1,43 @@
+<fieldset class="col-12 university-location" data-location-form>
+  <legend>Universidad y ubicación</legend>
+  <p class="form-text">Puedes indicar cualquier universidad y campus, de cualquier país. Comprueba sus datos y confirma el punto en el mapa.</p>
+  <div class="row g-3">
+    <% const universityFields = [
+      ['university', 'Universidad', 180, 'Nombre completo de la universidad'],
+      ['campus', 'Campus o sede', 180, 'Nombre del campus o sede'],
+      ['city', 'Ciudad', 100, 'Ciudad donde está el campus'],
+      ['country', 'País', 100, 'País'],
+      ['campus_address', 'Dirección del campus', 250, 'Calle y número del campus']
+    ]; %>
+    <% universityFields.forEach(([key,label,max,placeholder]) => { %>
+      <div class="<%= key === 'campus_address' ? 'col-12' : 'col-md-6' %>">
+        <label class="form-label" for="<%= key %>"><%= label %></label>
+        <input class="form-control <%= errors[key] ? 'is-invalid' : '' %>" id="<%= key %>" name="<%= key %>" maxlength="<%= max %>" minlength="2" required value="<%= values[key] || '' %>" placeholder="<%= placeholder %>" aria-invalid="<%= Boolean(errors[key]) %>" aria-describedby="<%= key %>-error">
+        <span class="invalid-feedback" id="<%= key %>-error"><%= errors[key] || '' %></span>
+      </div>
+    <% }); %>
+    <div class="col-12">
+      <label class="form-label" for="location_mode">Qué señala el mapa</label>
+      <select class="form-select" name="location_mode" id="location_mode" aria-describedby="location-mode-help">
+        <option value="campus" <%= values.location_mode !== 'exact' ? 'selected' : '' %>>Ubicación del campus (referencia general)</option>
+        <option value="exact" <%= values.location_mode === 'exact' ? 'selected' : '' %>>Punto exacto de la pérdida o del hallazgo</option>
+      </select>
+      <p class="form-text" id="location-mode-help">Elige campus si no recuerdas el punto exacto. Selecciona el lugar con un clic o mueve el marcador; también puedes introducir las coordenadas.</p>
+      <% if (errors.location_mode) { %><p class="text-danger"><%= errors.location_mode %></p><% } %>
+    </div>
+    <% [['latitude','Latitud',-85,85],['longitude','Longitud',-180,180]].forEach(([key,label,min,max]) => { %>
+      <div class="col-sm-6">
+        <label class="form-label" for="<%= key %>"><%= label %></label>
+        <input class="form-control <%= errors[key] ? 'is-invalid' : '' %>" type="number" step="any" min="<%= min %>" max="<%= max %>" id="<%= key %>" name="<%= key %>" required value="<%= values[key] || '' %>" aria-invalid="<%= Boolean(errors[key]) %>" aria-describedby="<%= key %>-error">
+        <span class="invalid-feedback" id="<%= key %>-error"><%= errors[key] || '' %></span>
+      </div>
+    <% }); %>
+    <div class="col-12">
+      <div class="location-actions"><button class="btn btn-outline-secondary" type="button" id="use-position">Usar mi ubicación</button><button class="btn btn-outline-secondary" type="button" id="center-location">Centrar punto seleccionado</button></div>
+      <p class="form-text">Usa tu posición solo si estás en el campus o en el lugar del suceso. No se consulta automáticamente.</p>
+      <div id="location-map" class="location-map" aria-label="Seleccionar ubicación del campus o del objeto"></div>
+      <p id="location-message" class="form-text" role="status">Selecciona el campus o el punto del suceso. Los datos del lugar también pueden completarse sin mapa.</p>
+      <noscript><p>Para usar el mapa activa JavaScript. Puedes publicar introduciendo las coordenadas manualmente.</p></noscript>
+    </div>
+  </div>
+</fieldset>

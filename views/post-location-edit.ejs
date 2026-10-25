@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · ReFind</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/refind.css">
+  <link rel="stylesheet" href="/css/auth.css">
+  <link rel="stylesheet" href="/css/posts.css">
+  <link rel="stylesheet" href="/css/design.css">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/locations.css">
+</head>
+<body class="home-page auth-page posts-page">
+  <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('partials/icons') %>
+  <%- include('partials/site-header', {current:'mine'}) %>
+  <main class="container auth-main posts-main" id="contenido">
+    <section class="auth-panel post-form-panel">
+      <h1>Editar ubicación</h1>
+      <p><%= post.title %></p>
+      <% if (Object.keys(errors).length) { %><div class="alert alert-danger" role="alert"><strong>Revisa los campos indicados.</strong><ul><% Object.entries(errors).forEach(([field,error]) => { %><li><a href="#<%= field %>"><%= error %></a></li><% }); %></ul></div><% } %>
+      <form method="post" action="/publicaciones/<%= post.id %>/ubicacion" class="auth-form" novalidate>
+        <input type="hidden" name="_csrf" value="<%= csrf %>">
+        <%- include('partials/post-location-form', {values,errors}) %>
+        <label class="form-label" for="location"><%= post.kind === 'lost' ? 'Último lugar conocido' : 'Lugar del hallazgo' %></label>
+        <input class="form-control" id="location" name="location" required minlength="2" maxlength="150" value="<%= values.location %>">
+        <% if (errors.location) { %><p class="text-danger"><%= errors.location %></p><% } %>
+        <% if (post.kind === 'found') { %>
+          <label class="form-label mt-3" for="deposit_location">Dónde está depositado ahora</label>
+          <input class="form-control" id="deposit_location" name="deposit_location" required minlength="2" maxlength="250" value="<%= values.deposit_location %>">
+          <% if (errors.deposit_location) { %><p class="text-danger"><%= errors.deposit_location %></p><% } %>
+        <% } %>
+        <button class="btn btn-teal auth-submit w-100" type="submit">Guardar ubicación</button>
+        <p class="mt-3"><a href="/publicaciones/<%= post.id %>">Volver a la publicación</a></p>
+      </form>
+    </section>
+  </main>
+  <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+  <script src="/vendor/leaflet/leaflet.js" defer></script>
+  <script src="/js/locations.js" defer></script>
+</body>
+</html>
