@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · ReFind</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/refind.css">
+  <link rel="stylesheet" href="/css/auth.css">
+  <link rel="stylesheet" href="/css/posts.css">
+  <link rel="stylesheet" href="/css/design.css">
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="/css/locations.css">
+</head>
+<body class="home-page auth-page posts-page">
+  <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('partials/icons') %>
+  <%- include('partials/posts-header', { current: 'mine' }) %>
+  <main id="contenido" class="container auth-main posts-main">
+    <p class="post-back"><a href="/publicaciones/<%= post.id %>">← Volver a la publicación</a></p>
+    <section class="auth-panel post-form-panel" aria-labelledby="post-form-title">
+      <div class="auth-form-heading">
+        <span class="auth-kicker">Tu publicación</span>
+        <h1 id="post-form-title"><%= title %></h1>
+        <p>Corrige cualquier dato del objeto, su ubicación o su foto. El estado se cambia desde la publicación.</p>
+      </div>
+      <%- include('partials/post-form', { action: '/publicaciones/' + post.id + '/editar', submitLabel: 'Guardar cambios', currentPhoto: post.photo_filename }) %>
+    </section>
+  </main>
+  <script src="/js/auth.js" defer></script>
+  <script src="/vendor/leaflet/leaflet.js" defer></script>
+  <script src="/js/locations.js" defer></script>
+  <script src="/js/post-location-kind.js" defer></script>
+  <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

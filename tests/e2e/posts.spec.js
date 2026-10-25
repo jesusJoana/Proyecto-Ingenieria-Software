@@ -130,23 +130,25 @@ test('publica un objeto y lo muestra en el detalle y en el listado', async ({
   const card = page.getByRole('article').filter({ hasText: title });
   await expect(card).toContainText('Encontrado');
   await expect(card).toContainText('Accesorios');
+  // La búsqueda se hace en el servidor y queda en la URL.
   await page
-    .getByRole('searchbox', { name: 'Buscar por objeto o ubicación' })
+    .getByRole('searchbox', { name: 'Buscar en título y descripción' })
     .fill(title);
-  await expect(page.locator('[data-post]:visible')).toHaveCount(1);
-  await page
-    .getByRole('button', { name: 'Objetos perdidos', exact: true })
-    .click();
-  await expect(card).not.toBeVisible();
-  await expect(page.locator('#posts-no-results')).toBeVisible();
-  await page.getByRole('button', { name: 'Restablecer filtros' }).click();
+  await page.getByRole('button', { name: 'Buscar', exact: true }).click();
+  await expect(page).toHaveURL(/\/publicaciones\?q=/);
+  await expect(page.locator('[data-post]')).toHaveCount(1);
+  await page.getByLabel('Tipo', { exact: true }).selectOption('lost');
+  await page.getByRole('button', { name: 'Buscar', exact: true }).click();
+  await expect(card).toHaveCount(0);
+  await expect(
+    page.getByText('No hay publicaciones que coincidan con la búsqueda.'),
+  ).toBeVisible();
+  await page.getByLabel('Tipo', { exact: true }).selectOption('');
   await page
     .getByLabel('Categoría', { exact: true })
     .selectOption('accessories');
+  await page.getByRole('button', { name: 'Buscar', exact: true }).click();
   await expect(card).toBeVisible();
-  await page.getByLabel('Categoría', { exact: true }).selectOption('keys');
-  await expect(card).not.toBeVisible();
-  await page.getByLabel('Categoría', { exact: true }).selectOption('');
   await page.setViewportSize({ width: 390, height: 844 });
   await expect(
     page.getByRole('navigation', { name: 'Secciones de ReFind' }),

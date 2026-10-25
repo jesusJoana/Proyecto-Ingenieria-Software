@@ -1,4 +1,7 @@
-/** Rutas de publicaciones: publicar, listado público, detalle y Mis publicaciones. */
+/**
+ * Rutas de publicaciones: publicar, listado público con búsqueda, detalle,
+ * Mis publicaciones y, solo para el autor, editar, cambiar el estado y eliminar.
+ */
 import { Router } from 'express';
 import { csrfToken, verifyCsrf } from '../auth/security.js';
 import { fieldErrors } from '../auth/validation.js';
@@ -7,10 +10,15 @@ import { parsePhoto, removePhoto, savePhoto } from './photos.js';
 import {
   CATEGORIES,
   KINDS,
+  SEARCH_LIMIT,
   STATUSES,
+  STATUS_FILTERS,
+  editPostSchema,
   isValidPostId,
+  parseSearch,
   postFormValues,
   postSchema,
+  statusChangeSchema,
   today,
 } from './validation.js';
 
@@ -59,6 +67,19 @@ export function createPostsRouter(pool) {
     });
   }
 
+  function renderEditForm(req, res, { status = 200, post, values, errors = {} }) {
+    res.set('Cache-Control', 'no-store');
+    return res.status(status).render('post-edit', {
+      title: 'Editar publicación',
+      csrf: csrfToken(req),
+      post,
+      values,
+      errors,
+      maxDate: today(),
+      ...labels,
+    });
+  }
+
   function notFound(res) {
     return res.status(404).render('error', {
       title: 'Publicación no encontrada',
@@ -78,7 +99,11 @@ export function createPostsRouter(pool) {
     'location',
     'deposit_location',
   ];
-  async function ownedPost(req, res) {
+  async function ownedPost(
+    req,
+    res,
+    message = 'Solo el autor puede modificar la ubicación.',
+  ) {
     if (!isValidPostId(req.params.id)) {
       notFound(res);
       return null;
@@ -93,12 +118,23 @@ export function createPostsRouter(pool) {
         .status(403)
         .render('error', {
           title: 'Acceso no permitido',
-          message: 'Solo el autor puede modificar la ubicación.',
+          message,
         });
       return null;
     }
     return post;
   }
+  // Carga la publicación en req.post si existe y es del usuario; si no, responde 404 o 403.
+  const requireOwner = (message) => async (req, res, next) => {
+    const post = await ownedPost(req, res, message);
+    if (!post) return;
+    req.post = post;
+    return next();
+  };
+  const onlyAuthorEdits = requireOwner(
+    'Solo el autor puede modificar esta publicación.',
+  );
+
   function renderLocation(req, res, post, values, errors = {}, status = 200) {
     res.set('Cache-Control', 'no-store');
     return res
@@ -161,11 +197,16 @@ export function createPostsRouter(pool) {
   );
 
   router.get('/publicaciones', async (req, res) => {
-    const list = await posts.listRecent();
+    const { filters, invalid } = parseSearch(req.query);
+    const list = await posts.search(filters, SEARCH_LIMIT);
     return res.render('posts', {
       title: 'Publicaciones',
       mine: false,
       posts: list,
+      filters,
+      invalidFilters: invalid,
+      searchLimit: SEARCH_LIMIT,
+      statusFilters: STATUS_FILTERS,
       ...labels,
     });
   });
@@ -212,6 +253,128 @@ export function createPostsRouter(pool) {
     },
   );
 
+  router.get(
+    '/publicaciones/:id/editar',
+    onlyUser,
+    onlyAuthorEdits,
+    (req, res) => {
+      const stored = Object.fromEntries(
+        Object.entries(req.post).map(([key, value]) => [
+          key,
+          value == null ? '' : String(value),
+        ]),
+      );
+      return renderEditForm(req, res, {
+        post: req.post,
+        values: postFormValues(stored),
+      });
+    },
+  );
+
+  // La foto nueva sustituye a la anterior; si no hay foto nueva, remove_photo la quita.
+  router.post(
+    '/publicaciones/:id/editar',
+    onlyUser,
+    onlyAuthorEdits,
+    parsePhoto,
+    verifyCsrf,
+    async (req, res) => {
+      const result = editPostSchema.safeParse(req.body);
+      const errors = result.success ? {} : fieldErrors(result.error);
+      if (req.photoError) errors.photo = req.photoError;
+      if (Object.keys(errors).length)
+        return renderEditForm(req, res, {
+          status: 422,
+          post: req.post,
+          values: postFormValues(req.body),
+          errors,
+        });
+      let newPhoto = null;
+      try {
+        if (req.file) newPhoto = await savePhoto(req.file);
+        let photoFilename;
+        if (newPhoto) photoFilename = newPhoto;
+        else if (result.data.removePhoto) photoFilename = null;
+        const updated = await posts.update(req.post.id, req.session.userId, {
+          ...result.data,
+          photoFilename,
+        });
+        if (!updated) {
+          await removePhoto(newPhoto);
+          return notFound(res);
+        }
+        if (updated.previous_photo_filename !== updated.photo_filename)
+          await removePhoto(updated.previous_photo_filename);
+        return res.redirect(303, `/publicaciones/${req.post.id}?editada=ok`);
+      } catch (error) {
+        await removePhoto(newPhoto);
+        if (error.code !== 'INVALID_PHOTO') throw error;
+        return renderEditForm(req, res, {
+          status: 422,
+          post: req.post,
+          values: postFormValues(req.body),
+          errors: { photo: 'Sube una imagen JPG, PNG o WebP válida.' },
+        });
+      }
+    },
+  );
+
+  router.post(
+    '/publicaciones/:id/estado',
+    onlyUser,
+    verifyCsrf,
+    onlyAuthorEdits,
+    async (req, res) => {
+      const result = statusChangeSchema.safeParse(req.body);
+      if (!result.success)
+        return res.status(422).render('error', {
+          title: 'Estado no válido',
+          message: 'Selecciona un estado válido para la publicación.',
+        });
+      const updated = await posts.updateStatus(
+        req.post.id,
+        req.session.userId,
+        result.data.status,
+      );
+      if (!updated) return notFound(res);
+      return res.redirect(
+        303,
+        result.data.back === 'mine'
+          ? '/mis-publicaciones?estado=ok'
+          : `/publicaciones/${req.post.id}?estado=ok`,
+      );
+    },
+  );
+
+  router.get(
+    '/publicaciones/:id/eliminar',
+    onlyUser,
+    onlyAuthorEdits,
+    (req, res) => {
+      res.set('Cache-Control', 'no-store');
+      return res.render('post-delete', {
+        title: 'Eliminar publicación',
+        csrf: csrfToken(req),
+        post: req.post,
+        ...labels,
+      });
+    },
+  );
+
+  // Borrado físico: la fila y el archivo de su foto.
+  router.post(
+    '/publicaciones/:id/eliminar',
+    onlyUser,
+    verifyCsrf,
+    onlyAuthorEdits,
+    async (req, res) => {
+      const removed = await posts.remove(req.post.id, req.session.userId);
+      if (!removed) return notFound(res);
+      await removePhoto(removed.photo_filename);
+      return res.redirect(303, '/mis-publicaciones?eliminada=ok');
+    },
+  );
+
   router.get('/publicaciones/:id', async (req, res) => {
     if (!isValidPostId(req.params.id)) return notFound(res);
     const post = await posts.findById(req.params.id);
@@ -222,6 +385,8 @@ export function createPostsRouter(pool) {
       isAuthor: String(post.author_id) === res.locals.userId,
       published: req.query.publicada === 'ok',
       locationSaved: req.query.ubicacion === 'ok',
+      edited: req.query.editada === 'ok',
+      statusSaved: req.query.estado === 'ok',
       ...labels,
     });
   });
@@ -232,6 +397,8 @@ export function createPostsRouter(pool) {
       title: 'Mis publicaciones',
       mine: true,
       posts: list,
+      deleted: req.query.eliminada === 'ok',
+      statusSaved: req.query.estado === 'ok',
       ...labels,
     });
   });

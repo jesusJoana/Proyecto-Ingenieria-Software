@@ -24,15 +24,21 @@
       <div class="alert alert-success" role="status">Tu publicación se ha creado correctamente.</div>
     <% } %>
     <% if (typeof locationSaved !== 'undefined' && locationSaved) { %><div class="alert alert-success" role="status">La ubicación se ha actualizado correctamente.</div><% } %>
+    <% if (typeof edited !== 'undefined' && edited) { %><div class="alert alert-success" role="status">Los cambios se han guardado correctamente.</div><% } %>
+    <% if (typeof statusSaved !== 'undefined' && statusSaved) { %><div class="alert alert-success" role="status">El estado de la publicación se ha actualizado.</div><% } %>
+    <% if (post.status !== 'active') { %>
+      <p class="post-status-note post-status-note-<%= post.status %>"><%= post.status === 'reserved' ? 'Reservada: alguien está en proceso de recuperar este objeto.' : 'Resuelta: este objeto ya se ha devuelto o encontrado.' %></p>
+    <% } %>
     <article class="post-detail">
       <img class="post-detail-photo" src="<%= post.photo_filename ? '/uploads/posts/' + post.photo_filename : '/images/post-placeholder.svg' %>" alt="<%= post.photo_filename ? 'Foto de ' + post.title : 'Publicación sin foto' %>" width="600" height="450">
       <div class="post-detail-body">
         <div class="post-badges">
           <span class="post-kind post-kind-<%= post.kind %>"><%= kinds[post.kind] %></span>
           <span class="post-category"><%= categories[post.category] %></span>
-          <span class="post-status"><%= statuses[post.status] %></span>
+          <span class="post-status post-status-<%= post.status %>"><%= statuses[post.status] %></span>
         </div>
         <h1><%= post.title %></h1>
+        <% if (isAuthor) { %><%- include('partials/post-owner-actions', { post, back: 'detail' }) %><% } %>
         <p class="post-description"><%= post.description %></p>
         <dl class="post-facts">
           <div><dt>Tipo</dt><dd><%= kinds[post.kind] %></dd></div>

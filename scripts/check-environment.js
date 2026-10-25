@@ -51,6 +51,7 @@ await check('.node-version', async () => {
 // 4. Comparar cada dependencia directa instalada con el manifiesto y el lockfile.
 // Además, importar las de ejecución para detectar errores de carga. Las herramientas
 // de desarrollo se verifican aquí por versión; su ejecución tiene pruebas separadas.
+const browserOnly = ['bootstrap', 'leaflet'];
 for (const group of ['dependencies', 'devDependencies']) {
   for (const [name, version] of Object.entries(manifest[group] ?? {})) {
     await check(`${name} ${version}`, async () => {
@@ -58,7 +59,8 @@ for (const group of ['dependencies', 'devDependencies']) {
       assert(installed.version === version, `instalado ${installed.version}`);
       assert(lock.packages['']?.[group]?.[name] === version &&
         lock.packages[`node_modules/${name}`]?.version === version, 'lockfile incoherente');
-      if (group === 'dependencies' && name !== 'bootstrap') await import(name);
+      // Bootstrap y Leaflet solo se ejecutan en el navegador; importarlas en Node falla.
+      if (group === 'dependencies' && !browserOnly.includes(name)) await import(name);
     });
   }
 }

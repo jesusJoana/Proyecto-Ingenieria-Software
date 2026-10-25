@@ -1,0 +1,20 @@
+<%# Acciones del autor: cambiar el estado, editar y eliminar. Recibe post y back ('detail' o 'mine'). %>
+<%
+  const transitions = {
+    active: [['reserved', 'Marcar como reservada', 'btn-outline-secondary'], ['resolved', 'Marcar como resuelta', 'btn-teal']],
+    reserved: [['active', 'Anular reserva', 'btn-outline-secondary'], ['resolved', 'Marcar como resuelta', 'btn-teal']],
+    resolved: [['active', 'Reactivar', 'btn-outline-secondary']],
+  };
+%>
+<div class="post-owner-actions" role="group" aria-label="Gestionar «<%= post.title %>»">
+  <% (transitions[post.status] || []).forEach(([status, label, style]) => { %>
+    <form action="/publicaciones/<%= post.id %>/estado" method="post">
+      <input type="hidden" name="_csrf" value="<%= csrf %>">
+      <input type="hidden" name="status" value="<%= status %>">
+      <input type="hidden" name="back" value="<%= back %>">
+      <button class="btn btn-sm <%= style %>" type="submit"><%= label %></button>
+    </form>
+  <% }); %>
+  <a class="btn btn-sm btn-outline-secondary" href="/publicaciones/<%= post.id %>/editar">Editar</a>
+  <a class="btn btn-sm btn-outline-danger" href="/publicaciones/<%= post.id %>/eliminar">Eliminar</a>
+</div>

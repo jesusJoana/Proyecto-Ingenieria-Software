@@ -14,7 +14,8 @@
   <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
   <%- include('partials/icons') %>
   <%- include('partials/posts-header', { current: mine ? 'mine' : 'list' }) %>
-  <% const formatDate = (value) => value.split('-').reverse().join('/'); %>
+  <% const formatDate = (value) => value.split('-').reverse().join('/');
+     const searching = !mine && (filters.q || filters.tipo || filters.categoria || filters.estado !== 'open'); %>
   <main id="contenido" class="container auth-main posts-main">
     <header class="posts-heading">
       <div>
@@ -26,41 +27,53 @@
       <span class="posts-count"><%= posts.length %> <%= posts.length === 1 ? 'publicación' : 'publicaciones' %></span>
     </header>
 
+    <% if (mine && typeof deleted !== 'undefined' && deleted) { %><div class="alert alert-success" role="status">La publicación se ha eliminado.</div><% } %>
+    <% if (typeof statusSaved !== 'undefined' && statusSaved) { %><div class="alert alert-success" role="status">El estado de la publicación se ha actualizado.</div><% } %>
+
+    <% if (!mine) { %>
+      <form class="posts-tools posts-search" method="get" action="/publicaciones" role="search" aria-label="Buscar y filtrar publicaciones">
+        <div class="posts-controls">
+          <div><label class="form-label" for="posts-query">Buscar en título y descripción</label><input id="posts-query" name="q" type="search" class="form-control" maxlength="100" value="<%= filters.q %>" placeholder="Mochila, llaves, móvil…"></div>
+          <div><label class="form-label" for="posts-kind">Tipo</label><select id="posts-kind" name="tipo" class="form-select"><option value="">Todos</option><% Object.entries(kinds).forEach(([value, label]) => { %><option value="<%= value %>" <%= filters.tipo === value ? 'selected' : '' %>><%= label %></option><% }); %></select></div>
+          <div><label class="form-label" for="posts-category">Categoría</label><select id="posts-category" name="categoria" class="form-select"><option value="">Todas</option><% Object.entries(categories).forEach(([value, label]) => { %><option value="<%= value %>" <%= filters.categoria === value ? 'selected' : '' %>><%= label %></option><% }); %></select></div>
+          <div><label class="form-label" for="posts-status">Estado</label><select id="posts-status" name="estado" class="form-select"><% Object.entries(statusFilters).forEach(([value, label]) => { %><option value="<%= value %>" <%= filters.estado === value ? 'selected' : '' %>><%= label %><%= value === 'open' ? ' (activas y reservadas)' : '' %></option><% }); %></select></div>
+        </div>
+        <div class="posts-search-actions">
+          <button class="btn btn-teal" type="submit">Buscar</button>
+          <% if (searching) { %><a href="/publicaciones">Limpiar filtros</a><% } %>
+        </div>
+        <% if (invalidFilters) { %><p class="form-text" role="status">Se han ignorado filtros no válidos de la dirección.</p><% } %>
+        <% if (posts.length === searchLimit) { %><p class="posts-result-summary">Se muestran las <%= searchLimit %> publicaciones más recientes; concreta la búsqueda para ver otras.</p><% } %>
+      </form>
+    <% } %>
+
     <% if (!posts.length) { %>
       <div class="posts-empty">
-        <p><%= mine ? 'Todavía no has publicado ningún objeto.' : 'Todavía no hay publicaciones.' %></p>
-        <% if (userId) { %><a class="btn btn-teal" href="/publicaciones/nueva">Publicar objeto</a><% } %>
+        <% if (searching) { %>
+          <p>No hay publicaciones que coincidan con la búsqueda.</p>
+          <a class="btn btn-outline-secondary" href="/publicaciones">Limpiar filtros</a>
+        <% } else { %>
+          <p><%= mine ? 'Todavía no has publicado ningún objeto.' : 'Todavía no hay publicaciones.' %></p>
+          <% if (userId) { %><a class="btn btn-teal" href="/publicaciones/nueva">Publicar objeto</a><% } %>
+        <% } %>
       </div>
     <% } else { %>
-      <section class="posts-tools" aria-label="Buscar y filtrar publicaciones" hidden>
-        <div class="posts-controls">
-          <div><label class="visually-hidden" for="posts-query">Buscar por objeto o ubicación</label><input id="posts-query" type="search" class="form-control" placeholder="Buscar mochila, llaves, móvil…"></div>
-          <div><label class="visually-hidden" for="posts-category">Categoría</label><select id="posts-category" class="form-select"><option value="">Todas las categorías</option><% Object.entries(categories).forEach(([value, label]) => { %><option value="<%= value %>"><%= label %></option><% }); %></select></div>
-          <div><label class="visually-hidden" for="posts-sort">Ordenar por</label><select id="posts-sort" class="form-select"><option value="recent">Más recientes</option><option value="oldest">Más antiguas</option><option value="title">Título: A–Z</option></select></div>
-        </div>
-        <div class="posts-filter-buttons" role="group" aria-label="Tipo de objeto">
-          <button type="button" data-post-kind="" aria-pressed="true">Todos</button>
-          <button type="button" data-post-kind="lost" aria-pressed="false">Objetos perdidos</button>
-          <button type="button" data-post-kind="found" aria-pressed="false">Objetos encontrados</button>
-        </div>
-        <p class="posts-result-summary" id="posts-results" role="status" aria-live="polite"></p>
-      </section>
-      <p id="posts-no-results" class="posts-empty" hidden>No hay publicaciones que coincidan. <button class="btn btn-outline-secondary" id="posts-reset" type="button">Restablecer filtros</button></p>
       <ul class="posts-grid" aria-label="<%= title %>">
         <% posts.forEach(post => { %>
-          <li data-post data-kind="<%= post.kind %>" data-category="<%= post.category %>" data-title="<%= post.title %>" data-location="<%= post.location %>">
-            <article class="post-card">
+          <li data-post>
+            <article class="post-card post-card-<%= post.status %>">
               <img class="post-card-photo" src="<%= post.photo_filename ? '/uploads/posts/' + post.photo_filename : '/images/post-placeholder.svg' %>" alt="" width="400" height="300" loading="lazy">
               <div class="post-card-body">
                 <div class="post-badges">
                   <span class="post-kind post-kind-<%= post.kind %>"><%= kinds[post.kind] %></span>
                   <span class="post-category"><%= categories[post.category] %></span>
-                  <% if (mine) { %><span class="post-status"><%= statuses[post.status] %></span><% } %>
+                  <span class="post-status post-status-<%= post.status %>"><%= statuses[post.status] %></span>
                 </div>
                 <h2><a class="stretched-link" href="/publicaciones/<%= post.id %>"><%= post.title %></a></h2>
                 <p class="post-card-meta"><svg class="icon" aria-hidden="true"><use href="#icon-pin"></use></svg><%= post.location %> · <%= formatDate(post.event_date) %></p>
                 <% if (post.university) { %><p class="post-card-meta"><%= post.university %> · <%= post.campus %> · <%= post.city %>, <%= post.country %></p><% } %>
                 <% if (!mine) { %><p class="post-card-author">Publicado por @<%= post.author_username %></p><% } %>
+                <% if (mine) { %><%- include('partials/post-owner-actions', { post, back: 'mine' }) %><% } %>
               </div>
             </article>
           </li>
@@ -69,6 +82,5 @@
     <% } %>
   </main>
   <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-  <script src="/js/posts.js" defer></script>
 </body>
 </html>

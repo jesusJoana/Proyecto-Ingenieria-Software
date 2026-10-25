@@ -1,9 +1,13 @@
 /** Validación de publicaciones sin servidor ni base de datos. */
 import { describe, expect, test } from 'vitest';
 import {
+  SEARCH_DEFAULTS,
+  createEditPostSchema,
   createPostSchema,
   isValidPostId,
+  parseSearch,
   postFormValues,
+  statusChangeSchema,
   today,
 } from '../../src/posts/validation.js';
 
@@ -130,5 +134,115 @@ describe('Validación de publicaciones', () => {
     ['1a', false],
   ])('isValidPostId(%s) es %s', (id, ok) => {
     expect(isValidPostId(id)).toBe(ok);
+  });
+});
+
+describe('Edición de publicaciones', () => {
+  const editSchema = createEditPostSchema(
+    () => new Date(2026, 9, 21, 23, 30),
+  );
+
+  /** Para qué sirve: reutilizar las reglas de publicar al editar.
+   * Qué comprueba: los datos válidos se limpian igual y, sin la casilla, la foto se conserva. */
+  test('aplica las reglas de publicar y conserva la foto por defecto', () => {
+    expect(editSchema.parse(valid)).toMatchObject({
+      title: 'Cartera marrón',
+      brand: 'Tous',
+      color: null,
+      removePhoto: false,
+    });
+    expect(editSchema.safeParse({ ...valid, title: 'ab' }).success).toBe(
+      false,
+    );
+  });
+
+  /** Para qué sirve: quitar la foto solo con el valor del formulario.
+   * Qué comprueba: remove_photo=1 la quita; cualquier otro valor se rechaza. */
+  test.each([
+    ['1', true],
+    ['on', false],
+    ['true', false],
+    [['1', '1'], false],
+  ])('remove_photo=%o válido: %s', (remove_photo, ok) => {
+    const result = editSchema.safeParse({ ...valid, remove_photo });
+    expect(result.success).toBe(ok);
+    if (ok) expect(result.data.removePhoto).toBe(true);
+  });
+});
+
+describe('Cambio de estado', () => {
+  /** Para qué sirve: aceptar solo los tres estados de la base de datos.
+   * Qué comprueba: activa, reservada y resuelta son válidos; el resto se rechaza. */
+  test.each([
+    ['active', true],
+    ['reserved', true],
+    ['resolved', true],
+    ['deleted', false],
+    ['', false],
+    [undefined, false],
+  ])('estado %s válido: %s', (status, ok) => {
+    expect(statusChangeSchema.safeParse({ status }).success).toBe(ok);
+  });
+
+  /** Para qué sirve: volver a la página desde la que se cambió el estado.
+   * Qué comprueba: admite detail y mine; un valor desconocido vuelve al detalle. */
+  test.each([
+    ['mine', 'mine'],
+    ['detail', 'detail'],
+    ['https://example.test', 'detail'],
+    [undefined, 'detail'],
+  ])('back=%s vuelve a %s', (back, expected) => {
+    expect(statusChangeSchema.parse({ status: 'active', back }).back).toBe(
+      expected,
+    );
+  });
+});
+
+describe('Filtros del listado', () => {
+  /** Para qué sirve: mostrar por defecto solo las publicaciones abiertas.
+   * Qué comprueba: sin parámetros, o con valores vacíos, usa los valores por defecto. */
+  test('sin filtros usa abiertas y no marca errores', () => {
+    expect(parseSearch({})).toEqual({
+      filters: SEARCH_DEFAULTS,
+      invalid: false,
+    });
+    expect(parseSearch({ q: '', estado: '' }).filters.estado).toBe('open');
+  });
+
+  /** Para qué sirve: aplicar los filtros compartidos en la URL.
+   * Qué comprueba: conserva los valores permitidos, recorta el texto e ignora parámetros desconocidos. */
+  test('admite texto, tipo, categoría y estado válidos', () => {
+    expect(
+      parseSearch({
+        q: '  mochila ',
+        tipo: 'found',
+        categoria: 'keys',
+        estado: 'resolved',
+        orden: 'ignorado',
+      }),
+    ).toEqual({
+      filters: {
+        q: 'mochila',
+        tipo: 'found',
+        categoria: 'keys',
+        estado: 'resolved',
+      },
+      invalid: false,
+    });
+  });
+
+  /** Para qué sirve: que una URL manipulada no rompa la búsqueda.
+   * Qué comprueba: cada valor no válido se sustituye por el de defecto y se indica en invalid. */
+  test.each([
+    [{ tipo: 'stolen' }, 'tipo', ''],
+    [{ categoria: 'vehicles' }, 'categoria', ''],
+    [{ estado: 'deleted' }, 'estado', 'open'],
+    [{ q: 'a'.repeat(101) }, 'q', ''],
+    [{ q: ['a', 'b'] }, 'q', ''],
+    [{ tipo: ['lost'] }, 'tipo', ''],
+  ])('descarta %o', (query, key, expected) => {
+    const { filters, invalid } = parseSearch(query);
+    expect(filters[key]).toBe(expected);
+    expect(invalid).toBe(true);
   });
 });

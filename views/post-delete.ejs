@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> · ReFind</title>
+  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
+  <link rel="stylesheet" href="/css/refind.css">
+  <link rel="stylesheet" href="/css/auth.css">
+  <link rel="stylesheet" href="/css/posts.css">
+  <link rel="stylesheet" href="/css/design.css">
+</head>
+<body class="home-page auth-page posts-page">
+  <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('partials/icons') %>
+  <%- include('partials/posts-header', { current: 'mine' }) %>
+  <main id="contenido" class="container auth-main posts-main">
+    <section class="auth-panel post-form-panel post-delete-panel" aria-labelledby="delete-title">
+      <span class="auth-kicker">Tu publicación</span>
+      <h1 id="delete-title">¿Eliminar «<%= post.title %>»?</h1>
+      <p>La publicación<%= post.photo_filename ? ' y su foto' : '' %> se eliminarán definitivamente y no se podrán recuperar.</p>
+      <p class="form-text">Si el objeto ya ha vuelto a su dueño y solo quieres ocultarla del listado, márcala como resuelta.</p>
+      <div class="post-delete-actions">
+        <form action="/publicaciones/<%= post.id %>/eliminar" method="post">
+          <input type="hidden" name="_csrf" value="<%= csrf %>">
+          <button class="btn btn-danger" type="submit">Eliminar definitivamente</button>
+        </form>
+        <a class="btn btn-outline-secondary" href="/publicaciones/<%= post.id %>">Cancelar</a>
+      </div>
+    </section>
+  </main>
+  <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

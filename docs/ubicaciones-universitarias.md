@@ -11,7 +11,7 @@ Se puede elegir el punto con un clic, arrastrar el marcador o introducir latitud
 
 En objetos encontrados se guarda por separado dónde se encontró y dónde está depositado ahora. El mapa representa el hallazgo o el campus, no el depósito. No se deben introducir domicilios particulares como depósito.
 
-Cada ficha muestra los datos del lugar y un mapa. El autor puede corregirlos mediante «Editar ubicación». Las publicaciones anteriores a esta función conservan su lugar original; pueden completar sus datos desde esa misma pantalla.
+Cada ficha muestra los datos del lugar y un mapa. El autor puede corregirlos mediante «Editar ubicación» o, junto al resto de campos y la foto, desde «Editar» (`/publicaciones/:id/editar`). Las publicaciones anteriores a esta función conservan su lugar original; pueden completar sus datos desde esa misma pantalla.
 
 `/objetos-por-zonas` es público y permite buscar por universidad, campus y tipo. Muestra hasta 200 publicaciones activas con coordenadas, ordenadas por fecha de publicación. Las publicaciones sin coordenadas siguen disponibles en el listado general. Esta primera versión no tiene catálogo oficial, búsqueda automática de direcciones, agrupación de marcadores ni carga según el área visible.
 

@@ -74,3 +74,39 @@
   .post-kind-options { grid-template-columns:1fr; }
   .post-form-panel { padding:26px 18px 20px; }
 }
+
+/* Estados: activa, reservada y resuelta. Selectores más específicos que design.css, que se carga después. */
+.post-badges .post-status-active { background:#e3f2ee; color:#1f5c50; }
+.post-badges .post-status-reserved { background:#fff1d6; color:#7a4d06; }
+.post-badges .post-status-resolved { background:#e9ebef; color:#3f4a5a; }
+.post-card-resolved .post-card-photo { filter:grayscale(.7); opacity:.8; }
+.post-status-note { padding:12px 16px; border-radius:12px; font-weight:600; }
+.post-status-note-reserved { background:#fff6e3; color:#7a4d06; }
+.post-status-note-resolved { background:#eff1f4; color:#3f4a5a; }
+
+/* Acciones del autor. Por encima del enlace que cubre la tarjeta. */
+.post-owner-actions { position:relative; z-index:2; display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 4px; }
+.post-owner-actions form { margin:0; }
+.post-card .post-owner-actions { margin-top:auto; padding-top:10px; }
+
+/* Buscador del listado (formulario GET). */
+.posts-search .posts-controls { grid-template-columns:2fr repeat(3,minmax(0,1fr)); margin-bottom:12px; }
+.posts-search .form-label { font-size:13px; font-weight:600; color:#4d5d56; margin-bottom:4px; }
+.posts-search-actions { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.posts-search-actions a { color:#168d84; font-weight:600; }
+
+/* Editar y eliminar. */
+.post-current-photo { display:flex; align-items:center; gap:16px; flex-wrap:wrap; }
+.post-current-photo img { width:120px; height:90px; object-fit:cover; border-radius:10px; background:#edf6f3; }
+.post-delete-panel h1 { font-size:clamp(22px,3vw,28px); font-weight:750; margin:8px 0 12px; overflow-wrap:anywhere; }
+.post-delete-actions { display:flex; gap:12px; flex-wrap:wrap; margin-top:20px; }
+
+@media(max-width:900px) {
+  .posts-search .posts-controls { grid-template-columns:1fr 1fr; }
+  .posts-search .posts-controls > :first-child { grid-column:1/-1; }
+}
+@media(max-width:600px) {
+  .post-card .post-owner-actions .btn { padding:4px 8px; font-size:12px; }
+  .post-delete-actions > * { flex:1 1 100%; }
+  .post-delete-actions .btn { width:100%; }
+}

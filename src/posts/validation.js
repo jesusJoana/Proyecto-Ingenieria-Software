@@ -19,6 +19,17 @@ export const STATUSES = {
   resolved: 'Resuelta',
 };
 
+// Filtro de estado del listado: «abiertas» (activas y reservadas) es el valor por defecto.
+export const STATUS_FILTERS = {
+  open: 'Abiertas',
+  active: 'Activas',
+  reserved: 'Reservadas',
+  resolved: 'Resueltas',
+  all: 'Todas',
+};
+
+export const SEARCH_LIMIT = 50;
+
 const FIELDS = [
   'kind',
   'title',
@@ -37,6 +48,7 @@ const FIELDS = [
   'latitude',
   'longitude',
   'deposit_location',
+  'remove_photo',
 ];
 
 /** Fecha de hoy en la zona horaria del servidor, como AAAA-MM-DD. */
@@ -149,6 +161,61 @@ export function createPostSchema(now = () => new Date()) {
 }
 
 export const postSchema = createPostSchema();
+
+/** Edición: los mismos campos que al publicar y, además, la opción de quitar la foto. */
+export function createEditPostSchema(now = () => new Date()) {
+  return createPostSchema(now).and(
+    z
+      .object({
+        remove_photo: z
+          .literal('1', { message: 'Opción de foto no válida.' })
+          .optional(),
+      })
+      .transform(({ remove_photo }) => ({
+        removePhoto: remove_photo === '1',
+      })),
+  );
+}
+
+export const editPostSchema = createEditPostSchema();
+
+/** Cambio de estado por el autor y página a la que volver después. */
+export const statusChangeSchema = z.object({
+  status: z.enum(Object.keys(STATUSES), {
+    message: 'Selecciona un estado válido.',
+  }),
+  back: z.enum(['detail', 'mine']).catch('detail'),
+});
+
+const searchFields = {
+  q: z.string().trim().max(100),
+  tipo: z.enum(Object.keys(KINDS)),
+  categoria: z.enum(Object.keys(CATEGORIES)),
+  estado: z.enum(Object.keys(STATUS_FILTERS)),
+};
+
+export const SEARCH_DEFAULTS = Object.freeze({
+  q: '',
+  tipo: '',
+  categoria: '',
+  estado: 'open',
+});
+
+/**
+ * Filtros del listado leídos de la URL. Un valor no válido no impide la
+ * búsqueda: se descarta, se usa el valor por defecto y se indica en invalid.
+ */
+export function parseSearch(query = {}) {
+  const filters = { ...SEARCH_DEFAULTS };
+  let invalid = false;
+  for (const [key, schema] of Object.entries(searchFields)) {
+    if (query[key] === undefined || query[key] === '') continue;
+    const result = schema.safeParse(query[key]);
+    if (result.success) filters[key] = result.data;
+    else invalid = true;
+  }
+  return { filters, invalid };
+}
 
 /** Valores del formulario para volver a mostrarlos tras un error. */
 export function postFormValues(body = {}) {

@@ -76,15 +76,103 @@ export function createPostsService(pool) {
       return post;
     },
 
-    async listRecent(limit = 50) {
+    /** Listado público con los filtros ya validados (ver parseSearch). */
+    async search({ q = '', tipo = '', categoria = '', estado = 'open' }, limit = 50) {
       const { rows } = await pool.query(
         `SELECT ${POST_COLUMNS}
          FROM object_posts JOIN users ON users.id = object_posts.author_id
+         WHERE ($1 = '' OR object_posts.title ILIKE $2 OR object_posts.description ILIKE $2)
+           AND ($3 = '' OR object_posts.kind = $3)
+           AND ($4 = '' OR object_posts.category = $4)
+           AND CASE $5
+             WHEN 'all' THEN true
+             WHEN 'open' THEN object_posts.status IN ('active', 'reserved')
+             ELSE object_posts.status = $5
+           END
          ORDER BY object_posts.created_at DESC, object_posts.id DESC
-         LIMIT $1`,
-        [limit],
+         LIMIT $6`,
+        [
+          q,
+          `%${q.replace(/[\\%_]/g, '\\$&')}%`,
+          tipo,
+          categoria,
+          estado,
+          limit,
+        ],
       );
       return rows;
+    },
+
+    /**
+     * Actualiza todos los campos. photo_filename solo cambia si se indica
+     * (undefined la conserva). Devuelve la foto anterior para borrar su archivo.
+     */
+    async update(id, authorId, data) {
+      const {
+        rows: [post],
+      } = await pool.query(
+        `UPDATE object_posts SET
+           kind=$3, title=$4, description=$5, category=$6, color=$7, brand=$8,
+           location=$9, event_date=$10, university=$11, campus=$12, city=$13,
+           country=$14, campus_address=$15, location_mode=$16, latitude=$17,
+           longitude=$18, deposit_location=$19,
+           photo_filename = CASE WHEN $20 THEN $21 ELSE previous.photo_filename END,
+           updated_at=now()
+         FROM (
+           SELECT id, photo_filename FROM object_posts
+           WHERE id=$1 AND author_id=$2 FOR UPDATE
+         ) AS previous
+         WHERE object_posts.id = previous.id
+         RETURNING object_posts.id, object_posts.photo_filename,
+                   previous.photo_filename AS previous_photo_filename`,
+        [
+          id,
+          authorId,
+          data.kind,
+          data.title,
+          data.description,
+          data.category,
+          data.color,
+          data.brand,
+          data.location,
+          data.event_date,
+          data.university,
+          data.campus,
+          data.city,
+          data.country,
+          data.campus_address,
+          data.location_mode,
+          data.latitude,
+          data.longitude,
+          data.deposit_location,
+          data.photoFilename !== undefined,
+          data.photoFilename ?? null,
+        ],
+      );
+      return post ?? null;
+    },
+
+    async updateStatus(id, authorId, status) {
+      const {
+        rows: [post],
+      } = await pool.query(
+        `UPDATE object_posts SET status=$3, updated_at=now()
+         WHERE id=$1 AND author_id=$2 RETURNING id, status`,
+        [id, authorId, status],
+      );
+      return post ?? null;
+    },
+
+    /** Borrado físico. Devuelve la foto para borrar también su archivo. */
+    async remove(id, authorId) {
+      const {
+        rows: [post],
+      } = await pool.query(
+        `DELETE FROM object_posts WHERE id=$1 AND author_id=$2
+         RETURNING id, photo_filename`,
+        [id, authorId],
+      );
+      return post ?? null;
     },
 
     async listLocated({ university = '', campus = '', kind = '' } = {}) {

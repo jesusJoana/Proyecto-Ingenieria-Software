@@ -1,0 +1,108 @@
+<%# Formulario compartido por Publicar y Editar. Recibe action, submitLabel y, al editar, currentPhoto. %>
+<%
+  const describedBy = (id, help) => [help ? id + '-help' : '', errors[id] ? id + '-error' : ''].filter(Boolean).join(' ');
+  const invalid = (id) => errors[id] ? 'is-invalid' : '';
+  const photo = typeof currentPhoto !== 'undefined' ? currentPhoto : null;
+%>
+<% if (Object.keys(errors).length) { %>
+  <div class="alert alert-danger auth-errors" role="alert" tabindex="-1" id="form-errors">
+    <strong>Revisa los campos indicados.</strong>
+    <ul class="mb-0 mt-1">
+      <% Object.entries(errors).forEach(([field, message]) => { %>
+        <li><a href="#<%= field === 'kind' ? 'kind-lost' : field %>"><%= message %></a></li>
+      <% }); %>
+    </ul>
+  </div>
+<% } %>
+<form action="<%= action %>" method="post" enctype="multipart/form-data" class="auth-form" novalidate>
+  <input type="hidden" name="_csrf" value="<%= csrf %>">
+  <div class="row g-3">
+    <fieldset class="col-12" <% if (errors.kind) { %>aria-describedby="kind-error"<% } %>>
+      <legend class="form-label">¿Qué ha pasado?</legend>
+      <div class="post-kind-options">
+        <% Object.entries(kinds).forEach(([value, label]) => { %>
+          <label class="post-kind-option" for="kind-<%= value %>">
+            <input class="form-check-input" type="radio" id="kind-<%= value %>" name="kind" value="<%= value %>" required <% if (values.kind === value) { %>checked<% } %>>
+            <span><%= value === 'lost' ? 'He perdido un objeto' : 'He encontrado un objeto' %></span>
+          </label>
+        <% }); %>
+      </div>
+      <% if (errors.kind) { %><div class="invalid-feedback d-block" id="kind-error"><%= errors.kind %></div><% } %>
+    </fieldset>
+
+    <div class="col-12">
+      <label class="form-label" for="title">Título</label>
+      <input class="form-control <%= invalid('title') %>" id="title" name="title" type="text" maxlength="100" minlength="3" required value="<%= values.title %>" placeholder="Ej.: Mochila negra con parches" aria-invalid="<%= Boolean(errors.title) %>" aria-describedby="<%= describedBy('title', true) %>">
+      <div class="form-text" id="title-help">Entre 3 y 100 caracteres.</div>
+      <% if (errors.title) { %><div class="invalid-feedback d-block" id="title-error"><%= errors.title %></div><% } %>
+    </div>
+
+    <div class="col-12">
+      <label class="form-label" for="description">Descripción</label>
+      <textarea class="form-control <%= invalid('description') %>" id="description" name="description" rows="5" maxlength="2000" minlength="10" required aria-invalid="<%= Boolean(errors.description) %>" aria-describedby="<%= describedBy('description', true) %>"><%= values.description %></textarea>
+      <div class="form-text" id="description-help">Entre 10 y 2000 caracteres. Evita incluir datos personales sensibles.</div>
+      <% if (errors.description) { %><div class="invalid-feedback d-block" id="description-error"><%= errors.description %></div><% } %>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label" for="category">Categoría</label>
+      <select class="form-select form-control <%= invalid('category') %>" id="category" name="category" required aria-invalid="<%= Boolean(errors.category) %>" <% if (errors.category) { %>aria-describedby="category-error"<% } %>>
+        <option value="">Selecciona una categoría</option>
+        <% Object.entries(categories).forEach(([value, label]) => { %>
+          <option value="<%= value %>" <% if (values.category === value) { %>selected<% } %>><%= label %></option>
+        <% }); %>
+      </select>
+      <% if (errors.category) { %><div class="invalid-feedback d-block" id="category-error"><%= errors.category %></div><% } %>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label" for="event_date">Fecha en que se perdió o se encontró</label>
+      <input class="form-control <%= invalid('event_date') %>" id="event_date" name="event_date" type="date" min="2000-01-01" max="<%= maxDate %>" required value="<%= values.event_date %>" aria-invalid="<%= Boolean(errors.event_date) %>" <% if (errors.event_date) { %>aria-describedby="event_date-error"<% } %>>
+      <% if (errors.event_date) { %><div class="invalid-feedback d-block" id="event_date-error"><%= errors.event_date %></div><% } %>
+    </div>
+
+    <%- include('post-location-form', { values, errors }) %>
+    <div class="col-12">
+      <label class="form-label" for="location" id="event-location-label">Lugar de la pérdida o del hallazgo</label>
+      <input class="form-control <%= invalid('location') %>" id="location" name="location" type="text" maxlength="150" minlength="2" required value="<%= values.location %>" placeholder="Ej.: Biblioteca, segunda planta" aria-invalid="<%= Boolean(errors.location) %>" <% if (errors.location) { %>aria-describedby="location-error"<% } %>>
+      <% if (errors.location) { %><div class="invalid-feedback d-block" id="location-error"><%= errors.location %></div><% } %>
+    </div>
+    <div class="col-12" id="deposit-field">
+      <label class="form-label" for="deposit_location">Dónde está depositado ahora (solo objetos encontrados)</label>
+      <input class="form-control <%= invalid('deposit_location') %>" id="deposit_location" name="deposit_location" maxlength="250" value="<%= values.deposit_location || '' %>" placeholder="Ej.: Conserjería del edificio A o Conmigo" aria-invalid="<%= Boolean(errors.deposit_location) %>" aria-describedby="deposit-help">
+      <p class="form-text" id="deposit-help">Puede ser diferente del lugar del hallazgo. No publiques tu domicilio ni datos personales.</p>
+      <% if (errors.deposit_location) { %><p class="invalid-feedback d-block"><%= errors.deposit_location %></p><% } %>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label" for="color">Color <span class="optional-label">(opcional)</span></label>
+      <input class="form-control <%= invalid('color') %>" id="color" name="color" type="text" maxlength="40" value="<%= values.color %>" aria-invalid="<%= Boolean(errors.color) %>" <% if (errors.color) { %>aria-describedby="color-error"<% } %>>
+      <% if (errors.color) { %><div class="invalid-feedback d-block" id="color-error"><%= errors.color %></div><% } %>
+    </div>
+
+    <div class="col-md-6">
+      <label class="form-label" for="brand">Marca <span class="optional-label">(opcional)</span></label>
+      <input class="form-control <%= invalid('brand') %>" id="brand" name="brand" type="text" maxlength="60" value="<%= values.brand %>" aria-invalid="<%= Boolean(errors.brand) %>" <% if (errors.brand) { %>aria-describedby="brand-error"<% } %>>
+      <% if (errors.brand) { %><div class="invalid-feedback d-block" id="brand-error"><%= errors.brand %></div><% } %>
+    </div>
+
+    <%# La foto va al final: así multer ya ha leído el resto de campos si rechaza el archivo. %>
+    <% if (photo) { %>
+      <div class="col-12 post-current-photo">
+        <img src="/uploads/posts/<%= photo %>" alt="Foto actual de la publicación" width="120" height="90">
+        <div class="form-check">
+          <input class="form-check-input" type="checkbox" id="remove_photo" name="remove_photo" value="1" <% if (values.remove_photo === '1') { %>checked<% } %>>
+          <label class="form-check-label" for="remove_photo">Quitar la foto actual</label>
+          <% if (errors.remove_photo) { %><div class="invalid-feedback d-block"><%= errors.remove_photo %></div><% } %>
+        </div>
+      </div>
+    <% } %>
+    <div class="col-12">
+      <label class="form-label" for="photo"><%= photo ? 'Cambiar la foto' : 'Foto' %> <span class="optional-label">(opcional)</span></label>
+      <input class="form-control <%= invalid('photo') %>" id="photo" name="photo" type="file" accept="image/jpeg,image/png,image/webp" aria-invalid="<%= Boolean(errors.photo) %>" aria-describedby="<%= describedBy('photo', true) %>">
+      <div class="form-text" id="photo-help">JPG, PNG o WebP de hasta 5 MB.<% if (photo) { %> Si eliges una nueva, sustituye a la actual.<% } %><% if (Object.keys(errors).length) { %> Por seguridad, vuelve a seleccionar la foto si la habías añadido.<% } %></div>
+      <% if (errors.photo) { %><div class="invalid-feedback d-block" id="photo-error"><%= errors.photo %></div><% } %>
+    </div>
+  </div>
+  <button class="btn btn-teal auth-submit w-100" type="submit"><%= submitLabel %> <span aria-hidden="true">→</span></button>
+</form>
