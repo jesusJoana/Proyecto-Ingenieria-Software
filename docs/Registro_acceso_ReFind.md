@@ -28,7 +28,7 @@ Desde la portada, **Registrarse** abre `/registro` e **Iniciar sesión** abre `/
 
 Las fotos aceptadas son JPG, PNG y WebP, hasta 5 MB. El servidor valida y convierte las imágenes a WebP, limitando su tamaño a 512 × 512 píxeles. Edad, localidad, descripción, organización y foto son opcionales. Los campos del perfil público, incluida la edad si se indica, pueden ser vistos por otras personas.
 
-Los objetos perdidos/encontrados se mostrarán en el perfil a partir de sus publicaciones cuando esa función esté implementada; no se editan desde el formulario del perfil. Las valoraciones también quedan pendientes. La confirmación de registro no es un correo de verificación; recuperación de contraseña y verificación del correo no están implementadas.
+Los objetos perdidos/encontrados se mostrarán en el perfil a partir de sus publicaciones cuando esa función esté implementada; no se editan desde el formulario del perfil. Las valoraciones también quedan pendientes. La confirmación de registro no es un correo de verificación y la verificación del correo no está implementada.
 
 Las pantallas mantienen los colores y recursos de la portada y funcionan sin JavaScript. JavaScript añade mostrar/ocultar contraseña y enfoque del resumen de errores.
 
@@ -65,3 +65,13 @@ Ejecutar todo desde la raíz del proyecto, con las bases de pruebas preparadas:
 ```powershell
 npm run verify
 ```
+
+## Recuperación de contraseña
+
+1. En **Iniciar sesión**, el enlace **¿Has olvidado tu contraseña?** abre `/recuperar-contrasena`, donde se escribe el correo.
+2. Exista o no la cuenta, se muestra el mismo mensaje: «Si el correo está registrado, recibirás un enlace para restablecer la contraseña». Así no se revela qué correos están registrados.
+3. Si el correo está registrado, se crea un enlace `/restablecer-contrasena/<token>` válido durante **1 hora** y de **un solo uso**. El token son 32 bytes aleatorios; en la tabla `password_reset_tokens` (migración 010) solo se guarda su SHA-256.
+4. El enlace abre un formulario para la nueva contraseña y su confirmación, con las mismas reglas que el registro (12–128 caracteres). Si el enlace no existe, ha caducado o ya se usó, se muestra un error y se ofrece pedir otro.
+5. Al guardar, se almacena el hash Argon2id, se actualiza `updated_at`, el enlace queda usado, se invalidan los demás enlaces pendientes del usuario y se cierran sus sesiones abiertas. Después se vuelve al acceso con un aviso.
+
+**Envío del correo.** En desarrollo y en las pruebas no se envía: se escribe en la terminal del servidor (`MAIL_MODE=console`, el valor por defecto). Para enviarlo de verdad, poner en el `.env` `MAIL_MODE=smtp` y los datos del servidor de correo (ver `.env.example`). El enlace se construye con `APP_URL` (por defecto `http://localhost:PORT`), nunca con la cabecera `Host` de la petición.

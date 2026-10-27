@@ -6,8 +6,8 @@ import argon2 from 'argon2';
 const DUMMY_HASH =
   '$argon2id$v=19$m=19456,p=1,t=2$B41g+RXhmiEerU/wg72rSA$EHWlWeX7yteZx8yKgsdVESodS5daoNXrBCsWQuuYv7c';
 
-// Parámetros de Argon2id compartidos por el registro y el cambio de contraseña.
-const HASH_OPTIONS = {
+// Parámetros de Argon2id compartidos por el registro, el cambio y la recuperación de contraseña.
+export const HASH_OPTIONS = {
   type: argon2.argon2id,
   memoryCost: 19456,
   timeCost: 2,

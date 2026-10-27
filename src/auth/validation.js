@@ -67,6 +67,25 @@ export const passwordChangeSchema = z
     message: 'Las contraseñas no coinciden.',
   });
 
+/** Recuperación de contraseña (requisito 4): solo se pide el correo. */
+export const resetRequestSchema = z.object({ email });
+
+/** Nueva contraseña desde el enlace del correo: mismas reglas que en el registro. */
+export const passwordResetSchema = z
+  .object({
+    password,
+    confirm_password: z.string().min(1, 'Repite la nueva contraseña.'),
+  })
+  .refine((data) => data.password === data.confirm_password, {
+    path: ['confirm_password'],
+    message: 'Las contraseñas no coinciden.',
+  });
+
+/** El token del enlace son 32 bytes aleatorios en hexadecimal: 64 caracteres. */
+export function isValidResetToken(value) {
+  return typeof value === 'string' && /^[a-f0-9]{64}$/.test(value);
+}
+
 export const loginSchema = z.object({
   email,
   password: z

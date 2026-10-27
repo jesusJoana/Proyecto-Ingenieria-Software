@@ -149,6 +149,7 @@ export function createAuthRouter(pool) {
       errors,
       csrf: csrfToken(req),
       registered: mode === 'login' && req.query.registro === 'ok',
+      passwordReset: mode === 'login' && req.query.restablecida === 'ok',
     });
   }
   router.get('/registro', onlyGuest, (req, res) =>

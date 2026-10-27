@@ -16,12 +16,28 @@ import { z } from 'zod';
 const ENVIRONMENTS = { development: 'dev', test: 'test', e2e: 'e2e' };
 
 // Datos que debe contener cada .env y reglas que deben cumplir.
-const schema = z.object({
-  APP_ENV: z.enum(['development', 'test', 'e2e']),
-  DATABASE_URL: z.string().min(1),
-  SESSION_SECRET: z.string().min(64),
-  PORT: z.coerce.number().int().min(1024).max(65535),
-});
+// Las variables de correo son opcionales: sin ellas, el correo de recuperación
+// de contraseña se escribe en la terminal (ver src/mail.js).
+const schema = z
+  .object({
+    APP_ENV: z.enum(['development', 'test', 'e2e']),
+    DATABASE_URL: z.string().min(1),
+    SESSION_SECRET: z.string().min(64),
+    PORT: z.coerce.number().int().min(1024).max(65535),
+    APP_URL: z.url({ protocol: /^https?$/ }).optional(),
+    MAIL_MODE: z.enum(['console', 'smtp']).optional(),
+    MAIL_FROM: z.string().min(3).optional(),
+    SMTP_HOST: z.string().min(1).optional(),
+    SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
+    SMTP_USER: z.string().min(1).optional(),
+    SMTP_PASS: z.string().min(1).optional(),
+  })
+  .superRefine((data, ctx) => {
+    // En modo smtp hacen falta, como mínimo, el servidor y el remitente.
+    if (data.MAIL_MODE !== 'smtp') return;
+    for (const field of ['SMTP_HOST', 'MAIL_FROM'])
+      if (!data[field]) ctx.addIssue({ code: 'custom', path: [field], message: 'Obligatorio en modo smtp.' });
+  });
 
 /**
  * Devuelve la configuración del entorno indicado.

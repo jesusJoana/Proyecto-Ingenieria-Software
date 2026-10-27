@@ -34,6 +34,8 @@ La gestión de publicaciones se comprueba en `integration/posts-manage.test.js`:
 
 `e2e/posts-manage.spec.js` recorre el flujo completo en Chromium: publicar, buscar, reservar desde el detalle, resolver desde Mis publicaciones (sin desbordar en móvil), comprobar el filtro Resueltas, editar añadiendo una foto y eliminar tras confirmar (la foto deja de servirse).
 
+La recuperación de contraseña se comprueba en `unit/password-reset-validation.test.js` (correo, nueva contraseña y formato del token), `unit/mail.test.js` (variables opcionales del `.env` y envío en modo console y smtp, con nodemailer simulado), `integration/password-reset-service.test.js` (token guardado solo como SHA-256, caducidad, un solo uso, dos usos simultáneos, invalidación de otros enlaces, cierre de sesiones y borrado en cascada) e `integration/password-reset.test.js` (flujo HTTP con un correo falso: misma respuesta exista o no el correo, CSRF, enlace inválido, validación y acceso con la nueva contraseña). `e2e/password-reset.spec.js` recorre el flujo en Chromium; como en modo console el enlace solo sale en la terminal, la prueba sustituye el hash guardado por el de un token que conoce.
+
 Cada `test` o grupo `test.each` tiene una cabecera **Para qué sirve / Qué comprueba**. `test.each` ejecuta una prueba por cada caso de su tabla.
 
 ## Procedimiento TDD

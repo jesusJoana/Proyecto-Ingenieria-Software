@@ -14,14 +14,18 @@ import { createAuthRouter } from './auth/routes.js';
 import { csrfToken } from './auth/security.js';
 import { createFriendsRouter } from './friends/routes.js';
 import { createPostsRouter } from './posts/routes.js';
+import { createPasswordResetRouter } from './auth/password-reset-routes.js';
+import { createMailer } from './mail.js';
 
 // Carpeta raíz del proyecto, para localizar vistas y recursos.
 const root = fileURLToPath(new URL('..', import.meta.url));
 
 /**
  * @param {ReturnType<import('./config.js').readConfig>} config
+ * @param {{ mailer?: ReturnType<typeof createMailer> }} [options]
+ *   mailer: envío de correos; las pruebas pasan uno falso que guarda los mensajes.
  */
-export function createApp(config) {
+export function createApp(config, { mailer = createMailer(config) } = {}) {
   // Conexiones a PostgreSQL compartidas por toda la aplicación.
   const pool = new pg.Pool({ connectionString: config.DATABASE_URL });
 
@@ -72,6 +76,7 @@ export function createApp(config) {
   });
 
   app.use(createAuthRouter(pool));
+  app.use(createPasswordResetRouter(pool, mailer));
   app.use(createFriendsRouter(pool));
   app.use(createPostsRouter(pool));
 

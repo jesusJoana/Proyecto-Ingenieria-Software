@@ -33,6 +33,9 @@
         <% if (registered) { %>
           <div class="alert alert-success" role="status">Tu cuenta se ha creado. Ya puedes iniciar sesión.</div>
         <% } %>
+        <% if (typeof passwordReset !== 'undefined' && passwordReset) { %>
+          <div class="alert alert-success" role="status">Tu contraseña se ha restablecido. Ya puedes iniciar sesión.</div>
+        <% } %>
         <% if (Object.keys(errors).length) { %>
           <div class="alert alert-danger auth-errors" role="alert" tabindex="-1" id="form-errors">
             <strong><%= errors.form || 'Revisa los campos indicados.' %></strong>
@@ -70,6 +73,7 @@
               </div>
             <% }); %>
           </div>
+          <% if (mode === 'login') { %><p class="auth-forgot mt-2 mb-0 text-end"><a href="/recuperar-contrasena">¿Has olvidado tu contraseña?</a></p><% } %>
           <button class="btn btn-teal auth-submit w-100" type="submit"><%= mode === 'register' ? 'Crear cuenta' : 'Iniciar sesión' %> <span aria-hidden="true">→</span></button>
         </form>
         <p class="auth-switch"><%= mode === 'register' ? '¿Ya tienes una cuenta?' : '¿Todavía no tienes cuenta?' %> <a href="<%= mode === 'register' ? '/iniciar-sesion' : '/registro' %>"><%= mode === 'register' ? 'Inicia sesión' : 'Regístrate' %></a></p>
