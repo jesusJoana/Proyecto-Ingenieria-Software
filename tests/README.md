@@ -6,7 +6,7 @@ Ejecutar desde la raíz del proyecto, en la terminal de VS Code, después de ins
 | --- | --- | --- | --- |
 | `unit/` | Configuración, sesiones, validación y servicio de autenticación aislados. | `npm run test:unit` | Node y dependencias; no necesita `.env`, PostgreSQL ni navegador. |
 | `integration/` | Express, sesiones y PostgreSQL trabajando juntos. | `npm run test:integration` | `.env.test`, PostgreSQL activo y migraciones de `refind_test` aplicadas. |
-| `e2e/` | Portada, registro, acceso, cierre de sesión y publicaciones desde Chromium. | `npm run test:e2e` | `.env.e2e`, PostgreSQL activo, migraciones de `refind_e2e` y Chromium instalado; puerto E2E libre. |
+| `e2e/` | Portada, registro, acceso, cierre de sesión, publicaciones y adjuntos del chat desde Chromium. | `npm run test:e2e` | `.env.e2e`, PostgreSQL activo, migraciones de `refind_e2e` y Chromium instalado; puerto E2E libre. |
 | `setup/` | Las herramientas de pruebas. | `npm run check:tests` | Dependencias y Chromium instalado. |
 
 `npm test` ejecuta unitarias e integración. `npm run verify` comprueba el entorno y ejecuta unitarias, integración y E2E. Las pruebas de sesiones de integración limpian la tabla `session` de **refind_test**; no ejecutarlas a la vez que un servidor manual que use esa base.
@@ -35,6 +35,21 @@ La gestión de publicaciones se comprueba en `integration/posts-manage.test.js`:
 `e2e/posts-manage.spec.js` recorre el flujo completo en Chromium: publicar, buscar, reservar desde el detalle, resolver desde Mis publicaciones (sin desbordar en móvil), comprobar el filtro Resueltas, editar añadiendo una foto y eliminar tras confirmar (la foto deja de servirse).
 
 La recuperación de contraseña se comprueba en `unit/password-reset-validation.test.js` (correo, nueva contraseña y formato del token), `unit/mail.test.js` (variables opcionales del `.env` y envío en modo console y smtp, con nodemailer simulado), `integration/password-reset-service.test.js` (token guardado solo como SHA-256, caducidad, un solo uso, dos usos simultáneos, invalidación de otros enlaces, cierre de sesiones y borrado en cascada) e `integration/password-reset.test.js` (flujo HTTP con un correo falso: misma respuesta exista o no el correo, CSRF, enlace inválido, validación y acceso con la nueva contraseña). `e2e/password-reset.spec.js` recorre el flujo en Chromium; como en modo console el enlace solo sale en la terminal, la prueba sustituye el hash guardado por el de un token que conoce.
+
+## Adjuntos del chat
+
+`unit/friends-attachments.test.js` comprueba firmas, formatos, saneado de nombre y límites. `integration/friends-chat.test.js` prueba subida multipart solo con archivo y con texto, extensión no permitida, imagen demasiado grande, más de cinco elementos, CSRF y acceso a descargas solo para los dos amigos; al eliminar la amistad, la descarga deja de estar disponible. `e2e/friends-chat-attachments.spec.js` envía una imagen y un PDF desde una sesión y verifica su recepción, visor y descarga desde la otra.
+
+Los límites se centralizan en `src/friends/attachments.js`: 10 MiB por foto, 20 MiB por archivo y cinco adjuntos (máximo teórico de petición: 100 MiB más el multipart). Los archivos se guardan en `storage/message-attachments/`, fuera de `public/`; se puede cambiar la ubicación definiendo `REFIND_PRIVATE_UPLOADS_DIR` en el entorno del proceso. En Windows PowerShell, antes de arrancar la aplicación:
+
+```powershell
+$env:REFIND_PRIVATE_UPLOADS_DIR = 'D:\ReFindPrivate\message-attachments'
+npm run dev
+```
+
+Configura también el proxy inverso para admitir al menos 102 MiB por petición; por ejemplo, en Nginx: `client_max_body_size 102m;`. Si se modifica el máximo de adjuntos o sus tamaños, ajusta ese límite externo en el mismo despliegue. La aplicación no tiene actualmente un proceso de build ni una configuración ESLint activa.
+
+Prueba manual: crea dos cuentas, envía y acepta una solicitud de amistad, abre el chat desde ambas sesiones, adjunta una foto y un PDF desde una cuenta y verifica que la otra los muestra/descarga. Elimina la amistad e intenta abrir de nuevo la URL del adjunto; debe responder como no disponible.
 
 Cada `test` o grupo `test.each` tiene una cabecera **Para qué sirve / Qué comprueba**. `test.each` ejecuta una prueba por cada caso de su tabla.
 

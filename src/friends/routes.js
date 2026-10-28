@@ -2,8 +2,20 @@ import { timingSafeEqual } from "node:crypto";
 import { Router } from "express";
 import { csrfToken, verifyCsrf } from "../auth/security.js";
 import { requireAuth } from "../session.js";
+import {
+  ATTACHMENT_DIRECTORY,
+  AttachmentError,
+  MAX_ATTACHMENTS,
+  parseAttachments,
+  removeAttachment,
+  safeOriginalName,
+  saveAttachment,
+  validateAttachment,
+} from "./attachments.js";
 import { createFriendsService } from "./service.js";
 import { isValidId, messageSchema, searchSchema } from "./validation.js";
+import { readFile } from "node:fs/promises";
+import path from "node:path";
 
 function requireApiAuth(req, res, next) {
   if (req.session?.userId) return next();
@@ -13,7 +25,7 @@ function requireApiAuth(req, res, next) {
 }
 
 function verifyApiCsrf(req, res, next) {
-  const received = req.body?._csrf;
+  const received = req.get("X-CSRF-Token") || req.body?._csrf;
   const expected = req.session?.csrfToken;
   if (
     typeof received === "string" &&
@@ -38,6 +50,19 @@ function invalidPageId(req, res) {
 export function createFriendsRouter(pool) {
   const router = Router();
   const friends = createFriendsService(pool);
+
+  async function loadFriendConversation(req, res, next) {
+    if (!isValidId(req.params.friendId))
+      return res.status(404).json({ error: "Conversación no disponible." });
+    const conversation = await friends.getConversation(
+      req.session.userId,
+      req.params.friendId,
+    );
+    if (!conversation)
+      return res.status(404).json({ error: "Conversación no disponible. Debéis ser amigos." });
+    req.conversation = conversation;
+    return next();
+  }
 
   router.get("/amigos", requireAuth, async (req, res) => {
     const parsed = searchSchema.safeParse(req.query.q ?? "");
@@ -146,13 +171,22 @@ export function createFriendsRouter(pool) {
     async (req, res) => {
       if (!isValidId(req.params.friendId))
         return res.redirect(303, "/amigos?resultado=no-disponible");
-      const removed = await friends.remove(
+      const result = await friends.remove(
         req.session.userId,
         req.params.friendId,
       );
+      if (result.removed) {
+        await Promise.all(result.internalNames.map(async (internalName) => {
+          try {
+            await removeAttachment(internalName);
+          } catch (error) {
+            console.error("No se pudo borrar un adjunto privado del chat.", error);
+          }
+        }));
+      }
       return res.redirect(
         303,
-        `/amigos?resultado=${removed ? "eliminada" : "no-disponible"}`,
+        `/amigos?resultado=${result.removed ? "eliminada" : "no-disponible"}`,
       );
     },
   );
@@ -205,33 +239,79 @@ export function createFriendsRouter(pool) {
   router.post(
     "/api/amigos/:friendId/mensajes",
     requireApiAuth,
+    loadFriendConversation,
     verifyApiCsrf,
+    parseAttachments,
     async (req, res) => {
-      if (!isValidId(req.params.friendId))
-        return res.status(404).json({ error: "Conversación no disponible." });
-      const parsed = messageSchema.safeParse(req.body);
-      if (!parsed.success)
-        return res.status(422).json({ error: parsed.error.issues[0].message });
-      const conversation = await friends.getConversation(
-        req.session.userId,
-        req.params.friendId,
-      );
-      if (!conversation)
-        return res
-          .status(404)
-          .json({ error: "Conversación no disponible. Debéis ser amigos." });
-      const message = await friends.sendMessage(
-        conversation.friendship_id,
-        req.session.userId,
-        parsed.data.content,
-      );
-      if (!message)
-        return res
-          .status(404)
-          .json({ error: "Conversación no disponible. Debéis ser amigos." });
-      return res.status(201).json({ message });
+      const files = req.files ?? [];
+      if (files.length > MAX_ATTACHMENTS)
+        return res.status(422).json({ error: "Puedes adjuntar como máximo 5 elementos." });
+      const rawContent = typeof req.body.content === "string" ? req.body.content : "";
+      const content = rawContent.trim();
+      if (!content && !files.length)
+        return res.status(422).json({ error: "Escribe un mensaje o añade un adjunto." });
+      if (content) {
+        const parsed = messageSchema.safeParse({ content });
+        if (!parsed.success)
+          return res.status(422).json({ error: parsed.error.issues[0].message });
+      }
+
+      const stored = [];
+      try {
+        for (const file of files) {
+          const type = await validateAttachment(file);
+          const internalName = await saveAttachment(file);
+          stored.push({
+            ...type,
+            internalName,
+            size: file.size,
+          });
+        }
+        const message = await friends.sendMessage(
+          req.conversation.friendship_id,
+          req.session.userId,
+          content,
+          stored,
+        );
+        if (!message) {
+          await Promise.all(stored.map(({ internalName }) => removeAttachment(internalName)));
+          return res.status(404).json({ error: "Conversación no disponible. Debéis ser amigos." });
+        }
+        return res.status(201).json({ message });
+      } catch (error) {
+        await Promise.all(stored.map(({ internalName }) => removeAttachment(internalName)));
+        if (error instanceof AttachmentError)
+          return res.status(error.status).json({ error: error.message });
+        throw error;
+      }
     },
   );
+
+  router.get("/api/amigos/adjuntos/:attachmentId", requireApiAuth, async (req, res) => {
+    if (!isValidId(req.params.attachmentId))
+      return res.status(404).json({ error: "Adjunto no disponible." });
+    const attachment = await friends.getAttachmentForUser(
+      req.params.attachmentId,
+      req.session.userId,
+    );
+    if (!attachment) return res.status(404).json({ error: "Adjunto no disponible." });
+    const filename = safeOriginalName(attachment.original_name);
+    const fallback = filename.replace(/[^\x20-\x7e]/g, "_").replace(/["\\]/g, "_");
+    const preview = attachment.attachment_type === "photo" && req.query.preview === "1";
+    const disposition = attachment.attachment_type === "photo" ? "inline" : "attachment";
+    const contentType = preview ? "image/webp" : attachment.mime_type;
+    const servedName = preview ? `${path.parse(filename).name}-miniatura.webp` : filename;
+    res.set({
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+      "Content-Type": contentType,
+      "Content-Disposition": `${disposition}; filename="${preview ? servedName.replace(/[^\x20-\x7e]/g, "_") : fallback}"; filename*=UTF-8''${encodeURIComponent(servedName)}`,
+    });
+    const internalName = preview
+      ? `${attachment.internal_name}.thumb.webp`
+      : attachment.internal_name;
+    return res.send(await readFile(path.join(ATTACHMENT_DIRECTORY, internalName)));
+  });
 
   return router;
 }

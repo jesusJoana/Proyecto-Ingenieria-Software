@@ -1,8 +1,11 @@
 /** Flujo de amistades y chat con PostgreSQL real. */
 import { afterAll, describe, expect, test } from "vitest";
 import { randomUUID } from "node:crypto";
+import { readFile } from "node:fs/promises";
 import argon2 from "argon2";
 import request from "supertest";
+import sharp from "sharp";
+import { ATTACHMENT_DIRECTORY, removeAttachment } from "../../src/friends/attachments.js";
 import { createApp } from "../../src/app.js";
 import { readConfig } from "../../src/config.js";
 
@@ -52,6 +55,14 @@ function postForm(person, path, values = {}) {
 afterAll(async () => {
   const ids = people.map((person) => person.id).filter(Boolean);
   if (ids.length) {
+    const { rows: attachments } = await pool.query(
+      `SELECT DISTINCT attachments.internal_name
+       FROM friendship_message_attachments attachments
+       JOIN friendship_messages messages ON messages.id = attachments.message_id
+       WHERE messages.sender_id = ANY($1::bigint[])`,
+      [ids],
+    );
+    await Promise.all(attachments.map(({ internal_name }) => removeAttachment(internal_name)));
     await pool.query(
       `DELETE FROM session
        WHERE sess->>'userId' = ANY($1::text[])
@@ -144,6 +155,16 @@ describe("Amigos y chat", () => {
     await ana.agent.get(`/amigos/${bea.id}/chat`).expect(200);
 
     const messageCsrf = await tokenFor(ana);
+    await cora.agent
+      .post(`/api/amigos/${ana.id}/mensajes`)
+      .field("_csrf", csrfByPerson.get(cora.id))
+      .field("content", "No somos amigos")
+      .attach("attachments", Buffer.from("%PDF-1.7"), {
+        filename: "nota.pdf",
+        contentType: "application/pdf",
+      })
+      .expect(404);
+
     await ana.agent
       .post(`/api/amigos/${bea.id}/mensajes`)
       .type("form")
@@ -182,6 +203,89 @@ describe("Amigos y chat", () => {
       unsafeLookingText,
       "Segundo mensaje",
     ]);
+
+    const photo = await sharp({
+      create: { width: 3, height: 2, channels: 3, background: "#26745b" },
+    }).png().toBuffer();
+    const attachmentMessage = await ana.agent
+      .post(`/api/amigos/${bea.id}/mensajes`)
+      .set("X-CSRF-Token", messageCsrf)
+      .attach("attachments", photo, { filename: "foto.png", contentType: "image/png" })
+      .expect(201);
+    expect(attachmentMessage.body.message.content).toBe("");
+    expect(attachmentMessage.body.message.attachments).toHaveLength(1);
+    expect(attachmentMessage.body.message.attachments[0]).toMatchObject({
+      original_name: "foto.png",
+      mime_type: "image/png",
+      attachment_type: "photo",
+    });
+    const attachmentId = attachmentMessage.body.message.attachments[0].id;
+    const { rows: [storedPhoto] } = await pool.query(
+      "SELECT internal_name FROM friendship_message_attachments WHERE id = $1",
+      [attachmentId],
+    );
+    const photoResponse = await bea.agent
+      .get(`/api/amigos/adjuntos/${attachmentId}`)
+      .expect(200);
+    expect(photoResponse.headers["content-type"]).toContain("image/png");
+    expect(photoResponse.headers["x-content-type-options"]).toBe("nosniff");
+    expect(photoResponse.headers["content-disposition"]).toContain("inline");
+    await request(app).get(`/api/amigos/adjuntos/${attachmentId}`).expect(401);
+    const thumbnailResponse = await bea.agent
+      .get(`/api/amigos/adjuntos/${attachmentId}?preview=1`)
+      .expect(200);
+    expect(thumbnailResponse.headers["content-type"]).toContain("image/webp");
+    await cora.agent.get(`/api/amigos/adjuntos/${attachmentId}`).expect(404);
+    await ana.agent
+      .post(`/api/amigos/${bea.id}/mensajes`)
+      .attach("attachments", photo, { filename: "sin-csrf.png", contentType: "image/png" })
+      .expect(403);
+
+    await ana.agent
+      .post(`/api/amigos/${bea.id}/mensajes`)
+      .set("X-CSRF-Token", messageCsrf)
+      .attach("attachments", Buffer.from("<svg/>"), {
+        filename: "imagen.svg",
+        contentType: "image/svg+xml",
+      })
+      .expect(422)
+      .expect(({ body }) => expect(body.error).toContain("Tipo de archivo"));
+    await ana.agent
+      .post(`/api/amigos/${bea.id}/mensajes`)
+      .set("X-CSRF-Token", messageCsrf)
+      .attach("attachments", Buffer.alloc(10 * 1024 * 1024 + 1), {
+        filename: "grande.jpg",
+        contentType: "image/jpeg",
+      })
+      .expect(422)
+      .expect(({ body }) => expect(body.error).toContain("10 MB"));
+    let tooMany = ana.agent
+      .post(`/api/amigos/${bea.id}/mensajes`)
+      .set("X-CSRF-Token", messageCsrf);
+    for (let index = 0; index < 6; index += 1)
+      tooMany = tooMany.attach("attachments", photo, {
+        filename: `foto-${index}.png`,
+        contentType: "image/png",
+      });
+    await tooMany.expect(422).expect(({ body }) => expect(body.error).toContain("5"));
+
+    const fileMessage = await ana.agent
+      .post(`/api/amigos/${bea.id}/mensajes`)
+      .set("X-CSRF-Token", messageCsrf)
+      .field("content", "Te envío el documento")
+      .attach("attachments", Buffer.from("%PDF-1.7\nDocumento de prueba"), {
+        filename: "documento.pdf",
+        contentType: "application/pdf",
+      })
+      .expect(201);
+    expect(fileMessage.body.message.content).toBe("Te envío el documento");
+    const pdfId = fileMessage.body.message.attachments[0].id;
+    const pdfResponse = await bea.agent
+      .get(`/api/amigos/adjuntos/${pdfId}`)
+      .expect(200);
+    expect(pdfResponse.headers["content-disposition"]).toContain("attachment");
+    expect(pdfResponse.body.toString()).toContain("%PDF-1.7");
+
     const chat = await ana.agent.get(`/amigos/${bea.id}/chat`).expect(200);
     expect(chat.text).toContain(
       "&lt;script&gt;alert(&#34;hola&#34;)&lt;/script&gt;",
@@ -264,5 +368,8 @@ describe("Amigos y chat", () => {
       [ana.id, bea.id],
     );
     expect(remainingMessages).toHaveLength(0);
+    await ana.agent.get(`/api/amigos/adjuntos/${attachmentId}`).expect(404);
+    await expect(readFile(`${ATTACHMENT_DIRECTORY}/${storedPhoto.internal_name}`)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(readFile(`${ATTACHMENT_DIRECTORY}/${storedPhoto.internal_name}.thumb.webp`)).rejects.toMatchObject({ code: "ENOENT" });
   });
 });

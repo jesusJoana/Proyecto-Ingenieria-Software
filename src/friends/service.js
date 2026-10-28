@@ -163,12 +163,40 @@ export function createFriendsService(pool) {
 
     async remove(userId, friendId) {
       const [lowId, highId] = pairFor(userId, friendId);
-      const { rowCount } = await pool.query(
-        `DELETE FROM friendships
-         WHERE user_low_id = $1 AND user_high_id = $2 AND status = 'accepted'`,
-        [lowId, highId],
-      );
-      return rowCount > 0;
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const {
+          rows: [friendship],
+        } = await client.query(
+          `SELECT id FROM friendships
+           WHERE user_low_id = $1 AND user_high_id = $2 AND status = 'accepted'
+           FOR UPDATE`,
+          [lowId, highId],
+        );
+        if (!friendship) {
+          await client.query("COMMIT");
+          return { removed: false, internalNames: [] };
+        }
+        const { rows: attachments } = await client.query(
+          `SELECT attachments.internal_name
+           FROM friendship_message_attachments attachments
+           JOIN friendship_messages messages ON messages.id = attachments.message_id
+           WHERE messages.friendship_id = $1`,
+          [friendship.id],
+        );
+        await client.query("DELETE FROM friendships WHERE id = $1", [friendship.id]);
+        await client.query("COMMIT");
+        return {
+          removed: true,
+          internalNames: attachments.map(({ internal_name }) => internal_name),
+        };
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      } finally {
+        client.release();
+      }
     },
 
     async getConversation(userId, friendId) {
@@ -192,29 +220,90 @@ export function createFriendsService(pool) {
 
     async getMessages(friendshipId, afterId = "0") {
       const { rows } = await pool.query(
-        `SELECT id, sender_id, content, created_at
-         FROM friendship_messages
-         WHERE friendship_id = $1 AND id > $2
-         ORDER BY created_at DESC, id DESC
+        `SELECT messages.id, messages.sender_id, messages.content, messages.created_at,
+                COALESCE((
+                  SELECT json_agg(json_build_object(
+                    'id', attachments.id,
+                    'original_name', attachments.original_name,
+                    'mime_type', attachments.mime_type,
+                    'size_bytes', attachments.size_bytes,
+                    'attachment_type', attachments.attachment_type
+                  ) ORDER BY attachments.id)
+                  FROM friendship_message_attachments attachments
+                  WHERE attachments.message_id = messages.id
+                ), '[]'::json) AS attachments
+         FROM friendship_messages messages
+         WHERE messages.friendship_id = $1 AND messages.id > $2
+         ORDER BY messages.created_at DESC, messages.id DESC
          LIMIT 100`,
         [friendshipId, afterId],
       );
       return rows.reverse();
     },
 
-    async sendMessage(friendshipId, userId, content) {
+    async sendMessage(friendshipId, userId, content, attachments = []) {
+      const client = await pool.connect();
+      try {
+        await client.query("BEGIN");
+        const {
+          rows: [message],
+        } = await client.query(
+          `INSERT INTO friendship_messages (friendship_id, sender_id, content)
+           SELECT friendships.id, $2, $3
+           FROM friendships
+           WHERE friendships.id = $1 AND friendships.status = 'accepted'
+             AND (friendships.user_low_id = $2 OR friendships.user_high_id = $2)
+           RETURNING id, sender_id, content, created_at`,
+          [friendshipId, userId, content],
+        );
+        if (!message) {
+          await client.query("ROLLBACK");
+          return null;
+        }
+        const insertedAttachments = [];
+        for (const attachment of attachments) {
+          const {
+            rows: [savedAttachment],
+          } = await client.query(
+            `INSERT INTO friendship_message_attachments
+               (message_id, original_name, internal_name, mime_type, size_bytes, attachment_type)
+             VALUES ($1, $2, $3, $4, $5, $6)
+             RETURNING id, original_name, mime_type, size_bytes, attachment_type`,
+            [
+              message.id,
+              attachment.originalName,
+              attachment.internalName,
+              attachment.mime,
+              attachment.size,
+              attachment.kind,
+            ],
+          );
+          insertedAttachments.push(savedAttachment);
+        }
+        await client.query("COMMIT");
+        return { ...message, attachments: insertedAttachments };
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      } finally {
+        client.release();
+      }
+    },
+
+    async getAttachmentForUser(attachmentId, userId) {
       const {
-        rows: [message],
+        rows: [attachment],
       } = await pool.query(
-        `INSERT INTO friendship_messages (friendship_id, sender_id, content)
-         SELECT friendships.id, $2, $3
-         FROM friendships
-         WHERE friendships.id = $1 AND friendships.status = 'accepted'
-           AND (friendships.user_low_id = $2 OR friendships.user_high_id = $2)
-         RETURNING id, sender_id, content, created_at`,
-        [friendshipId, userId, content],
+        `SELECT attachments.id, attachments.original_name, attachments.internal_name,
+                attachments.mime_type, attachments.size_bytes, attachments.attachment_type
+         FROM friendship_message_attachments attachments
+         JOIN friendship_messages messages ON messages.id = attachments.message_id
+         JOIN friendships ON friendships.id = messages.friendship_id
+         WHERE attachments.id = $1 AND friendships.status = 'accepted'
+           AND (friendships.user_low_id = $2 OR friendships.user_high_id = $2)`,
+        [attachmentId, userId],
       );
-      return message ?? null;
+      return attachment ?? null;
     },
   };
 }

@@ -152,3 +152,6 @@ test-results/
 
 # Fotos de publicaciones subidas localmente
 /public/uploads/posts/
+
+# Adjuntos privados de mensajes
+/storage/message-attachments/

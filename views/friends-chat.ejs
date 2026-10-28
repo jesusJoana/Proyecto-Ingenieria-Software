@@ -27,17 +27,58 @@
         <% if (!messages.length) { %><li class="chat-empty" data-empty>Este es el comienzo de la conversación.</li><% } %>
         <% messages.forEach(message => { %>
           <li class="chat-message <%= String(message.sender_id) === String(userId) ? 'chat-message-mine' : '' %>" data-message-id="<%= message.id %>">
-            <p><%= message.content %></p><time datetime="<%= message.created_at.toISOString() %>"><%= new Date(message.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) %></time>
+            <% if (message.attachments?.length) { %>
+              <div class="chat-attachments <%= message.attachments.some(item => item.attachment_type === 'photo') ? 'chat-attachments-photos' : '' %>">
+                <% message.attachments.forEach(attachment => { %>
+                  <% if (attachment.attachment_type === 'photo') { %>
+                    <a class="chat-photo-link" href="/api/amigos/adjuntos/<%= attachment.id %>" data-chat-photo data-message-photos="<%= message.attachments.filter(item => item.attachment_type === 'photo').map(item => item.id).join(',') %>" aria-label="Ampliar <%= attachment.original_name %>"><img src="/api/amigos/adjuntos/<%= attachment.id %>?preview=1" alt="<%= attachment.original_name %>" loading="lazy" width="240" height="240"></a>
+                  <% } else { %>
+                    <a class="chat-file" href="/api/amigos/adjuntos/<%= attachment.id %>" download="<%= attachment.original_name %>">
+                      <span class="chat-file-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6m-6 4h6"/></svg><small class="chat-file-mark"><%= attachment.original_name.split('.').pop().slice(0, 4).toUpperCase() %></small></span>
+                      <span class="chat-file-details"><strong><%= attachment.original_name %></strong><small><%= Number(attachment.size_bytes) < 1048576 ? Math.max(1, Math.round(Number(attachment.size_bytes) / 1024)) + ' KB' : (Number(attachment.size_bytes) / 1024 / 1024).toFixed(1) + ' MB' %></small></span>
+                      <span class="chat-download" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 20h16"/></svg></span>
+                    </a>
+                  <% } %>
+                <% }); %>
+              </div>
+            <% } %>
+            <% if (message.content) { %><p><%= message.content %></p><% } %>
+            <time datetime="<%= message.created_at.toISOString() %>"><%= new Date(message.created_at).toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' }) %></time>
           </li>
         <% }); %>
       </ol>
       <p class="chat-status" data-status role="status" aria-live="polite"></p>
       <form class="chat-compose" data-compose>
-        <label class="visually-hidden" for="message-content">Escribe un mensaje</label>
-        <textarea class="form-control" id="message-content" name="content" rows="2" maxlength="2000" placeholder="Escribe un mensaje..." required></textarea>
-        <button class="btn btn-teal" type="submit">Enviar</button>
+        <div class="chat-drop-overlay" data-drop-overlay aria-hidden="true">Suelta aquí para adjuntar</div>
+        <div class="chat-compose-inner">
+          <div class="chat-preview-list" data-preview-list aria-live="polite"></div>
+          <div class="chat-compose-row">
+            <div class="chat-attach-wrap">
+              <button class="chat-attach-button" type="button" data-attach-menu aria-label="Adjuntar archivo" aria-haspopup="menu" aria-expanded="false" title="Adjuntar archivo">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m8 12.5 7.8-7.8a4 4 0 0 1 5.7 5.7L10.2 21.7a6 6 0 0 1-8.5-8.5L13 1.9"/></svg>
+              </button>
+              <div class="chat-attach-menu" data-attach-options role="menu" aria-label="Tipo de adjunto" hidden>
+                <button type="button" role="menuitem" data-pick-photo><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="8.5" cy="9" r="1.5"/><path d="m21 15-5-5L5 20"/></svg>Foto</button>
+                <button type="button" role="menuitem" data-pick-file><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h8l4 4v14H6zM14 3v5h5M9 13h6m-6 4h6"/></svg>Archivo</button>
+              </div>
+            </div>
+            <input class="chat-file-input" type="file" data-photo-input accept="image/jpeg,image/png,image/webp,image/gif,.jpg,.jpeg,.png,.webp,.gif" multiple tabindex="-1" aria-hidden="true">
+            <input class="chat-file-input" type="file" data-file-input accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.zip,application/pdf,application/msword,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/plain,text/csv,application/zip" multiple tabindex="-1" aria-hidden="true">
+            <label class="visually-hidden" for="message-content">Escribe un mensaje</label>
+            <textarea class="form-control" id="message-content" name="content" rows="2" maxlength="2000" placeholder="Escribe un mensaje..."></textarea>
+            <button class="btn btn-teal chat-send-button" type="submit" disabled>Enviar</button>
+            <button class="chat-cancel-upload" type="button" data-cancel-upload hidden>Cancelar subida</button>
+          </div>
+        </div>
       </form>
     </section>
+    <dialog class="chat-lightbox" data-lightbox aria-label="Visor de fotos">
+      <button class="chat-lightbox-close" type="button" data-lightbox-close aria-label="Cerrar visor">×</button>
+      <button class="chat-lightbox-nav chat-lightbox-prev" type="button" data-lightbox-prev aria-label="Foto anterior">‹</button>
+      <img data-lightbox-image alt="">
+      <button class="chat-lightbox-nav chat-lightbox-next" type="button" data-lightbox-next aria-label="Foto siguiente">›</button>
+      <p data-lightbox-caption></p>
+    </dialog>
   </main>
   <script src="/js/friends-chat.js" defer></script>
   <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
