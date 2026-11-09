@@ -1,35 +1,22 @@
-<!doctype html>
-<html lang="es">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title><%= title %> · ReFind</title>
-  <link rel="stylesheet" href="/vendor/bootstrap/css/bootstrap.min.css">
-  <link rel="stylesheet" href="/css/refind.css">
-  <link rel="stylesheet" href="/css/auth.css">
-  <link rel="stylesheet" href="/css/posts.css">
-  <link rel="stylesheet" href="/css/design.css">
-  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css">
-  <link rel="stylesheet" href="/css/locations.css">
-</head>
-<body class="home-page auth-page posts-page">
-  <a class="visually-hidden-focusable skip-link" href="#contenido">Saltar al contenido</a>
-  <%- include('partials/icons') %>
-  <%- include('partials/posts-header', { current: 'new' }) %>
-  <main id="contenido" class="container auth-main posts-main">
-    <section class="auth-panel post-form-panel" aria-labelledby="post-form-title">
-      <div class="auth-form-heading">
-        <span class="auth-kicker">Nueva publicación</span>
-        <h1 id="post-form-title"><%= title %></h1>
-        <p>Describe el objeto con detalle para que sea más fácil reconocerlo. Los campos marcados como opcionales pueden quedar vacíos.</p>
-      </div>
-      <%- include('partials/post-form', { action: '/publicaciones', submitLabel: 'Publicar objeto' }) %>
-    </section>
-  </main>
-  <script src="/js/auth.js" defer></script>
-  <script src="/vendor/leaflet/leaflet.js" defer></script>
-  <script src="/js/locations.js" defer></script>
-  <script src="/js/post-location-kind.js" defer></script>
-  <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
-</body>
-</html>
+<%- include('partials/found-page-start',{section:post?'mine':'new'}) %>
+<section class="auth-panel post-form-panel"><h1><%= title %></h1>
+<p>Publica solo lo necesario para que alguien reconozca un posible hallazgo. Los detalles reservados te ayudarán a comprobar quién es su propietario.</p>
+<% if(Object.keys(errors).length){ %><div class="alert alert-danger" role="alert"><strong>Revisa los campos indicados.</strong><ul><% for(const [key,message] of Object.entries(errors)){ %><li><a href="#<%= key %>"><%= message %></a></li><% } %></ul></div><% } %>
+<form action="<%= post?'/publicaciones/'+post.id+'/editar':'/publicaciones' %>" method="post" enctype="multipart/form-data" class="auth-form" novalidate>
+<input type="hidden" name="_csrf" value="<%= csrf %>">
+<fieldset class="mb-4"><legend>Información pública</legend><p class="form-text">Visible para cualquier visitante. No incluyas marca, color, contenido ni detalles distintivos. El título se genera con el tipo general y el campus.</p>
+<label for="category" class="form-label">Categoría</label><select id="category" name="category" class="form-select" required><option value="">Selecciona una categoría</option><% for(const [key,label] of Object.entries(categories)){ %><option value="<%= key %>" <%= values.category===key?'selected':'' %>><%= label %></option><% } %></select>
+<% if(errors.category){ %><p class="text-danger"><%= errors.category %></p><% } %>
+<% for(const [key,label,max,placeholder] of [['object_type','Tipo general del objeto',60,'Mochila, llaves, teléfono…'],['university','Universidad',180,''],['campus','Campus',180,''],['general_area','Zona general',150,'Biblioteca, cafetería…']]){ %>
+<div class="mt-3"><label class="form-label" for="<%= key %>"><%= label %></label><input class="form-control" id="<%= key %>" name="<%= key %>" value="<%= values[key] %>" minlength="2" maxlength="<%= max %>" placeholder="<%= placeholder %>" required aria-invalid="<%= Boolean(errors[key]) %>"><% if(errors[key]){ %><p class="text-danger"><%= errors[key] %></p><% } %></div><% } %>
+<div class="row mt-2"><% for(const [key,label] of [['found_from','Fecha aproximada desde'],['found_until','Fecha aproximada hasta (opcional)']]){ %><div class="col-md-6"><label for="<%= key %>" class="form-label"><%= label %></label><input class="form-control" id="<%= key %>" name="<%= key %>" type="date" max="<%= maxDate %>" value="<%= values[key] %>" <%= key==='found_from'?'required':'' %>><% if(errors[key]){ %><p class="text-danger"><%= errors[key] %></p><% } %></div><% } %></div><p class="form-text">Para un solo día, deja la fecha final vacía.</p>
+<details class="mt-3"><summary>Referencia del campus en el mapa (opcional)</summary><p>Escribir el nombre del campus no sitúa el hallazgo en el mapa. Selecciona una referencia general del campus haciendo clic en el mapa o introduce ambas coordenadas. Si lo dejas vacío, aparecerá en Publicaciones, pero no en Objetos por zonas. Se guarda redondeada a dos decimales, aproximadamente un kilómetro; nunca el lugar exacto del objeto.</p>
+<div class="row"><% for(const [key,label,max] of [['campus_latitude','Latitud del campus',85],['campus_longitude','Longitud del campus',180]]){ %><div class="col-md-6"><label for="<%= key %>" class="form-label"><%= label %></label><input class="form-control" id="<%= key %>" name="<%= key %>" value="<%= values[key] %>" type="number" step="any" min="<%= -max %>" max="<%= max %>"><% if(errors[key]){ %><p class="text-danger"><%= errors[key] %></p><% } %></div><% } %></div><button class="btn btn-outline-secondary my-2" type="button" data-clear-campus>Quitar referencia del mapa</button><div class="location-map" data-campus-picker aria-label="Referencia general del campus"></div></details>
+</fieldset>
+<fieldset><legend>Información privada</legend><p>Solo tú puedes verla, también después de aceptar una reclamación.</p>
+<label class="form-label" for="distinguishing_details">Detalles distintivos</label><textarea class="form-control" id="distinguishing_details" name="distinguishing_details" rows="5" minlength="10" maxlength="2000" required><%= values.distinguishing_details %></textarea><p class="form-text">De 10 a 2000 caracteres. Puedes describir marca, color, contenido o señales particulares.</p><% if(errors.distinguishing_details){ %><p class="text-danger"><%= errors.distinguishing_details %></p><% } %>
+<% for(const [key,label] of [['exact_location','Lugar exacto (opcional)'],['deposit_location','Dónde lo guardas (opcional)']]){ %><div class="mt-3"><label class="form-label" for="<%= key %>"><%= label %></label><input class="form-control" id="<%= key %>" name="<%= key %>" value="<%= values[key] %>" maxlength="250"><% if(errors[key]){ %><p class="text-danger"><%= errors[key] %></p><% } %></div><% } %>
+<% if(post&&post.private.photo_key){ %><img class="my-3" src="/publicaciones/<%= post.id %>/fotos/<%= post.private.photo_key %>" alt="Foto privada actual" width="160"><div class="form-check"><input class="form-check-input" type="checkbox" id="remove_photo" name="remove_photo" value="1" <%= values.remove_photo==='1'?'checked':'' %>><label for="remove_photo" class="form-check-label">Quitar la foto actual</label></div><% } %>
+<div class="mt-3"><label class="form-label" for="photo">Fotografía privada (opcional)</label><input class="form-control" type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/webp"><p class="form-text">JPG, PNG o WebP, hasta 5 MB. No se muestra a otros usuarios.</p><% if(errors.photo){ %><p class="text-danger"><%= errors.photo %></p><% } %></div>
+</fieldset><button class="btn btn-teal mt-4" type="submit"><%= post?'Guardar cambios':'Publicar hallazgo' %></button>
+</form></section><%- include('partials/found-page-end') %>

@@ -1,0 +1,8 @@
+<article class="auth-panel h-100 p-3" data-found-card>
+<img src="/images/post-placeholder.svg" width="64" height="64" alt="">
+<h2 class="h5 mt-2"><a href="/publicaciones/<%= post.id %>"><%= post.title %></a></h2>
+<p><%= categories[post.category] || post.category %> · <%= statuses[post.status] %></p>
+<p><%= post.university %> · <%= post.campus %><br><%= post.general_area %></p>
+<p><%= post.found_from %><% if(post.found_until!==post.found_from){ %> – <%= post.found_until %><% } %></p>
+<p class="mb-0">Publicado por @<%= post.author_username %></p>
+</article>

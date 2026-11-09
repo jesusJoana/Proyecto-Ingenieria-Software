@@ -5,21 +5,23 @@
  * src/server.js. Así las pruebas pueden usar la misma aplicación sin abrir
  * un puerto.
  */
-import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import express from 'express';
-import pg from 'pg';
-import { createSessionMiddleware } from './session.js';
-import { createAuthRouter } from './auth/routes.js';
-import { csrfToken } from './auth/security.js';
-import { createFriendsRouter } from './friends/routes.js';
-import { createPostsRouter } from './posts/routes.js';
-import { createPasswordResetRouter } from './auth/password-reset-routes.js';
-import { createMailer } from './mail.js';
-import { blockLegacyPostPhotos } from './posts/legacy-photo-privacy.js';
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import express from "express";
+import pg from "pg";
+import { createSessionMiddleware } from "./session.js";
+import { createAuthRouter } from "./auth/routes.js";
+import { csrfToken } from "./auth/security.js";
+import { createFriendsRouter } from "./friends/routes.js";
+import { createPostsRouter } from "./posts/routes.js";
+import { createPasswordResetRouter } from "./auth/password-reset-routes.js";
+import { createMailer } from "./mail.js";
+import { blockLegacyPostPhotos } from "./posts/legacy-photo-privacy.js";
+import { createPostsService } from "./posts/service.js";
+import { CATEGORIES, STATUSES } from "./posts/validation.js";
 
 // Carpeta raíz del proyecto, para localizar vistas y recursos.
-const root = fileURLToPath(new URL('..', import.meta.url));
+const root = fileURLToPath(new URL("..", import.meta.url));
 
 /**
  * @param {ReturnType<import('./config.js').readConfig>} config
@@ -34,24 +36,30 @@ export function createApp(config, { mailer = createMailer(config) } = {}) {
   const sessions = createSessionMiddleware({
     secret: config.SESSION_SECRET,
     pool,
-    pruneExpired: config.APP_ENV !== 'test',
+    pruneExpired: config.APP_ENV !== "test",
   });
 
   const app = express();
-  app.disable('x-powered-by'); // No revelar que el servidor usa Express.
+  app.disable("x-powered-by"); // No revelar que el servidor usa Express.
 
   // Vistas EJS en la carpeta views/.
-  app.set('view engine', 'ejs');
-  app.set('views', path.join(root, 'views'));
+  app.set("view engine", "ejs");
+  app.set("views", path.join(root, "views"));
 
   // Leer los datos de los formularios HTML (limitados a 32 KB).
-  app.use(express.urlencoded({ extended: false, limit: '32kb' }));
+  app.use(express.urlencoded({ extended: false, limit: "32kb" }));
 
   // Recursos estáticos: Bootstrap desde node_modules y los propios en public/.
-  app.use('/vendor/bootstrap', express.static(path.join(root, 'node_modules', 'bootstrap', 'dist')));
-  app.use('/vendor/leaflet', express.static(path.join(root, 'node_modules', 'leaflet', 'dist')));
+  app.use(
+    "/vendor/bootstrap",
+    express.static(path.join(root, "node_modules", "bootstrap", "dist")),
+  );
+  app.use(
+    "/vendor/leaflet",
+    express.static(path.join(root, "node_modules", "leaflet", "dist")),
+  );
   app.use(blockLegacyPostPhotos);
-  app.use(express.static(path.join(root, 'public')));
+  app.use(express.static(path.join(root, "public")));
 
   // Sesiones de usuario.
   app.use(sessions.middleware);
@@ -67,12 +75,12 @@ export function createApp(config, { mailer = createMailer(config) } = {}) {
       const {
         rows: [account],
       } = await pool.query(
-        'SELECT username, avatar_filename FROM users WHERE id = $1',
+        "SELECT username, avatar_filename FROM users WHERE id = $1",
         [req.session.userId],
       );
       res.locals.accountUsername = account?.username ?? null;
       res.locals.accountAvatarFilename = account?.avatar_filename ?? null;
-      res.set('Cache-Control', 'no-store');
+      res.set("Cache-Control", "no-store");
     }
     next();
   });
@@ -80,24 +88,30 @@ export function createApp(config, { mailer = createMailer(config) } = {}) {
   app.use(createAuthRouter(pool));
   app.use(createPasswordResetRouter(pool, mailer));
   app.use(createFriendsRouter(pool));
-  app.use(createPostsRouter(pool));
+  app.use(createPostsRouter(pool, config.APP_ENV));
 
   // Página de inicio.
-  app.get('/', (req, res) => {
-    res.render('index', { title: 'ReFind' });
+  app.get("/", async (req, res) => {
+    const { posts } = await createPostsService(pool).search({}, 6);
+    res.render("index", {
+      title: "ReFind",
+      posts,
+      categories: CATEGORIES,
+      statuses: STATUSES,
+    });
   });
 
   // Comprobación de funcionamiento: responde ok si PostgreSQL contesta.
-  app.get('/health', async (req, res) => {
-    await pool.query('SELECT 1');
-    res.json({ status: 'ok' });
+  app.get("/health", async (req, res) => {
+    await pool.query("SELECT 1");
+    res.json({ status: "ok" });
   });
 
   // Cualquier otra dirección: página no encontrada.
   app.use((req, res) => {
-    res.status(404).render('error', {
-      title: 'Página no encontrada',
-      message: 'La página que buscas no existe.',
+    res.status(404).render("error", {
+      title: "Página no encontrada",
+      message: "La página que buscas no existe.",
     });
   });
 
@@ -106,9 +120,9 @@ export function createApp(config, { mailer = createMailer(config) } = {}) {
   app.use((error, req, res, next) => {
     console.error(error);
     if (res.headersSent) return next(error);
-    res.status(500).render('error', {
-      title: 'Error inesperado',
-      message: 'Ha ocurrido un error. Inténtalo de nuevo más tarde.',
+    res.status(500).render("error", {
+      title: "Error inesperado",
+      message: "Ha ocurrido un error. Inténtalo de nuevo más tarde.",
     });
   });
 

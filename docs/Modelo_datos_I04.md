@@ -1,5 +1,7 @@
 # Modelo de datos y reconstrucción local — I04
 
+Actualización I05: la migración 013 añade la referencia pública opcional de campus. Publicación, consulta, versiones y fotografías privadas ya utilizan el esquema descrito aquí. El detalle vigente está en [Implementación I05](Implementacion_I05.md); las atribuciones de trabajo pendiente de los apartados siguientes describen la entrega original de I04.
+
 Diseño del 09/11/2026. Referencia: Especificación del sistema, apartados 4 y 5; caso I01-P11. La verificación de las máquinas se registra en Requisitos.xlsx.
 
 ## Alcance

@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import { beforeAll, afterAll, expect, test } from "vitest";
 import { mkdir, writeFile, readFile, cp } from "node:fs/promises";
 import path from "node:path";
@@ -11,6 +12,9 @@ import {
 } from "../../scripts/lib/database-reset.js";
 import { cleanDatabaseFiles } from "../../scripts/lib/clean-database-files.js";
 
+const migrationCount = readdirSync(
+  new URL("../../migrations/", import.meta.url),
+).filter((n) => /^\d.*\.js$/.test(n)).length;
 let pg;
 beforeAll(async () => {
   pg = await temporaryPostgres();
@@ -26,7 +30,7 @@ test("reconstruye los tres entornos desde vacío y la segunda migración no hace
     ["e2e", "refind_e2e"],
   ]) {
     const result = await rebuildDatabase(pg.config(mode), name);
-    expect(result.migrations).toHaveLength(12);
+    expect(result.migrations).toHaveLength(migrationCount);
     expect(result.repeated).toBe(true);
     const client = await pg.client(mode);
     try {
@@ -107,7 +111,7 @@ test("un error de migración revierte limpieza e historial; se recupera repitien
   await mkdir(directory);
   await cp(migrationDirectory, directory, { recursive: true });
   await writeFile(
-    path.join(directory, "013_fail.js"),
+    path.join(directory, "999_fail.js"),
     "export const up = pgm => pgm.sql('SELECT missing_reset_function()');",
   );
   await expect(
@@ -120,13 +124,13 @@ test("un error de migración revierte limpieza e historial; se recupera repitien
     ]);
     expect(
       (await c.query("SELECT count(*)::int AS n FROM pgmigrations")).rows[0].n,
-    ).toBe(12);
+    ).toBe(migrationCount);
   } finally {
     await c.end();
   }
   expect(
     (await rebuildDatabase(pg.config(), "refind_test")).migrations,
-  ).toHaveLength(12);
+  ).toHaveLength(migrationCount);
 }, 60000);
 
 test("la limpieza global protege archivos mientras otra base tenga datos", async () => {

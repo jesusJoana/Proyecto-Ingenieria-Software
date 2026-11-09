@@ -324,8 +324,9 @@ Las tablas de ReFind no se crean a mano en `psql` ni en pgAdmin. Están definida
 | `010_create-password-reset-tokens.js` | Tokens de recuperación de contraseña |
 | `011_create-message-attachments.js` | Adjuntos del chat |
 | `012_create-found-object-workflow.js` | Hallazgos públicos y privados, versiones, reclamaciones, mensajes, pruebas, incidencias, historial, avisos y muro |
+| `013_add-public-campus-reference.js` | Referencia pública opcional del campus, pareja de coordenadas y rangos |
 
-El [modelo de I04](Modelo_datos_I04.md) describe las tablas nuevas y sus restricciones. Los formularios y servicios las adoptan en I05–I08; las tablas anteriores se conservan durante esa transición.
+El [modelo de I04](Modelo_datos_I04.md) describe las tablas nuevas y sus restricciones. I05 las utiliza para publicar y consultar hallazgos; las reclamaciones y comunicaciones se completan en I06–I08. Las tablas anteriores se conservan durante esa transición.
 
 **Dónde:** terminal Windows PowerShell de VS Code, en la carpeta del proyecto. PostgreSQL debe estar iniciado y el apartado 3.3 correcto.
 
@@ -356,7 +357,7 @@ npm.cmd run db:migrate:e2e
 Cada comando enumera las migraciones aplicadas y termina con el total correspondiente. Con los doce archivos actuales, una base vacía termina así (con `test` y `e2e` en los otros dos):
 
 ```text
-development: 12 migraciones aplicadas.
+development: 13 migraciones aplicadas.
 ```
 
 Si aparece `relation "users" already exists`, existe una discrepancia entre las tablas y el historial de migraciones. No borrar tablas sueltas ni marcar migraciones manualmente. Para datos locales desechables utilizar el procedimiento común de reconstrucción del apartado 5.
@@ -436,7 +437,7 @@ Cuando el repositorio incorpore migraciones nuevas, cada desarrollador las aplic
 
 **Decisión del 09/11/2026:** los datos locales introducidos durante el desarrollo son desechables. Para este cambio de modelo se permite eliminarlos y reconstruir las bases limpias; no se exige convertir pérdidas, reservas, entregas, amistades o mensajes anteriores. Se conservan los archivos de migraciones ya compartidos y se añaden los cambios en archivos nuevos.
 
-**Estado:** procedimiento implementado y comprobado automáticamente en PostgreSQL temporal aislado y en las tres bases habituales del equipo de Jesús. Pendiente de revisión y comprobación en los otros cinco equipos. Evidencia: [I04, 09/11/2026](../tests/evidence/I04-2026-11-09.md). `db:migrate` aplica migraciones pendientes; `db:reset` limpia y reconstruye una base. No borrar únicamente `pgmigrations`.
+**Estado:** procedimiento implementado y comprobado automáticamente en PostgreSQL temporal aislado y en las tres bases habituales del equipo de Jesús. I04 publicada en b2b1bfc. Pendiente de comprobación posterior al push en los otros cinco equipos. Evidencia: [I04, 09/11/2026](../tests/evidence/I04-2026-11-09.md). `db:migrate` aplica migraciones pendientes; `db:reset` limpia y reconstruye una base. No borrar únicamente `pgmigrations`.
 
 El procedimiento común cumple estas condiciones:
 
@@ -445,7 +446,7 @@ El procedimiento común cumple estas condiciones:
 3. Eliminar los datos y estructuras del proyecto que deban reconstruirse, incluida su contabilidad de migraciones, conservando bases, roles, credenciales y permisos de aislamiento. No ejecutar una limpieza parcial de tablas escogidas a mano.
 4. Aplicar desde cero todas las migraciones del repositorio en orden. Ante fallo, mostrar qué fase falló y no declarar la base lista; permitir repetir el procedimiento de recuperación documentado.
 5. Comprobar tablas, restricciones e historial de migraciones; repetir la aplicación debe indicar que no quedan migraciones pendientes. Crear y consultar datos ficticios nuevos y ejecutar las suites correspondientes.
-6. Gestionar también fotos y adjuntos locales de prueba: una limpieza SQL no elimina archivos. Los directorios actuales pueden estar compartidos por los tres entornos. `db:clean-files` exige los tres entornos detenidos y vacíos y verifica las rutas. Las URL antiguas de fotografías de publicaciones se bloquean desde I04; la visualización privada del autor se completa en I05.
+6. Gestionar también fotos y adjuntos locales de prueba: una limpieza SQL no elimina archivos. Los directorios actuales pueden estar compartidos por los tres entornos. `db:clean-files` exige los tres entornos detenidos y vacíos y verifica las rutas. Las URL antiguas de fotografías de publicaciones se bloquean desde I04; I05 sirve las fotografías actuales e históricas por una ruta autenticada exclusiva del autor desde `storage/environments/<entorno>/posts`.
 7. Repetir el ciclo con datos ficticios ya creados para demostrar que no solo funciona sobre una base inicialmente vacía.
 
 ### 5.1. Comandos para cada desarrollador

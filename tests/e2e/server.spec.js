@@ -20,10 +20,15 @@ test("la página inicial carga y permite navegar sin errores de JavaScript", asy
   const response = await page.goto("/");
   expect(response.status()).toBe(200);
   await expect(
-    page.getByRole("heading", { name: "Objetos que vuelven a historias", exact: true }),
+    page.getByRole("heading", {
+      name: "Objetos que vuelven a historias",
+      exact: true,
+    }),
   ).toBeVisible();
   await expect(
-    page.getByRole("navigation", { name: "Navegación principal" }).getByRole("link", { name: "Iniciar sesión", exact: true }),
+    page
+      .getByRole("navigation", { name: "Navegación principal" })
+      .getByRole("link", { name: "Iniciar sesión", exact: true }),
   ).toBeVisible();
 
   // Verificar también la respuesta y página de una ruta inexistente.
@@ -35,30 +40,19 @@ test("la página inicial carga y permite navegar sin errores de JavaScript", asy
   expect(errors).toEqual([]);
 });
 
-/**
- * Para qué sirve: Comprobar el filtrado y la recuperación de una búsqueda sin coincidencias.
- * Qué comprueba: Hay tres ejemplos; Perdidos deja solo las llaves; buscar paraguas no muestra
- * tarjetas y presenta el aviso; Ver todos restaura las tres. Solo utiliza ejemplos locales, no
- * publicaciones de la base de datos.
- */
-test("permite filtrar los ejemplos y recuperarse de una búsqueda sin resultados", async ({
+/** I05: la portada consulta registros reales; una búsqueda inexistente no muestra ejemplos. */
+test("busca en los hallazgos y muestra ausencia de coincidencias", async ({
   page,
 }) => {
   await page.goto("/");
-  const cards = page.locator("[data-object-card]:visible");
-  await expect(cards).toHaveCount(3);
-  await page.getByRole("button", { name: "Perdidos", exact: true }).click();
-  await expect(cards).toHaveCount(1);
-  await expect(cards.first()).toContainText("Llaves con llavero azul");
-  await page.getByRole("button", { name: "Todos", exact: true }).click();
-  await page.getByRole("searchbox").fill("paraguas");
+  await expect(page.locator("[data-object-card]")).toHaveCount(0);
+  await page.getByRole("searchbox").fill("sin-coincidencia-i05-917f42");
   await page.getByRole("button", { name: "Buscar", exact: true }).click();
-  await expect(cards).toHaveCount(0);
+  await expect(page).toHaveURL(/\/publicaciones\?q=/);
+  await expect(page.locator("[data-found-card]")).toHaveCount(0);
   await expect(
     page.getByText("No hay objetos que coincidan con tu búsqueda."),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Ver todos", exact: true }).click();
-  await expect(cards).toHaveCount(3);
 });
 
 /**

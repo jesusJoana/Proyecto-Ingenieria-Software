@@ -1,6 +1,6 @@
 # Imágenes de la portada ReFind
 
-Generadas con la herramienta integrada de generación de imágenes el 01/10/2026. Recursos visuales de ejemplo; no representan objetos publicados por usuarios.
+Generadas con la herramienta integrada de generación de imágenes el 01/10/2026. El campus se mantiene como ilustración. Las miniaturas de ejemplo se conservan como recursos históricos, pero I05 no las muestra como publicaciones: la portada consulta hallazgos reales con un icono genérico. No se utiliza la fotografía privada del autor.
 
 ## campus.webp
 

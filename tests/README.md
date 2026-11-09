@@ -6,7 +6,7 @@ La referencia del comportamiento que debe verificarse es [la especificación del
 
 ## Casos previstos
 
-Todos los casos siguientes están **pendientes de implementación y ejecución**. Los identificadores son referencias documentales de I01; no identifican archivos que ya existan.
+Los casos siguientes describen la cobertura prevista. Su estado y sus evidencias se indican en las secciones de verificación de cada iteración y en el Excel. Los identificadores son referencias documentales de I01; no son nombres de archivos.
 
 En esta tabla, R01–R10 identifican **reglas**, no las iteraciones residuales R01–R16 de la planificación. I01–I09 sí identifican iteraciones. Los identificadores I01-P01–I01-P13 se mantienen para conservar la trazabilidad con el Excel.
 
@@ -174,4 +174,37 @@ La cobertura anterior de recuperación utilizaba correo simulado y, en E2E, sust
 
 ## Verificación de I04 del 09/11/2026
 
-Modelo, migración 012 y reinicio implementados. `npm run test:i04`: 39 pruebas; regresión posterior al reinicio local: 394 unitarias/integración y 14 E2E, todas superadas. Los tres entornos de Jesús se reconstruyeron dos veces y conservan el aislamiento. Quedan 15 verificaciones de los otros cinco equipos, revisión, commit y push. [Evidencia y límites](evidence/I04-2026-11-09.md).
+Modelo, migración 012 y reinicio implementados. `npm run test:i04`: 39 pruebas; regresión posterior al reinicio local: 394 unitarias/integración y 14 E2E, todas superadas. Los tres entornos de Jesús se reconstruyeron dos veces y conservan el aislamiento. I04 fue publicada posteriormente en b2b1bfc. Quedan 15 verificaciones de los otros cinco equipos, que se realizan tras el push. [Evidencia y límites](evidence/I04-2026-11-09.md).
+
+## Preparación de I05
+
+I04 se ha publicado en `b2b1bfc5dafb9ecbc0227e77454d4f09cf902ade`, verificado en `origin/main`. Las comprobaciones de los otros cinco desarrolladores se realizan después del push y no bloquean el inicio local de I05. Siguen pendientes de aportar sus resultados para cerrar I04.
+
+I05 adapta el alta y la consulta de hallazgos al modelo nuevo, incluidos portada, búsqueda, mapa, detalle, fotografía privada, edición y retirada sin reclamaciones. El formulario de reclamación y el chat corresponden a I06; las acciones de reserva, devolución y retirada con reclamaciones se completan en I07. Los límites de entrada, filtros, paginación y precisión del mapa fueron validados y recogidos en la especificación antes de implementar los casos afectados.
+
+### Cambios previstos en las pruebas
+
+| Archivo | Cobertura que se conserva | Sustitución o ampliación |
+| --- | --- | --- |
+| `unit/posts-validation.test.js` | Identificadores, normalización, fechas reales, valores frontera, errores de filtros y conservación de campos | Alta exclusiva de hallazgo, título generado, campos privados, foto y depósito opcionales, intervalo de fecha y paginación. Sustituir cambio manual de estado por rechazo de esa operación. |
+| `unit/posts-privacy.test.js` | Archivo nuevo | Proyección pública explícita: excluir detalles, depósito, fotografía, ubicación exacta e identidad personal distinta del nombre de usuario. |
+| `integration/posts.test.js` | Sesión, CSRF, autoría, validación, persistencia, XSS, orden y pertenencia de Mis publicaciones | Usar `found_objects` y `found_object_private`. Verificar autor, visitante y otra cuenta; foto accesible solo al autor, incluidas URL directas. Rechazar `lost` enviado manualmente. |
+| `integration/posts-manage.test.js` | Permisos de gestión, CSRF, errores sin cambios, filtros y tratamiento literal de comodines | Sustituir borrado físico por retirada con motivo y confirmación; preservar versiones y fotos históricas privadas. Rechazar modificación manual del estado, edición de cerrados y retirada de reservado o con reclamaciones. Buscar exclusivamente campos públicos. |
+| `e2e/posts.spec.js` | Publicación real, errores y corrección, conservación de campos, uso móvil y ubicación | Formulario con secciones pública y privada, título generado, foto opcional y comprobación desde una cuenta ajena. Mapas sin datos exactos. |
+| `e2e/posts-manage.spec.js` | Publicación, búsqueda, edición y permisos desde navegador | Sustituir reserva/resolución manual y eliminación por edición y retirada del hallazgo sin reclamaciones. Reserva y devolución mediante reclamación quedan en I07. |
+| `integration/server.test.js` y `e2e/server.spec.js` | Portada, navegación, errores, ausencia de información interna y sesión anónima | Sustituir los ejemplos de la portada por hallazgos reales y la acción de publicar pérdidas por consultar. Comprobar resultados vacíos y acceso al listado. |
+
+Las pruebas del modelo y del reinicio de I04 se conservan. Si I05 necesita una migración adicional, se amplían sus comprobaciones de reconstrucción y repetición sin modificar las migraciones compartidas. No se borran pruebas de seguridad para compensar fallos del cambio de modelo.
+
+
+## Verificación de I05 del 09/11/2026
+
+359 pruebas unitarias/integración y 14 E2E superadas. Incluyen 75 casos específicos de publicación y privacidad, más la regresión del modelo y reinicio de I04 adaptada a la migración 013. `check:env` y `check:db` correctos. [Evidencia y límites](evidence/I05-2026-11-09.md).
+
+I01-P01/P02 están implementados y superados localmente. I01-P09 queda parcial: se prueban versiones, privacidad, concurrencia, restricciones de estados y retirada sin reclamaciones; I07 completa el proceso con reclamaciones. No se considera completado el conjunto de RF21/RF23 por haber terminado su parte de I05.
+
+Se han ejecutado las sustituciones previstas para publicación y búsqueda. El caso de portada de `unit/exchange-views` recibe el listado real como entrada, manteniendo la comprobación de identidad del menú. Las suites de migraciones y reinicio calculan el número de migraciones del inventario y conservan la comprobación de proyección pública. Las pruebas anteriores de reserva manual y borrado no se presentan como cobertura de devolución: se sustituyen por bloqueo de esas rutas y se mantiene I07 pendiente.
+
+La revisión manual de Jesús sigue pendiente. [Pantallas, pasos y resultados esperados M01–M12](../docs/Pruebas_manuales_I05.md). I05 está preparada para revisión, sin commit ni push.
+
+Revisión posterior de Objetos por zonas: aviso específico para búsquedas sin coordenadas y enlace al listado conservando filtros. Un caso nuevo de integración (20 en la suite) y comprobación E2E del círculo visible y su título; 2 E2E superados. Véase la ampliación de la evidencia I05.

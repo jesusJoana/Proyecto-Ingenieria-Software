@@ -1,3 +1,4 @@
+import { readdirSync } from "node:fs";
 import {
   beforeAll,
   afterAll,
@@ -13,6 +14,9 @@ import {
   rebuildDatabase,
 } from "../../scripts/lib/database-reset.js";
 
+const migrationCount = readdirSync(
+  new URL("../../migrations/", import.meta.url),
+).filter((n) => /^\d.*\.js$/.test(n)).length;
 let pg, client, author, claimant, other, object;
 async function user(c = client) {
   const suffix = randomUUID().replaceAll("-", "").slice(0, 16);
@@ -61,7 +65,7 @@ beforeAll(async () => {
   try {
     expect(await applyMigrations(c, { count: 11 })).toHaveLength(11);
     await user(c);
-    expect(await applyMigrations(c)).toHaveLength(1);
+    expect(await applyMigrations(c)).toHaveLength(migrationCount - 11);
     expect(await applyMigrations(c)).toEqual([]);
   } finally {
     await c.end();
@@ -108,6 +112,8 @@ test("proyección pública sin campos privados ni identidad personal", async () 
     "created_at",
     "title",
     "author_username",
+    "campus_latitude",
+    "campus_longitude",
   ]);
   expect(JSON.stringify(row)).not.toMatch(
     /secreto|ubicación exacta|example.test/,

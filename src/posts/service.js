@@ -1,215 +1,250 @@
-/** Acceso a PostgreSQL para las publicaciones de objetos. */
-const POST_COLUMNS = `
-  object_posts.id, object_posts.kind, object_posts.title,
-  object_posts.description, object_posts.category, object_posts.color,
-  object_posts.brand, object_posts.location,
-  object_posts.university, object_posts.campus, object_posts.city, object_posts.country,
-  object_posts.campus_address, object_posts.location_mode, object_posts.latitude,
-  object_posts.longitude, object_posts.deposit_location,
-  to_char(object_posts.event_date, 'YYYY-MM-DD') AS event_date,
-  object_posts.photo_filename, object_posts.status,
-  object_posts.created_at, object_posts.updated_at,
-  users.username AS author_username, users.first_name AS author_first_name,
-  users.last_name AS author_last_name,
-  users.avatar_filename AS author_avatar_filename`;
-
+import { publicPost } from "./privacy.js";
+import {
+  PUBLIC_FIELDS,
+  PRIVATE_FIELDS,
+  SEARCH_DEFAULTS,
+  SEARCH_LIMIT,
+} from "./validation.js";
+const columns = `f.id,f.author_id,f.category,f.object_type,f.university,f.campus,f.general_area,
+ to_char(f.found_from,'YYYY-MM-DD') AS found_from,to_char(f.found_until,'YYYY-MM-DD') AS found_until,
+ f.status,f.created_at,f.object_type || ' encontrado en ' || f.campus AS title,
+ u.username AS author_username,f.campus_latitude::float8,f.campus_longitude::float8`;
+const like = (value) => `%${value.replace(/[\\%_]/g, "\\$&")}%`;
+export class PostError extends Error {
+  constructor(status, message) {
+    super(message);
+    this.status = status;
+  }
+}
 export function createPostsService(pool) {
+  async function transaction(work) {
+    const c = await pool.connect();
+    try {
+      await c.query("BEGIN");
+      const result = await work(c);
+      await c.query("COMMIT");
+      return result;
+    } catch (e) {
+      await c.query("ROLLBACK");
+      throw e;
+    } finally {
+      c.release();
+    }
+  }
+  async function lock(c, id, author) {
+    const {
+      rows: [row],
+    } = await c.query(
+      `SELECT *,to_char(found_from,'YYYY-MM-DD') AS date_from,to_char(found_until,'YYYY-MM-DD') AS date_until FROM found_objects WHERE id=$1 FOR UPDATE`,
+      [id],
+    );
+    if (!row) throw new PostError(404, "Hallazgo no encontrado.");
+    if (String(row.author_id) !== String(author))
+      throw new PostError(403, "Solo el autor puede realizar esta acción.");
+    return row;
+  }
+  async function snapshot(c, id) {
+    await c.query(
+      `INSERT INTO found_object_versions(object_id,version,public_data,private_data)
+ SELECT f.id,COALESCE((SELECT max(version) FROM found_object_versions WHERE object_id=f.id),0)+1,
+ jsonb_build_object('category',f.category,'object_type',f.object_type,'university',f.university,'campus',f.campus,'general_area',f.general_area,'found_from',f.found_from,'found_until',f.found_until,'campus_latitude',f.campus_latitude,'campus_longitude',f.campus_longitude),
+ jsonb_build_object('distinguishing_details',p.distinguishing_details,'exact_location',p.exact_location,'deposit_location',p.deposit_location,'photo_key',p.photo_key)
+ FROM found_objects f JOIN found_object_private p ON p.object_id=f.id WHERE f.id=$1`,
+      [id],
+    );
+  }
+  async function event(c, id, actor, action, details = {}) {
+    return (
+      await c.query(
+        "INSERT INTO activity_events(object_id,actor_id,action,details) VALUES ($1,$2,$3,$4) RETURNING id",
+        [id, actor, action, details],
+      )
+    ).rows[0].id;
+  }
   return {
-    async updateLocation(id, authorId, data) {
-      const {
-        rows: [post],
-      } = await pool.query(
-        `UPDATE object_posts SET
-        university=$3, campus=$4, city=$5, country=$6, campus_address=$7,
-        location_mode=$8, latitude=$9, longitude=$10, location=$11,
-        deposit_location=$12, updated_at=now()
-        WHERE id=$1 AND author_id=$2 RETURNING id`,
-        [
-          id,
-          authorId,
-          data.university,
-          data.campus,
-          data.city,
-          data.country,
-          data.campus_address,
-          data.location_mode,
-          data.latitude,
-          data.longitude,
-          data.location,
-          data.deposit_location,
-        ],
-      );
-      return post ?? null;
+    async create(author, data) {
+      return transaction(async (c) => {
+        const {
+          rows: [post],
+        } = await c.query(
+          `INSERT INTO found_objects(author_id,${PUBLIC_FIELDS.join(",")}) VALUES (${[author, ...PUBLIC_FIELDS.map((k) => data[k])].map((_, i) => "$" + (i + 1)).join(",")}) RETURNING id`,
+          [author, ...PUBLIC_FIELDS.map((k) => data[k])],
+        );
+        await c.query(
+          `INSERT INTO found_object_private(object_id,distinguishing_details,exact_location,deposit_location,photo_key) VALUES ($1,$2,$3,$4,$5)`,
+          [
+            post.id,
+            ...PRIVATE_FIELDS.map((k) => data[k] || null),
+            data.photoKey ?? null,
+          ],
+        );
+        await snapshot(c, post.id);
+        await event(c, post.id, author, "published");
+        return post;
+      });
     },
-    async create(authorId, data) {
-      const {
-        rows: [post],
-      } = await pool.query(
-        `INSERT INTO object_posts
-           (author_id, kind, title, description, category, color, brand,
-            location, event_date, photo_filename, university, campus, city, country,
-            campus_address, location_mode, latitude, longitude, deposit_location)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15, $16, $17, $18, $19)
-         RETURNING id`,
-        [
-          authorId,
-          data.kind,
-          data.title,
-          data.description,
-          data.category,
-          data.color,
-          data.brand,
-          data.location,
-          data.event_date,
-          data.photoFilename ?? null,
-          data.university,
-          data.campus,
-          data.city,
-          data.country,
-          data.campus_address,
-          data.location_mode,
-          data.latitude,
-          data.longitude,
-          data.deposit_location,
-        ],
-      );
-      return post;
-    },
-
-    /** Listado público con los filtros ya validados (ver parseSearch). */
-    async search({ q = '', tipo = '', categoria = '', estado = 'open' }, limit = 50) {
+    async search(input = {}, limit = SEARCH_LIMIT, { located = false } = {}) {
+      const f = { ...SEARCH_DEFAULTS, ...input };
+      const values = [
+        like(f.q),
+        f.category,
+        like(f.university),
+        like(f.campus),
+        like(f.general_area),
+        f.from || null,
+        f.until || null,
+        located,
+        limit + 1,
+        (f.page - 1) * limit,
+      ];
       const { rows } = await pool.query(
-        `SELECT ${POST_COLUMNS}
-         FROM object_posts JOIN users ON users.id = object_posts.author_id
-         WHERE ($1 = '' OR object_posts.title ILIKE $2 OR object_posts.description ILIKE $2)
-           AND ($3 = '' OR object_posts.kind = $3)
-           AND ($4 = '' OR object_posts.category = $4)
-           AND CASE $5
-             WHEN 'all' THEN true
-             WHEN 'open' THEN object_posts.status IN ('active', 'reserved')
-             ELSE object_posts.status = $5
-           END
-         ORDER BY object_posts.created_at DESC, object_posts.id DESC
-         LIMIT $6`,
-        [
-          q,
-          `%${q.replace(/[\\%_]/g, '\\$&')}%`,
-          tipo,
-          categoria,
-          estado,
-          limit,
-        ],
+        `SELECT ${columns} FROM found_objects f JOIN users u ON u.id=f.author_id
+ WHERE f.status IN ('available','reserved')
+ AND (f.object_type ILIKE $1 OR f.university ILIKE $1 OR f.campus ILIKE $1 OR f.general_area ILIKE $1 OR f.category ILIKE $1)
+ AND ($2='' OR f.category=$2) AND f.university ILIKE $3 AND f.campus ILIKE $4 AND f.general_area ILIKE $5
+ AND ($6::date IS NULL OR f.found_until >= $6) AND ($7::date IS NULL OR f.found_from <= $7)
+ AND (NOT $8 OR f.campus_latitude IS NOT NULL) ORDER BY f.created_at DESC,f.id DESC LIMIT $9 OFFSET $10`,
+        values,
       );
-      return rows;
+      return {
+        posts: rows.slice(0, limit).map(publicPost),
+        hasNext: rows.length > limit,
+      };
     },
-
-    /**
-     * Actualiza todos los campos. photo_filename solo cambia si se indica
-     * (undefined la conserva). Devuelve la foto anterior para borrar su archivo.
-     */
-    async update(id, authorId, data) {
+    async findById(id, viewer = null) {
       const {
-        rows: [post],
+        rows: [row],
       } = await pool.query(
-        `UPDATE object_posts SET
-           kind=$3, title=$4, description=$5, category=$6, color=$7, brand=$8,
-           location=$9, event_date=$10, university=$11, campus=$12, city=$13,
-           country=$14, campus_address=$15, location_mode=$16, latitude=$17,
-           longitude=$18, deposit_location=$19,
-           photo_filename = CASE WHEN $20 THEN $21 ELSE previous.photo_filename END,
-           updated_at=now()
-         FROM (
-           SELECT id, photo_filename FROM object_posts
-           WHERE id=$1 AND author_id=$2 FOR UPDATE
-         ) AS previous
-         WHERE object_posts.id = previous.id
-         RETURNING object_posts.id, object_posts.photo_filename,
-                   previous.photo_filename AS previous_photo_filename`,
-        [
-          id,
-          authorId,
-          data.kind,
-          data.title,
-          data.description,
-          data.category,
-          data.color,
-          data.brand,
-          data.location,
-          data.event_date,
-          data.university,
-          data.campus,
-          data.city,
-          data.country,
-          data.campus_address,
-          data.location_mode,
-          data.latitude,
-          data.longitude,
-          data.deposit_location,
-          data.photoFilename !== undefined,
-          data.photoFilename ?? null,
-        ],
-      );
-      return post ?? null;
-    },
-
-    async updateStatus(id, authorId, status) {
-      const {
-        rows: [post],
-      } = await pool.query(
-        `UPDATE object_posts SET status=$3, updated_at=now()
-         WHERE id=$1 AND author_id=$2 RETURNING id, status`,
-        [id, authorId, status],
-      );
-      return post ?? null;
-    },
-
-    /** Borrado físico. Devuelve la foto para borrar también su archivo. */
-    async remove(id, authorId) {
-      const {
-        rows: [post],
-      } = await pool.query(
-        `DELETE FROM object_posts WHERE id=$1 AND author_id=$2
-         RETURNING id, photo_filename`,
-        [id, authorId],
-      );
-      return post ?? null;
-    },
-
-    async listLocated({ university = '', campus = '', kind = '' } = {}) {
-      const { rows } = await pool.query(
-        `SELECT ${POST_COLUMNS}
-        FROM object_posts JOIN users ON users.id = object_posts.author_id
-        WHERE object_posts.status = 'active' AND object_posts.latitude IS NOT NULL
-          AND ($1 = '' OR object_posts.university ILIKE '%' || $1 || '%')
-          AND ($2 = '' OR object_posts.kind = $2)
-          AND ($3 = '' OR object_posts.campus ILIKE '%' || $3 || '%')
-        ORDER BY object_posts.created_at DESC, object_posts.id DESC LIMIT 200`,
-        [university, kind, campus],
-      );
-      return rows;
-    },
-
-    async listByAuthor(authorId) {
-      const { rows } = await pool.query(
-        `SELECT ${POST_COLUMNS}
-         FROM object_posts JOIN users ON users.id = object_posts.author_id
-         WHERE object_posts.author_id = $1
-         ORDER BY object_posts.created_at DESC, object_posts.id DESC`,
-        [authorId],
-      );
-      return rows;
-    },
-
-    async findById(id) {
-      const {
-        rows: [post],
-      } = await pool.query(
-        `SELECT ${POST_COLUMNS}, object_posts.author_id
-         FROM object_posts JOIN users ON users.id = object_posts.author_id
-         WHERE object_posts.id = $1`,
+        `SELECT ${columns} FROM found_objects f JOIN users u ON u.id=f.author_id WHERE f.id=$1`,
         [id],
       );
-      return post ?? null;
+      if (!row) return null;
+      const isAuthor = String(row.author_id) === String(viewer);
+      if (!isAuthor && !["available", "reserved"].includes(row.status)) {
+        if (!viewer) return null;
+        if (
+          !(
+            await pool.query(
+              "SELECT 1 FROM claims WHERE object_id=$1 AND claimant_id=$2 LIMIT 1",
+              [id, viewer],
+            )
+          ).rowCount
+        )
+          return null;
+      }
+      const result = { ...publicPost(row), isAuthor };
+      if (isAuthor) {
+        const {
+          rows: [privateRow],
+        } = await pool.query(
+          "SELECT distinguishing_details,exact_location,deposit_location,photo_key FROM found_object_private WHERE object_id=$1",
+          [id],
+        );
+        result.private = privateRow;
+      }
+      return result;
+    },
+    async listByAuthor(author) {
+      const { rows } = await pool.query(
+        `SELECT ${columns} FROM found_objects f JOIN users u ON u.id=f.author_id WHERE f.author_id=$1 ORDER BY f.created_at DESC,f.id DESC`,
+        [author],
+      );
+      return rows.map(publicPost);
+    },
+    async update(id, author, data) {
+      return transaction(async (c) => {
+        const old = await lock(c, id, author);
+        if (!["available", "reserved"].includes(old.status))
+          throw new PostError(409, "Un hallazgo cerrado no se puede editar.");
+        const oldDates = {
+          ...old,
+          found_from: old.date_from,
+          found_until: old.date_until,
+        };
+        const comparable = (key, value) =>
+          value == null
+            ? ""
+            : key.startsWith("campus_")
+              ? String(Number(value))
+              : String(value);
+        const publicChanged = PUBLIC_FIELDS.some(
+          (k) => comparable(k, oldDates[k]) !== comparable(k, data[k]),
+        );
+        await c.query(
+          `UPDATE found_objects SET ${PUBLIC_FIELDS.map((k, i) => `${k}=$${i + 2}`).join(",")},updated_at=now() WHERE id=$1`,
+          [id, ...PUBLIC_FIELDS.map((k) => data[k])],
+        );
+        await c.query(
+          `UPDATE found_object_private SET distinguishing_details=$2,exact_location=$3,deposit_location=$4,
+ photo_key=CASE WHEN $5 THEN $6::uuid ELSE photo_key END WHERE object_id=$1`,
+          [
+            id,
+            ...PRIVATE_FIELDS.map((k) => data[k] || null),
+            data.photoKey !== undefined || data.removePhoto,
+            data.photoKey ?? null,
+          ],
+        );
+        await snapshot(c, id);
+        const eid = await event(c, id, author, "edited", {
+          public_changed: publicChanged,
+        });
+        if (publicChanged)
+          await c.query(
+            `INSERT INTO notifications(recipient_id,event_id) SELECT DISTINCT claimant_id,$2::bigint FROM claims WHERE object_id=$1 AND status IN ('pending','waiting','accepted')`,
+            [id, eid],
+          );
+        return { id };
+      });
+    },
+    async withdraw(id, author, reason) {
+      return transaction(async (c) => {
+        const old = await lock(c, id, author);
+        if (old.status !== "available")
+          throw new PostError(
+            409,
+            "Solo se puede retirar un hallazgo disponible.",
+          );
+        if (
+          (
+            await c.query("SELECT 1 FROM claims WHERE object_id=$1 LIMIT 1", [
+              id,
+            ])
+          ).rowCount
+        )
+          throw new PostError(
+            409,
+            "La retirada de hallazgos con reclamaciones aún no está disponible.",
+          );
+        await c.query(
+          "UPDATE found_objects SET status='withdrawn',withdrawal_reason=$2,updated_at=now() WHERE id=$1",
+          [id, reason],
+        );
+        await event(c, id, author, "withdrawn", { reason });
+        return { id };
+      });
+    },
+    async versions(id, author) {
+      return transaction(async (c) => {
+        await lock(c, id, author);
+        return (
+          await c.query(
+            "SELECT version,public_data,private_data,created_at FROM found_object_versions WHERE object_id=$1 ORDER BY version DESC",
+            [id],
+          )
+        ).rows;
+      });
+    },
+    async canReadPhoto(id, author, key) {
+      return Boolean(
+        (
+          await pool.query(
+            `SELECT 1 FROM found_objects f WHERE f.id=$1 AND f.author_id=$2 AND
+ (EXISTS(SELECT 1 FROM found_object_private p WHERE p.object_id=f.id AND p.photo_key=$3::uuid) OR
+ EXISTS(SELECT 1 FROM found_object_versions v WHERE v.object_id=f.id AND v.private_data->>'photo_key'=$3::text))`,
+            [id, author, key],
+          )
+        ).rowCount,
+      );
     },
   };
 }

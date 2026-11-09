@@ -1,235 +1,186 @@
-/** Validación de las publicaciones de objetos. Los valores se guardan en inglés y se muestran en español. */
-import { z } from 'zod';
-
-export const KINDS = { lost: 'Perdido', found: 'Encontrado' };
-
+import { z } from "zod";
 export const CATEGORIES = {
-  electronics: 'Electrónica',
-  documents: 'Documentos',
-  keys: 'Llaves',
-  clothing: 'Ropa',
-  accessories: 'Accesorios',
-  pets: 'Mascotas',
-  other: 'Otros',
+  electronics: "Electrónica",
+  documents: "Documentos",
+  keys: "Llaves",
+  clothing: "Ropa",
+  accessories: "Accesorios",
+  pets: "Mascotas",
+  other: "Otros",
 };
-
 export const STATUSES = {
-  active: 'Activa',
-  reserved: 'Reservada',
-  resolved: 'Resuelta',
+  available: "Disponible",
+  reserved: "Reservado",
+  returned: "Devuelto",
+  withdrawn: "Retirado",
 };
-
-// Filtro de estado del listado: «abiertas» (activas y reservadas) es el valor por defecto.
-export const STATUS_FILTERS = {
-  open: 'Abiertas',
-  active: 'Activas',
-  reserved: 'Reservadas',
-  resolved: 'Resueltas',
-  all: 'Todas',
-};
-
-export const SEARCH_LIMIT = 50;
-
-const FIELDS = [
-  'kind',
-  'title',
-  'description',
-  'category',
-  'color',
-  'brand',
-  'location',
-  'event_date',
-  'university',
-  'campus',
-  'city',
-  'country',
-  'campus_address',
-  'location_mode',
-  'latitude',
-  'longitude',
-  'deposit_location',
-  'remove_photo',
+export const SEARCH_LIMIT = 20;
+export const PUBLIC_FIELDS = [
+  "category",
+  "object_type",
+  "university",
+  "campus",
+  "general_area",
+  "found_from",
+  "found_until",
+  "campus_latitude",
+  "campus_longitude",
 ];
-
-/** Fecha de hoy en la zona horaria del servidor, como AAAA-MM-DD. */
+export const PRIVATE_FIELDS = [
+  "distinguishing_details",
+  "exact_location",
+  "deposit_location",
+];
+const FIELDS = [...PUBLIC_FIELDS, ...PRIVATE_FIELDS, "remove_photo"];
 export function today(now = new Date()) {
-  const pad = (value) => String(value).padStart(2, '0');
-  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
-
-function isRealDate(value) {
-  const [year, month, day] = value.split('-').map(Number);
-  const date = new Date(Date.UTC(year, month - 1, day));
+function realDate(value) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value) || value < "0001-01-01") return false;
+  const date = new Date(`${value}T12:00:00Z`);
   return (
-    date.getUTCFullYear() === year &&
-    date.getUTCMonth() === month - 1 &&
-    date.getUTCDate() === day
+    Number.isFinite(date.getTime()) && date.toISOString().slice(0, 10) === value
   );
 }
-
-const optionalText = (max, message) =>
+const date = z.string().trim().refine(realDate, "Indica una fecha válida.");
+const text = (max, min = 2) =>
   z
     .string()
     .trim()
-    .max(max, message)
-    .transform((value) => value || null);
-
+    .min(min, `Indica al menos ${min} caracteres.`)
+    .max(max, `Admite hasta ${max} caracteres.`);
+const optional = (max) =>
+  z
+    .string()
+    .trim()
+    .max(max, `Admite hasta ${max} caracteres.`)
+    .optional()
+    .default("");
+const coordinate = (max) =>
+  z
+    .union([
+      z.literal(""),
+      z
+        .string()
+        .trim()
+        .regex(/^-?\d+(\.\d+)?$/)
+        .transform(Number)
+        .pipe(z.number().finite().min(-max).max(max)),
+    ])
+    .optional()
+    .transform((value) =>
+      value === undefined || value === ""
+        ? null
+        : Math.round(value * 100) / 100,
+    );
 export function createPostSchema(now = () => new Date()) {
-  const requiredText = (max, label) =>
-    z
-      .string()
-      .trim()
-      .min(2, `Indica ${label}.`)
-      .max(max, `El campo admite hasta ${max} caracteres.`);
-  const coordinate = (min, max) =>
-    z
-      .string()
-      .trim()
-      .min(1, 'Selecciona un punto en el mapa o introduce sus coordenadas.')
-      .refine(
-        (value) => /^-?\d+(\.\d+)?$/.test(value),
-        'Introduce una coordenada válida.',
-      )
-      .transform(Number)
-      .pipe(z.number().finite().min(min).max(max));
   return z
     .object({
-      university: requiredText(180, 'la universidad'),
-      campus: requiredText(180, 'el campus o sede'),
-      city: requiredText(100, 'la ciudad'),
-      country: requiredText(100, 'el país'),
-      campus_address: requiredText(250, 'la dirección del campus'),
-      location_mode: z.enum(['campus', 'exact'], {
-        message: 'Selecciona campus o punto exacto.',
-      }),
-      latitude: coordinate(-85, 85),
-      longitude: coordinate(-180, 180),
-      deposit_location: z
-        .string()
-        .trim()
-        .max(250, 'El lugar de depósito admite hasta 250 caracteres.')
-        .default(''),
-      kind: z.enum(Object.keys(KINDS), {
-        message: 'Indica si has perdido o encontrado el objeto.',
-      }),
-      title: z
-        .string()
-        .trim()
-        .min(3, 'El título debe tener al menos 3 caracteres.')
-        .max(100, 'El título admite hasta 100 caracteres.'),
-      description: z
-        .string()
-        .trim()
-        .min(10, 'Describe el objeto con al menos 10 caracteres.')
-        .max(2000, 'La descripción admite hasta 2000 caracteres.'),
+      kind: z
+        .literal("found", {
+          message: "Solo se pueden publicar objetos encontrados.",
+        })
+        .optional(),
       category: z.enum(Object.keys(CATEGORIES), {
-        message: 'Selecciona una categoría de la lista.',
+        message: "Selecciona una categoría.",
       }),
-      color: optionalText(40, 'El color admite hasta 40 caracteres.'),
-      brand: optionalText(60, 'La marca admite hasta 60 caracteres.'),
-      location: z
-        .string()
-        .trim()
-        .min(2, 'Indica el lugar con al menos 2 caracteres.')
-        .max(150, 'El lugar admite hasta 150 caracteres.'),
-      event_date: z
-        .string()
-        .trim()
-        .regex(/^\d{4}-\d{2}-\d{2}$/, 'Indica una fecha válida.')
-        .refine(isRealDate, 'Indica una fecha válida.')
-        .refine(
-          (value) => value >= '2000-01-01',
-          'La fecha no puede ser anterior al año 2000.',
-        )
-        .refine(
-          (value) => value <= today(now()),
-          'La fecha no puede ser posterior a hoy.',
-        ),
+      object_type: text(60),
+      university: text(180),
+      campus: text(180),
+      general_area: text(150),
+      distinguishing_details: text(2000, 10),
+      exact_location: optional(250),
+      deposit_location: optional(250),
+      found_from: date,
+      found_until: date.optional().or(z.literal("")),
+      campus_latitude: coordinate(85),
+      campus_longitude: coordinate(180),
+      remove_photo: z.literal("1").optional(),
     })
     .superRefine((data, ctx) => {
-      if (data.kind === 'found' && data.deposit_location.length < 2)
+      const end = data.found_until || data.found_from;
+      if (end < data.found_from)
         ctx.addIssue({
-          code: 'custom',
-          path: ['deposit_location'],
-          message: 'Indica dónde está depositado ahora (o escribe «Conmigo»).',
+          code: "custom",
+          path: ["found_until"],
+          message: "El final no puede ser anterior al inicio.",
+        });
+      if (end > today(now()) || data.found_from > today(now()))
+        ctx.addIssue({
+          code: "custom",
+          path: ["found_from"],
+          message: "La fecha no puede ser posterior a hoy.",
+        });
+      if ((data.campus_latitude === null) !== (data.campus_longitude === null))
+        ctx.addIssue({
+          code: "custom",
+          path: ["campus_latitude"],
+          message: "Indica ambas coordenadas o deja las dos vacías.",
         });
     })
-    .transform((data) => ({
+    .transform(({ kind, remove_photo, ...data }) => ({
       ...data,
-      deposit_location: data.kind === 'found' ? data.deposit_location : null,
+      found_until: data.found_until || data.found_from,
+      removePhoto: remove_photo === "1",
     }));
 }
-
 export const postSchema = createPostSchema();
-
-/** Edición: los mismos campos que al publicar y, además, la opción de quitar la foto. */
-export function createEditPostSchema(now = () => new Date()) {
-  return createPostSchema(now).and(
-    z
-      .object({
-        remove_photo: z
-          .literal('1', { message: 'Opción de foto no válida.' })
-          .optional(),
-      })
-      .transform(({ remove_photo }) => ({
-        removePhoto: remove_photo === '1',
-      })),
-  );
-}
-
-export const editPostSchema = createEditPostSchema();
-
-/** Cambio de estado por el autor y página a la que volver después. */
-export const statusChangeSchema = z.object({
-  status: z.enum(Object.keys(STATUSES), {
-    message: 'Selecciona un estado válido.',
-  }),
-  back: z.enum(['detail', 'mine']).catch('detail'),
+export const createEditPostSchema = createPostSchema;
+export const editPostSchema = postSchema;
+export const withdrawalSchema = z.object({
+  reason: text(1000),
+  confirm: z.literal("1", { message: "Confirma la retirada." }),
 });
-
-const searchFields = {
-  q: z.string().trim().max(100),
-  tipo: z.enum(Object.keys(KINDS)),
-  categoria: z.enum(Object.keys(CATEGORIES)),
-  estado: z.enum(Object.keys(STATUS_FILTERS)),
-};
-
 export const SEARCH_DEFAULTS = Object.freeze({
-  q: '',
-  tipo: '',
-  categoria: '',
-  estado: 'open',
+  q: "",
+  category: "",
+  university: "",
+  campus: "",
+  general_area: "",
+  from: "",
+  until: "",
+  page: 1,
 });
-
-/**
- * Filtros del listado leídos de la URL. Un valor no válido no impide la
- * búsqueda: se descarta, se usa el valor por defecto y se indica en invalid.
- */
 export function parseSearch(query = {}) {
   const filters = { ...SEARCH_DEFAULTS };
   let invalid = false;
-  for (const [key, schema] of Object.entries(searchFields)) {
-    if (query[key] === undefined || query[key] === '') continue;
+  const schemas = {
+    q: text(100, 1),
+    category: z.enum(Object.keys(CATEGORIES)),
+    university: text(180, 1),
+    campus: text(180, 1),
+    general_area: text(150, 1),
+    from: date,
+    until: date,
+    page: z
+      .string()
+      .regex(/^[1-9]\d{0,5}$/)
+      .transform(Number),
+  };
+  for (const [key, schema] of Object.entries(schemas)) {
+    if (query[key] === undefined || query[key] === "") continue;
     const result = schema.safeParse(query[key]);
     if (result.success) filters[key] = result.data;
     else invalid = true;
   }
+  if (filters.from && filters.until && filters.from > filters.until) {
+    filters.from = "";
+    filters.until = "";
+    invalid = true;
+  }
   return { filters, invalid };
 }
-
-/** Valores del formulario para volver a mostrarlos tras un error. */
 export function postFormValues(body = {}) {
   return Object.fromEntries(
     FIELDS.map((key) => [
       key,
-      typeof body[key] === 'string' ? body[key].slice(0, 2100) : '',
+      typeof body[key] === "string" ? body[key].slice(0, 2100) : "",
     ]),
   );
 }
-
 export function isValidPostId(value) {
   return (
-    typeof value === 'string' &&
+    typeof value === "string" &&
     /^[1-9]\d{0,18}$/.test(value) &&
     BigInt(value) <= 9223372036854775807n
   );

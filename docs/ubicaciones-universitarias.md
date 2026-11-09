@@ -1,26 +1,19 @@
-# Ubicaciones universitarias: versión básica
+# Ubicaciones universitarias
 
-Al publicar se introducen universidad, campus o sede, ciudad, país y dirección del campus. Son campos libres: no se restringen a España ni a un catálogo cerrado y no se verifican contra un registro oficial.
+Cada hallazgo tiene universidad, campus y zona general como texto público. Universidad y campus admiten de 2 a 180 caracteres; la zona general, de 2 a 150. Son campos libres y no se validan contra un catálogo oficial. No se publican ciudad, país, dirección exacta ni depósito como campos separados.
 
-El autor elige qué representa el punto del mapa:
+El mapa es opcional. Escribir el nombre del campus no asigna coordenadas: hay que desplegar «Referencia del campus en el mapa» y seleccionar un punto o introducir ambas coordenadas. El autor introduce ambas coordenadas o selecciona una referencia general del campus. El servidor las redondea a dos decimales antes de almacenarlas, con una resolución aproximada de un kilómetro que varía con la latitud. El círculo es orientativo: no representa el lugar exacto del hallazgo ni los límites oficiales del campus. No se solicita la ubicación del dispositivo ni se convierten direcciones en coordenadas.
 
-- **Campus:** referencia general seleccionada manualmente; el círculo es orientativo y no representa los límites reales del recinto.
-- **Punto exacto:** lugar de la pérdida o del hallazgo indicado por el autor.
+El lugar exacto y dónde se guarda el objeto son textos privados opcionales de hasta 250 caracteres. Solo el autor puede consultarlos. No se utilizan para generar el mapa ni para buscar. La referencia pública puede corregirse junto al resto de datos mediante «Editar hallazgo», conservando las versiones anteriores.
 
-Se puede elegir el punto con un clic, arrastrar el marcador o introducir latitud y longitud. «Usar mi ubicación» solicita permiso únicamente al pulsarlo. El nombre y la dirección escritos no se convierten automáticamente en coordenadas: hay que confirmar el punto.
-
-En objetos encontrados se guarda por separado dónde se encontró y dónde está depositado ahora. El mapa representa el hallazgo o el campus, no el depósito. No se deben introducir domicilios particulares como depósito.
-
-Cada ficha muestra los datos del lugar y un mapa. El autor puede corregirlos mediante «Editar ubicación» o, junto al resto de campos y la foto, desde «Editar» (`/publicaciones/:id/editar`). Las publicaciones anteriores a esta función conservan su lugar original; pueden completar sus datos desde esa misma pantalla.
-
-`/objetos-por-zonas` es público y permite buscar por universidad, campus y tipo. Muestra hasta 200 publicaciones activas con coordenadas, ordenadas por fecha de publicación. Las publicaciones sin coordenadas siguen disponibles en el listado general. Esta primera versión no tiene catálogo oficial, búsqueda automática de direcciones, agrupación de marcadores ni carga según el área visible.
+`/objetos-por-zonas` es público y muestra hallazgos disponibles y reservados con referencia de campus. Comparte los filtros públicos del listado: texto general, categoría, universidad, campus, zona general y solapamiento de fechas. Presenta 20 resultados por página, del más reciente al más antiguo. Los hallazgos sin coordenadas siguen en `/publicaciones`. Si la búsqueda no encuentra hallazgos con referencia cartográfica, la pantalla lo indica expresamente y permite consultar los mismos filtros en el listado general. No hay búsqueda por cercanía, agrupación ni carga según el área visible.
 
 ## Preparación en otro equipo
 
-Ejecutar `npm ci` y las migraciones del entorno: `npm run db:migrate`, `npm run db:migrate:test` o `npm run db:migrate:e2e`. La migración 009 añade columnas sin asignar datos geográficos inventados a las publicaciones existentes.
+Ejecutar `npm ci` y las migraciones de cada entorno: `npm run db:migrate`, `npm run db:migrate:test` y `npm run db:migrate:e2e`. La migración 013 añade la referencia pública opcional a `found_objects` y a la vista pública, sin inventar coordenadas. Si se necesitan bases limpias, seguir el apartado 5 del [manual de base de datos](Manual_base_datos_ReFind.md#5-reinicio-de-datos-de-desarrollo).
 
 ## Mapas y pruebas
 
-Leaflet se sirve desde las dependencias locales. El fondo utiliza OpenStreetMap y requiere conexión; si falla, el texto y las coordenadas siguen disponibles. No hay geocodificación ni solicitudes a Nominatim. Se mantiene la atribución y no se descargan mapas para uso sin conexión. Antes de publicar un servicio de mayor tráfico, revisar la [política del proveedor de teselas](https://operations.osmfoundation.org/policies/tiles/).
+Leaflet se sirve localmente. El fondo de OpenStreetMap requiere conexión; si falla, el texto y la referencia siguen disponibles. No se realizan solicitudes a Nominatim ni descargas para uso sin conexión. Se conserva la atribución del proveedor.
 
-`npm test` comprueba validación, persistencia, filtrado, permisos y corrección de ubicación. `npm run test:e2e -- tests/e2e/posts.spec.js` comprueba el flujo de publicación y edición, la conservación de campos tras errores y el mapa/lista en móvil. Las pruebas de navegador bloquean las teselas externas para no depender de la red ni consumir el servicio de mapas.
+`npm test` comprueba límites, redondeo, persistencia, filtros, permisos y ausencia de información privada. `npm run test:e2e -- tests/e2e/posts.spec.js` comprueba publicación, corrección de errores, búsqueda y mapa en móvil. Las pruebas bloquean las teselas externas para no depender de la red.
