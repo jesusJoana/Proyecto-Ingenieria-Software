@@ -179,3 +179,46 @@ test("edición privada no avisa ni expone versiones; edición pública notifica 
   const view = await f.other.agent.get(`/reclamaciones/${a}`).expect(200);
   expect(view.text).not.toContain("Nuevo secreto");
 });
+
+test("eliminar un aviso exige sesión, CSRF y propietario y conserva el historial", async () => {
+  const { a } = await fixture();
+  await delivery.act(a, f.author.id, "accept");
+  const notice = (await activity.notifications(f.other.id)).find(
+    (n) => n.claim_id === a && n.action === "accepted",
+  );
+  const path = `/avisos/${notice.notification_id}/eliminar`;
+  await request(f.app).post(path).expect(401);
+  await f.other.agent.post(path).expect(403);
+  await g.other.agent.post(path).type("form").send({ _csrf: g.other.csrf }).expect(404);
+  const html = await f.other.agent.get("/avisos").expect(200);
+  expect(html.text).toContain(path);
+  await f.other.agent.post(path).type("form").send({ _csrf: f.other.csrf }).expect(303);
+  expect((await activity.notifications(f.other.id)).some((n) => n.notification_id === notice.notification_id)).toBe(false);
+  expect((await activity.history(f.other.id)).some((n) => n.id === notice.id)).toBe(true);
+  const refreshed = await f.other.agent.get("/avisos").expect(200);
+  expect(refreshed.text).not.toContain(path);
+  await f.other.agent.post("/avisos/invalido/eliminar").type("form").send({ _csrf: f.other.csrf }).expect(404);
+});
+
+test("eliminar leídos conserva los no leídos, los avisos ajenos y los eventos", async () => {
+  const { a, b } = await fixture();
+  await delivery.act(a, f.author.id, "accept");
+  const own = (await activity.notifications(f.other.id)).find((n) => n.claim_id === a);
+  const other = (await activity.notifications(g.other.id)).find((n) => n.claim_id === b);
+  await activity.read(own.notification_id, f.other.id);
+  await activity.read(other.notification_id, g.other.id);
+  await delivery.act(a, f.author.id, "cancel", { reason: "No podemos acordar la entrega" });
+  const path = "/avisos/eliminar-leidos";
+  await request(f.app).post(path).expect(401);
+  await f.other.agent.post(path).expect(403);
+  await f.other.agent.post(path).type("form").send({ _csrf: f.other.csrf }).expect(303);
+  const remaining = await activity.notifications(f.other.id);
+  expect(remaining.some((n) => n.notification_id === own.notification_id)).toBe(false);
+  expect(remaining.some((n) => n.claim_id === a && n.action === "cancelled")).toBe(true);
+  expect((await activity.notifications(g.other.id)).some((n) => n.notification_id === other.notification_id)).toBe(true);
+  expect((await activity.history(f.other.id)).some((n) => n.id === own.id)).toBe(true);
+  await f.other.agent.post(path).type("form").send({ _csrf: f.other.csrf }).expect(303);
+  const history = await f.other.agent.get("/actividad").expect(200);
+  expect(history.text).not.toContain("Eliminar aviso");
+  expect(history.text).not.toContain("Eliminar todos los leídos");
+});

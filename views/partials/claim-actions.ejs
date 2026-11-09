@@ -19,5 +19,5 @@
 <% if(!(isAuthor?openIncident.author_agreed_at:openIncident.claimant_agreed_at)){ %><form method="post" action="/reclamaciones/<%= claim.id %>/acciones/agree"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="incidentId" value="<%= openIncident.id %>"><label><input type="checkbox" name="confirm" value="1" required> Acepto anular la confirmación registrada</label><button class="btn btn-outline-danger d-block mt-2">Acordar anulación</button></form><% } %><% } %><% } %>
 <% if(claim.status==='waiting'){ %><p>Tu reclamación está en espera mientras el objeto está reservado. Puedes seguir conversando o cancelar tu solicitud.</p><% } %>
 <% if(!writable){ %><p>Esta reclamación está cerrada. Puedes consultar la conversación y el historial.</p><% } %>
-<a class="d-inline-block mt-3" href="/actividad">Consultar mi historial</a>
+<a class="btn btn-outline-secondary mt-3" href="/actividad">Consultar mi historial</a>
 </section>

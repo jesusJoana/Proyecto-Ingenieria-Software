@@ -47,5 +47,20 @@ export function createActivityRouter(pool) {
         });
     res.redirect(303, "/avisos");
   });
+  router.post("/avisos/eliminar-leidos", verifyCsrf, async (req, res) => {
+    await service.removeRead(req.session.userId);
+    res.redirect(303, "/avisos");
+  });
+  router.post("/avisos/:id/eliminar", verifyCsrf, async (req, res) => {
+    if (
+      !isValidClaimId(req.params.id) ||
+      !(await service.remove(req.params.id, req.session.userId))
+    )
+      return res.status(404).render("error", {
+        title: "Aviso no encontrado",
+        message: "No se ha encontrado ese aviso.",
+      });
+    res.redirect(303, "/avisos");
+  });
   return router;
 }

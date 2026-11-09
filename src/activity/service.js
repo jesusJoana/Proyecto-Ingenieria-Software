@@ -77,6 +77,19 @@ export function createActivityService(pool) {
         ).rowCount > 0
       );
     },
+    async remove(id, user) {
+      const result = await pool.query(
+        "DELETE FROM notifications WHERE id=$1 AND recipient_id=$2 RETURNING id",
+        [id, user],
+      );
+      return result.rowCount > 0;
+    },
+    async removeRead(user) {
+      await pool.query(
+        "DELETE FROM notifications WHERE recipient_id=$1 AND read_at IS NOT NULL",
+        [user],
+      );
+    },
     async summary(user) {
       return (
         await pool.query(

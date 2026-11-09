@@ -1,0 +1,60 @@
+/* Reclamaciones, conversaciones y actividad personal. */
+.workflow-main { padding-top:32px; padding-bottom:48px; }
+.workflow-main h1 { font-size:clamp(1.65rem,3vw,2.2rem); font-weight:750; letter-spacing:-.7px; margin-bottom:14px; }
+.workflow-main h2 { font-size:1.2rem; font-weight:700; line-height:1.4; }
+.workflow-main > p { color:#566660; line-height:1.65; }
+.workflow-main .auth-panel,.workflow-main #conversation { background:#fff; border:1px solid #dce6df; border-radius:18px; box-shadow:0 4px 18px #173c3206; padding:26px !important; margin-bottom:22px; }
+.workflow-main .auth-panel h2 { margin-bottom:18px; }
+.workflow-main a:not(.btn) { color:#245f55; text-underline-offset:3px; }
+.workflow-main .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:44px; padding:11px 18px; border:1px solid transparent; border-radius:10px; font-size:.94rem; font-weight:650; line-height:1.4; white-space:normal; text-decoration:none; box-shadow:none; }
+.workflow-main .btn-teal { background:#285f57; color:#fff; border-color:#285f57; box-shadow:0 3px 8px #285f571c; }
+.workflow-main .btn-teal:hover { background:#19473f; border-color:#19473f; color:#fff; }
+.workflow-main .btn-outline-secondary { color:#285f57; background:#f0f6f2; border-color:#adc7bb; }
+.workflow-main .btn-outline-secondary:hover { background:#dfede5; border-color:#285f57; }
+.workflow-main .btn-outline-danger { color:#a32c39; background:#fff5f5; border-color:#d99ba3; }
+.workflow-main .btn-outline-danger:hover { background:#a32c39; border-color:#a32c39; color:#fff; }
+.workflow-main .btn:disabled { opacity:.55; box-shadow:none; cursor:not-allowed; }
+.workflow-main :is(a,button,input,textarea):focus-visible { outline:3px solid #367e6d; outline-offset:3px; }
+.workflow-main label { font-weight:600; color:#334c42; margin-bottom:8px; line-height:1.6; }
+.workflow-main .form-control { border:1px solid #b8ccc1; border-radius:10px; padding:12px 14px; background:#fcfdfb; }
+.workflow-main .form-control:focus { border-color:#367e6d; box-shadow:0 0 0 3px #367e6d18; background:white; }
+.workflow-main input[type=checkbox] { width:18px; height:18px; accent-color:#285f57; vertical-align:middle; margin-right:7px; flex-shrink:0; }
+.workflow-main [data-claim-actions] form { padding:20px; background:#f7f9f6; border:1px solid #e0e8df; border-radius:12px; margin-top:16px; }
+.workflow-main [data-claim-actions] form[action$="/accept"] { padding:0; background:none; border:0; }
+.workflow-main [data-claim-actions] form[action$="/reject"],.workflow-main [data-claim-actions] form[action$="/cancel"] { border-left:3px solid #d99ba3; }
+.workflow-main [data-claim-actions] form[action$="/confirm"] { border-left:3px solid #367e6d; }
+.workflow-main [data-claim-actions] textarea { min-height:90px; margin-bottom:8px; }
+.workflow-main [data-action-update]:not([hidden]),.workflow-main [data-chat-notice]:not(:empty) { padding:16px 18px; background:#fff4db; color:#755217; border:1px solid #e9d09a; border-radius:12px; margin:16px 0; }
+.workflow-main dl { margin:0; }
+.workflow-main dt { font-size:.8rem; color:#607569; margin-top:18px; margin-bottom:5px; }
+.workflow-main dd { margin:0; line-height:1.65; }
+.workflow-main .workflow-status { display:inline-flex; align-items:center; padding:6px 12px; border-radius:999px; background:#e9f2ed; color:#245448; border:1px solid #c6dbcf; font-size:.82rem; font-weight:700; }
+.workflow-main .workflow-status[data-status="waiting"],.workflow-main .workflow-status[data-status="accepted"] { background:#fff3d9; color:#79540f; border-color:#ead09d; }
+.workflow-main .workflow-status[data-status="rejected"],.workflow-main .workflow-status[data-status="cancelled"] { background:#f9ebec; color:#913743; border-color:#e7c0c5; }
+.workflow-main .workflow-status[data-status^="closed"] { background:#eef0f2; color:#52606c; border-color:#d2dae0; }
+.workflow-main .workflow-toolbar { display:flex; gap:10px; flex-wrap:wrap; margin:20px 0 26px; }
+.workflow-main .workflow-toolbar .btn[aria-current=page] { background:#285f57; color:white; border-color:#285f57; }
+.workflow-main .workflow-card { position:relative; border-left:4px solid #85ac98; }
+.workflow-main .workflow-card h2 a { color:#233e34; text-decoration:none; }
+.workflow-main .workflow-card h2 a:hover { text-decoration:underline; }
+.workflow-main .workflow-card time { display:block; color:#68776f; font-size:.85rem; margin-bottom:14px; }
+.workflow-main .workflow-card.unread { border-left-color:#285f57; background:#fcfefa; }
+.workflow-main .workflow-card-footer { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-top:18px; }
+.workflow-main .workflow-card-footer form { margin:0; }
+.workflow-main .workflow-card-footer .btn { margin-top:0 !important; }
+.workflow-main .workflow-empty { padding:30px; border:1px dashed #a8c2b5; border-radius:16px; background:#f0f6f2; color:#436456; }
+.workflow-main [data-messages] > article { box-shadow:none; border:0; border-left:3px solid #91b6a2; background:#f1f6f2; border-radius:0 12px 12px 0; margin:16px 0; }
+.workflow-main [data-messages] time { color:#67766d; font-size:.82rem; }
+.workflow-main [data-message-form] { border-top:1px solid #dce6df; padding-top:22px; margin-top:24px; }
+.workflow-main [data-messages] ul:empty { display:none; }
+.workflow-main [data-messages] a,.workflow-main .workflow-files a { display:inline-block; padding:8px 12px; margin:4px 0; border:1px solid #c6dace; background:#fff; border-radius:8px; text-decoration:none; font-size:.9rem; }
+.workflow-main .workflow-files { list-style:none; padding:0; margin:18px 0 0; }
+.workflow-main .workflow-pagination { display:flex; align-items:center; flex-wrap:wrap; gap:12px; margin-top:24px; }
+@media(min-width:1100px) { .workflow-main [data-claim-actions] form { max-width:760px; } }
+@media(max-width:600px) {
+ .workflow-main .auth-panel,.workflow-main #conversation { padding:20px !important; border-radius:14px; }
+ .workflow-main [data-claim-actions] form { padding:14px; }
+ .workflow-main form > .btn,.workflow-main .workflow-card-footer > .btn,.workflow-main .workflow-card-footer > form { width:100%; }
+ .workflow-main .workflow-card-footer form .btn { width:100%; }
+ .workflow-main .workflow-toolbar .btn { flex:1 1 auto; }
+}

@@ -55,6 +55,7 @@
             for (const control of form.elements) control.disabled = true;
           document.querySelector("[data-claim-status]").textContent =
             result.statusLabel;
+          document.querySelector("[data-claim-status]").dataset.status = result.status;
         }
         for (const m of result.messages) {
           append(m);

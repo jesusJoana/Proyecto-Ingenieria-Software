@@ -72,3 +72,9 @@ El sondeo del chat actualiza el estado y deshabilita acciones antiguas sin reemp
 Guía de revisión: [Pruebas manuales I07](Pruebas_manuales_I07.md). Evidencia: [Resultados I07](../tests/evidence/I07-2026-11-09.md). No se modifica ninguna migración ni se reinician bases de desarrollo.
 
 Resultado final: `npm.cmd run verify` superado con 494 pruebas unitarias/integración y 18 E2E. Planning marca I07 como preparada y mantiene pendientes la revisión y autorización de Jesús, el commit/push y los datos de esfuerzo no imputados.
+
+## Mejora visual posterior
+
+Tras publicar I07 en `7528238`, Jesús solicita mejorar la presentación de las páginas. Se mantienen las reglas y los datos: se refuerza la visibilidad de botones principales y secundarios, se presentan estados con etiquetas, se organizan las acciones y mensajes en tarjetas y se añaden accesos explícitos a conversaciones e historial. El diseño conserva los colores de ReFind y permite el uso en móvil y con teclado. Antes de entregar se ejecutan los E2E afectados y se inspeccionan vistas de escritorio y móvil; no se requieren migraciones ni cambios de requisitos funcionales.
+
+Validación de esta mejora: 36 pruebas de integración de reclamaciones, actividad y devolución, y 7 E2E de reclamaciones, devolución y publicaciones superadas. Inspección visual de formularios y gestión de incidencia, listados y avisos en escritorio y móvil; sin desbordamiento horizontal del contenido a 390 px. Los estados actualizados por sondeo mantienen también el color de su etiqueta. Sin commit de esta mejora visual; pendiente de revisión de Jesús.
