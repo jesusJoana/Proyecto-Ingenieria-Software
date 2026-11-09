@@ -246,6 +246,6 @@ Los puertos de la aplicación proceden de `PORT` en cada `.env`; no son el puert
 
 No ejecutar `test` y `test:watch` simultáneamente ni utilizar `start:test` mientras se ejecutan las pruebas. Las pruebas de integración actuales eliminan las sesiones de `refind_test` para preparar sus casos.
 
-Actualmente existen pruebas de integración y una prueba E2E de la página inicial y la respuesta 404. La configuración admite futuras pruebas unitarias. Los comandos `check:tests:*` siguen comprobando las herramientas, no las funcionalidades de ReFind.
+El proyecto dispone de suites unitarias, de integración y E2E. Las pruebas previstas para los requisitos vigentes, su cobertura y las adaptaciones pendientes se describen en [tests/README.md](../tests/README.md). Los comandos `check:tests:*` comprueban las herramientas; sus resultados no acreditan las funcionalidades de ReFind. `verify` no incluye `check:tests` ni `check:provision`, que se ejecutan por separado cuando proceda.
 
-**Estado:** comandos y configuración preparados; ejecución por el desarrollador pendiente.
+Registrar la ejecución por equipo y revisión del código, con fecha, resultado y evidencia. Los resultados históricos no sustituyen la comprobación de los requisitos modificados.
