@@ -48,6 +48,14 @@
         )
           throw new Error();
         const result = await response.json();
+        const actions = document.querySelector("[data-claim-actions]");
+        if (actions && result.revision !== actions.dataset.revision) {
+          actions.querySelector("[data-action-update]").hidden = false;
+          for (const form of actions.querySelectorAll("form"))
+            for (const control of form.elements) control.disabled = true;
+          document.querySelector("[data-claim-status]").textContent =
+            result.statusLabel;
+        }
         for (const m of result.messages) {
           append(m);
           after = m.id;

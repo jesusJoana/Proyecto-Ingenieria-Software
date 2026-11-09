@@ -81,7 +81,10 @@ export function createAuthService(pool) {
       } = await pool.query('SELECT password_hash FROM users WHERE id = $1', [
         userId,
       ]);
-      if (!user || !(await argon2.verify(user.password_hash, data.current_password)))
+      if (
+        !user ||
+        !(await argon2.verify(user.password_hash, data.current_password))
+      )
         return false;
       const hash = await argon2.hash(data.new_password, HASH_OPTIONS);
       await pool.query(
@@ -159,8 +162,7 @@ export function createAuthService(pool) {
       const {
         rows: [profile],
       } = await pool.query(
-        `SELECT id, username, first_name, last_name, organization, age,
-                description, locality, avatar_filename
+        `SELECT id, username
          FROM users WHERE username = $1`,
         [username],
       );

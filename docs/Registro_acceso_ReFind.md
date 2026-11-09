@@ -23,12 +23,12 @@ Desde la portada, **Registrarse** abre `/registro` e **Iniciar sesión** abre `/
 1. Registrarse con los campos válidos crea una cuenta y lleva al acceso con un aviso de confirmación.
 2. Introducir correo y contraseña correctos inicia una sesión y vuelve a la portada.
 3. **Mi cuenta → Mi perfil** permite cambiar el nombre de usuario, nombre, apellidos, correo y organización, y añadir edad, localidad, descripción o foto de perfil.
-4. El enlace **Ver mi perfil público** muestra esos datos sin revelar el correo electrónico. El nombre de usuario forma parte de su dirección pública.
+4. La dirección `/u/<nombre-de-usuario>` muestra únicamente el nombre de usuario. Los demás datos y la foto solo son accesibles para su propietario.
 5. **Cerrar sesión** elimina la sesión y vuelve al formulario de acceso, según RF2.
 
-Las fotos aceptadas son JPG, PNG y WebP, hasta 5 MB. El servidor valida y convierte las imágenes a WebP, limitando su tamaño a 512 × 512 píxeles. Edad, localidad, descripción, organización y foto son opcionales. Los campos del perfil público, incluida la edad si se indica, pueden ser vistos por otras personas.
+Las fotos aceptadas son JPG, PNG y WebP, hasta 5 MB. El servidor valida y convierte las imágenes a WebP, limitando su tamaño a 512 × 512 píxeles. Edad, localidad, descripción, organización y foto son opcionales y privados. La descarga de la foto comprueba que la sesión corresponde a su propietario; conocer la dirección no concede acceso. Amigos muestra y busca nombres de usuario, sin utilizar correos privados.
 
-Los objetos perdidos/encontrados se mostrarán en el perfil a partir de sus publicaciones cuando esa función esté implementada; no se editan desde el formulario del perfil. Las valoraciones también quedan pendientes. La confirmación de registro no es un correo de verificación y la verificación del correo no está implementada.
+El perfil muestra el resumen de hallazgos publicados, reclamaciones activas y devoluciones completadas, con acceso a publicaciones, reclamaciones, historial y avisos propios. Los hallazgos no se editan desde el formulario del perfil. La devolución se gestiona desde una reclamación; no se ofrecen intercambios independientes ni valoraciones. Sus datos históricos se conservan. La confirmación de registro no es un correo de verificación y la verificación del correo no está implementada.
 
 Las pantallas mantienen los colores y recursos de la portada y funcionan sin JavaScript. JavaScript añade mostrar/ocultar contraseña y enfoque del resumen de errores.
 

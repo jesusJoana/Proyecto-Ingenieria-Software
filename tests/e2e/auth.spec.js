@@ -99,8 +99,8 @@ test('permite registrarse, iniciar sesión y salir desde la portada', async ({
   await page.getByRole('link', { name: 'Mi perfil' }).click();
   await expect(page).toHaveURL(/\/perfil$/);
   await expect(page.getByRole('heading', { name: 'Ana García' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Objetos perdidos', exact: true })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Objetos encontrados', exact: true })).toBeVisible();
+  await expect(page.getByText('Reclamaciones activas', { exact: true })).toBeVisible();
+  await expect(page.getByText('Hallazgos publicados', { exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Guardar cambios' })).toHaveCount(0);
   await page.getByRole('link', { name: 'Editar perfil', exact: true }).first().click();
   await expect(page.getByLabel('Nombre', { exact: true })).toHaveValue('Ana');

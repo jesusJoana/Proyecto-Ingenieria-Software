@@ -220,4 +220,28 @@ I05 publicada en 67b7c41. Criterios de textos, fechas y adjuntos validados por J
 
 Se conserva la cobertura anterior de Amigos y de publicación. La limpieza compartida de fixtures incorpora los adjuntos de reclamaciones y mensajes. Las migraciones 001–013 se mantienen sin cambios y sus pruebas forman parte de la regresión. No se reutilizan las pruebas de Amigos como evidencia del aislamiento del nuevo chat: este dispone de sus propias suites.
 
-I01-P03 superado localmente. La parte de I06 de I01-P04/P05 está verificada; decisiones y transiciones se completan en I07. [Evidencia y límites](evidence/I06-2026-11-09.md). [Guion de revisión manual](../docs/Pruebas_manuales_I06.md). Revisión de Jesús, commit y push pendientes.
+I01-P03 superado localmente. La parte de I06 de I01-P04/P05 está verificada; decisiones y transiciones se completan en I07. [Evidencia y límites](evidence/I06-2026-11-09.md). [Guion de revisión manual](../docs/Pruebas_manuales_I06.md). Jesús ha validado la revisión e I06 está publicada en `06d577d`.
+
+## Preparación de I07
+
+El [diseño de I07](../docs/Implementacion_I07.md) recoge las transiciones aprobadas, el orden de bloqueos, la revisión de migraciones y los casos unitarios, de integración y E2E antes de modificar código. La migración 012 contiene las entidades necesarias; no se modifica ni se añade ninguna migración. I07 está preparada para revisión de Jesús.
+
+Jesús valida sustituir el intercambio independiente por la devolución vinculada a reclamación y retirar las valoraciones de la interfaz, conservando sus datos históricos. Las suites unitarias del módulo anterior se sustituyen por reglas de devolución; su integración HTTP, por comprobaciones de rutas retiradas y conservación de datos. Las vistas comprobarán actividad vigente y ausencia de valoraciones. Las pruebas de reclamación y chat se conservan y se amplían con decisiones reales, concurrencia, avisos, acuerdos de incidencia y devolución.
+
+RF5 exige identidad pública limitada al nombre de usuario. La revisión previa detectó datos personales en perfil público y Amigos, además de avatares servidos públicamente. Se han sustituido esas expectativas por ausencia de datos personales y descarga del avatar solo por su propietario. Se conserva la cobertura de edición propia, solicitudes y chat; la búsqueda de personas utiliza nombres de usuario, sin consultar correos privados.
+
+## Resultado de I07
+
+`npm.cmd run verify` superado el 09/11/2026: **494 pruebas unitarias/integración en 35 archivos y 18 pruebas E2E**. Incluye tres escenarios E2E nuevos de devolución, incidencia y retirada, además de la regresión de autenticación, Amigos, publicaciones y reclamaciones. [Evidencia](evidence/I07-2026-11-09.md) y [guía manual](../docs/Pruebas_manuales_I07.md).
+
+| Cobertura sustituida o ampliada | Resultado vigente |
+| --- | --- |
+| `unit/exchange-service`, `unit/exchange-validation` | Retiradas con su código. `unit/claim-state` prueba la matriz de estados/actores y motivos; `integration/delivery` verifica transacciones, reserva, cancelación, confirmaciones, acuerdos, reintentos y concurrencia. |
+| `unit/exchange-views` | Sustituida por `unit/profile-activity-views`: navegación e identidad conservadas, funciones antiguas ausentes. |
+| `integration/exchange-ratings` | Sustituida por `integration/legacy-exchanges`: rutas retiradas no escriben ni borran históricos, con sesión/CSRF; devolución vigente en `integration/delivery`. |
+| `integration/posts-manage` | Retirada con reclamaciones cierra solicitudes y mantiene acceso e historial; se conserva edición, versiones, estados cerrados y privacidad. |
+| `integration/auth`, `friends-chat`, nueva `profile-privacy` | Perfil propio editable; identidad ajena limitada al usuario; avatares privados, incluidas rutas codificadas; búsqueda sin correo; solicitudes/chat de Amigos conservados. |
+| `unit/notifications`, `integration/activity` | Destinatarios, aislamiento, lectura persistente, paginación, cambios públicos frente a privados y resumen de perfil. |
+| `e2e/delivery`, `e2e/auth` | Tres cuentas, espera/liberación, devolución, acuerdos, retirada, vista móvil, avisos/historial y borrador preservado durante cambios de estado; perfil adaptado al alcance vigente. |
+
+I01-P04–P10 tienen cobertura local superada para el alcance de I07; P01–P03 conservan su regresión. I01-P11 mantiene las verificaciones de otros equipos pendientes; P12 corresponde a I08 y P13 a la aceptación final de I09. La revisión manual de Jesús, su autorización y el commit/push de I07 están pendientes.

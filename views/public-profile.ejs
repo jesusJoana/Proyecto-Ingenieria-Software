@@ -15,34 +15,9 @@
   <%- include('partials/site-header', { current: 'profile' }) %>
   <main id="contenido" class="container auth-main">
     <section class="public-profile-card" aria-labelledby="profile-title">
-      <% if (profile.avatar_filename) { %>
-        <img class="public-profile-avatar" src="/uploads/avatars/<%= profile.avatar_filename %>" alt="Foto de <%= profile.first_name %>" width="144" height="144">
-      <% } else { %>
-        <div class="public-profile-avatar public-profile-avatar-placeholder" aria-hidden="true"><%= profile.first_name.slice(0, 1).toUpperCase() %></div>
-      <% } %>
       <p class="auth-kicker">Perfil público</p>
-      <h1 id="profile-title"><%= profile.first_name %> <%= profile.last_name %></h1>
-      <p class="public-profile-username">@<%= profile.username %></p>
-      <% if (profile.description) { %><p class="public-profile-description"><%= profile.description %></p><% } %>
-      <dl class="public-profile-details">
-        <% if (profile.age !== null) { %><div><dt>Edad</dt><dd><%= profile.age %></dd></div><% } %>
-        <% if (profile.locality) { %><div><dt>Localidad</dt><dd><%= profile.locality %></dd></div><% } %>
-        <% if (profile.organization) { %><div><dt>Organización</dt><dd><%= profile.organization %></dd></div><% } %>
-      </dl>
+      <h1 id="profile-title">@<%= profile.username %></h1>
     </section>
-      <% if (userId && String(userId) !== String(profile.id)) { %>
-        <form class="exchange-proposal" action="/u/<%= encodeURIComponent(profile.username) %>/intercambios" method="post">
-          <h2>Proponer un intercambio</h2>
-          <input type="hidden" name="_csrf" value="<%= csrf %>">
-          <label class="form-label" for="exchange-description">Objeto o detalle</label>
-          <textarea class="form-control" id="exchange-description" name="description" minlength="3" maxlength="300" rows="2" required></textarea>
-          <p>La otra persona tendrá que aceptar la propuesta. La valoración se habilita cuando ambas confirméis que se completó.</p>
-          <button class="btn btn-teal" type="submit">Enviar propuesta</button>
-        </form>
-      <% } else if (!userId) { %>
-        <p class="exchange-sign-in"><a href="/iniciar-sesion">Inicia sesión</a> para proponer un intercambio.</p>
-      <% } %>
-      <%- include('partials/reviews', { rating: profile }) %>
       <a class="btn btn-teal mt-4" href="/">Volver a ReFind</a>
   </main>
   <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>

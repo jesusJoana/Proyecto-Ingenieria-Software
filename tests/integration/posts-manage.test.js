@@ -187,13 +187,26 @@ test("rutas antiguas no permiten cambiar estado ni borrar físicamente", async (
       .expect(404);
   expect((await service.findById(id, f.author.id)).status).toBe("available");
 });
-test("retirada con reclamación pendiente se bloquea hasta I07", async () => {
+test("retirada con reclamación pendiente cierra la solicitud y conserva historial", async () => {
   const id = await publish(f);
   await f.pool.query(
     "INSERT INTO claims(object_id,author_id,claimant_id,description,distinguishing_details,lost_location,date_unknown) VALUES ($1,$2,$3,'Objeto','Detalle','Lugar',true)",
     [id, f.author.id, f.other.id],
   );
-  await withdraw(f.author, id).expect(409);
+  await withdraw(f.author, id).expect(303);
+  expect(
+    (await f.pool.query("SELECT status FROM claims WHERE object_id=$1", [id]))
+      .rows[0].status,
+  ).toBe("closed_withdrawn");
+  expect((await service.findById(id, f.other.id)).status).toBe("withdrawn");
+  expect(
+    (
+      await f.pool.query(
+        "SELECT count(*)::int AS n FROM notifications n JOIN activity_events e ON e.id=n.event_id WHERE e.object_id=$1 AND n.recipient_id=$2",
+        [id, f.other.id],
+      )
+    ).rows[0].n,
+  ).toBe(1);
 });
 test("búsqueda pública no utiliza privados ni interpreta comodines", async () => {
   const id = await publish(f, {

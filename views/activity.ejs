@@ -1,0 +1,7 @@
+<%- include('partials/found-page-start',{section:path==='/avisos'?'notifications':'activity'}) %>
+<h1><%= title %></h1>
+<nav aria-label="Actividad personal"><a href="/actividad">Mi historial</a> · <a href="/avisos">Mis avisos</a> · <a href="/reclamaciones">Mis reclamaciones</a> · <a href="/mis-publicaciones">Mis publicaciones</a></nav>
+<% if(!items.length){ %><p class="mt-3">Todavía no hay actividad en esta página.</p><% } %>
+<% for(const item of items){ %><article class="auth-panel p-3 mt-3"><h2 class="h5"><%= labels[item.action]||'Actividad del hallazgo' %></h2><p><a href="<%= item.claim_id?'/reclamaciones/'+item.claim_id:'/publicaciones/'+item.object_id %>"><%= item.title %></a></p><time><%= new Date(item.created_at).toLocaleString('es-ES') %></time><% if(item.reason){ %><p class="text-break">Motivo: <%= item.reason %></p><% } %><% if(item.notification_id){ %><% if(item.read_at){ %><p>Leído</p><% }else{ %><form method="post" action="/avisos/<%= item.notification_id %>/leido"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-outline-secondary mt-2">Marcar como leído</button></form><% } %><% } %></article><% } %>
+<nav class="mt-3" aria-label="Paginación"><% if(page>1){ %><a href="<%= path %>?page=<%= page-1 %>">Anterior</a><% } %> <% if(hasNext){ %><a href="<%= path %>?page=<%= page+1 %>">Siguiente</a><% } %></nav>
+<%- include('partials/found-page-end') %>

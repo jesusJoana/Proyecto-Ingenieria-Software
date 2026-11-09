@@ -19,6 +19,8 @@ import { createMailer } from "./mail.js";
 import { blockLegacyPostPhotos } from "./posts/legacy-photo-privacy.js";
 import { createPostsService } from "./posts/service.js";
 import { createClaimsRouter } from "./claims/routes.js";
+import { createActivityRouter } from "./activity/routes.js";
+import { protectAvatars } from "./auth/avatar-privacy.js";
 import { CATEGORIES, STATUSES } from "./posts/validation.js";
 
 // Carpeta raíz del proyecto, para localizar vistas y recursos.
@@ -60,10 +62,11 @@ export function createApp(config, { mailer = createMailer(config) } = {}) {
     express.static(path.join(root, "node_modules", "leaflet", "dist")),
   );
   app.use(blockLegacyPostPhotos);
+  app.use(sessions.middleware);
+  app.use(protectAvatars(pool));
   app.use(express.static(path.join(root, "public")));
 
   // Sesiones de usuario.
-  app.use(sessions.middleware);
 
   // Dejar disponible en todas las vistas si hay un usuario conectado.
   app.use(async (req, res, next) => {
@@ -91,6 +94,7 @@ export function createApp(config, { mailer = createMailer(config) } = {}) {
   app.use(createFriendsRouter(pool));
   app.use(createPostsRouter(pool, config.APP_ENV));
   app.use(createClaimsRouter(pool, config.APP_ENV));
+  app.use(createActivityRouter(pool));
 
   // Página de inicio.
   app.get("/", async (req, res) => {

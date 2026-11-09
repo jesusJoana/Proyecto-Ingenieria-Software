@@ -15,84 +15,8 @@
   <%- include('partials/icons') %>
   <%- include('partials/site-header', { current: 'profile' }) %>
   <main id="contenido" class="container auth-main profile-main">
-<nav class="profile-tabs" aria-label="Secciones de tu cuenta"><a href="/perfil" aria-current="page">Mi perfil</a><a href="/perfil/editar" >Editar perfil</a></nav><section class="profile-overview" aria-labelledby="profile-title"><div class="profile-cover"><span>Tu comunidad, más cerca</span></div><div class="profile-overview-body"><div class="profile-identity"><div class="profile-avatar-preview"><% if (avatarFilename) { %><img src="/uploads/avatars/<%= avatarFilename %>" alt="Foto de perfil" width="112" height="112"><% } else { %><span class="profile-avatar-placeholder" aria-hidden="true"><%= (values.first_name || 'R').slice(0,1).toUpperCase() %></span><% } %></div><div><p class="auth-kicker">Mi perfil</p><h1 id="profile-title"><%= values.first_name %> <%= values.last_name %></h1><p class="profile-handle">@<%= values.username %></p></div><a class="btn btn-teal profile-edit-button" href="/perfil/editar">Editar perfil ↗</a></div><p class="profile-bio"><%= values.description || 'Añade una presentación desde Editar perfil para que la comunidad te conozca mejor.' %></p><dl class="profile-facts"><div><dt>Localidad</dt><dd><%= values.locality || 'Sin indicar' %></dd></div><div><dt>Organización</dt><dd><%= values.organization || 'Sin indicar' %></dd></div><% if (values.age) { %><div><dt>Edad</dt><dd><%= values.age %> años</dd></div><% } %></dl></div></section><div class="profile-stats" aria-label="Resumen de actividad"><div><strong><%= exchangeRecords.filter(e => e.status === 'completed').length %></strong><span>Intercambios completados</span></div><div><strong><%= exchangeRecords.filter(e => e.status !== 'completed').length %></strong><span>Intercambios en curso</span></div><div><strong><%= rating.reviewCount ? rating.averageRating.toFixed(1) + ' / 5' : '—' %></strong><span><%= rating.reviewCount %> valoraciones recibidas</span></div></div>        <% if (exchangeNotice === 'solicitado') { %><div class="alert alert-success" role="status">Propuesta enviada. La otra persona debe aceptarla y ambas confirmar el intercambio.</div><% } %>
-        <% if (exchangeNotice === 'aceptado') { %><div class="alert alert-success" role="status">Propuesta aceptada. Cuando se complete, las dos personas deben confirmarlo.</div><% } %>
-        <% if (exchangeNotice === 'confirmacion-pendiente') { %><div class="alert alert-info" role="status">Tu confirmación está guardada; falta la de la otra persona.</div><% } %>
-        <% if (exchangeNotice === 'completado') { %><div class="alert alert-success" role="status">Intercambio completado. Ya podéis valorarlo.</div><% } %>
-        <% if (exchangeNotice === 'no-disponible') { %><div class="alert alert-warning" role="status">Ese intercambio ya no está disponible para esa acción.</div><% } %>
-        <% if (reviewNotice === 'publicada') { %><div class="alert alert-success" role="status">Tu valoración se ha publicado y no se puede editar.</div><% } %>
-        <% if (reviewNotice === 'ya-enviada') { %><div class="alert alert-info" role="status">Ya has valorado ese intercambio.</div><% } %>
-    <div class="profile-section-heading">
-      <div><p class="auth-kicker">Cada objeto tiene una historia</p><h2>Mis objetos</h2></div>
-      <p>Busca lo que has perdido y consulta los hallazgos que has publicado.</p>
-    </div>
-    <div class="profile-objects">
-      <section class="object-collection object-collection-lost" aria-labelledby="lost-objects-title">
-        <header class="object-collection-heading">
-          <span class="object-section-icon"><svg class="icon" aria-hidden="true"><use href="#icon-search"></use></svg></span>
-          <div><p>Lo que estás buscando</p><h3 id="lost-objects-title">Objetos perdidos</h3></div>
-        </header>
-        <div class="object-empty-state">
-          <div class="object-empty-art" aria-hidden="true"><svg class="icon"><use href="#icon-backpack"></use></svg><span>?</span></div>
-          <h4>¿Has perdido algo?</h4>
-          <p>Consulta los hallazgos publicados por la comunidad.</p>
-        </div>
-        <footer><a href="/publicaciones">Buscar mi objeto</a></footer>
-      </section>
-      <section class="object-collection object-collection-found" aria-labelledby="found-objects-title">
-        <header class="object-collection-heading">
-          <span class="object-section-icon"><svg class="icon" aria-hidden="true"><use href="#icon-pin"></use></svg></span>
-          <div><p>Lo que puede volver a casa</p><h3 id="found-objects-title">Objetos encontrados</h3></div>
-        </header>
-        <div class="object-empty-state">
-          <div class="object-empty-art" aria-hidden="true"><svg class="icon"><use href="#icon-key"></use></svg><span>✓</span></div>
-          <h4>Tus hallazgos publicados</h4>
-          <p>Consulta y gestiona tus objetos encontrados desde Mis publicaciones.</p>
-        </div>
-        <footer><a href="/mis-publicaciones">Mis publicaciones</a></footer>
-      </section>
-    </div>
-    <section class="exchange-section" aria-labelledby="exchange-title">
-      <div class="section-heading">
-        <div><p class="auth-kicker">Actividad entre personas</p><h2 id="exchange-title">Intercambios</h2></div>
-        <span class="exchange-count"><%= exchangeRecords.length %></span>
-      </div>
-      <% if (!exchangeRecords.length) { %>
-        <p class="exchange-empty">Todavía no tienes intercambios propuestos.</p>
-      <% } %>
-      <div class="exchange-list">
-        <% exchangeRecords.forEach(exchange => { %>
-          <article class="exchange-item">
-            <div class="exchange-item-heading">
-              <div><h3><a href="/u/<%= encodeURIComponent(exchange.other_username) %>">@<%= exchange.other_username %></a></h3><p><%= exchange.description %></p></div>
-              <span class="exchange-status status-<%= exchange.status %>"><%= exchange.status === 'pending' ? 'Pendiente' : exchange.status === 'accepted' ? 'Aceptado' : 'Completado' %></span>
-            </div>
-            <% if (exchange.status === 'pending' && exchange.is_recipient) { %>
-              <form action="/intercambios/<%= exchange.id %>/aceptar" method="post"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-teal" type="submit">Aceptar propuesta</button></form>
-            <% } else if (exchange.status === 'pending') { %>
-              <p class="exchange-hint">Esperando a que acepten la propuesta.</p>
-            <% } else if (exchange.status === 'accepted' && !exchange.my_confirmed_at) { %>
-              <form action="/intercambios/<%= exchange.id %>/confirmar" method="post"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-teal" type="submit">Confirmar que se completó</button></form>
-            <% } else if (exchange.status === 'accepted') { %>
-              <p class="exchange-hint">Has confirmado; falta la confirmación de la otra persona.</p>
-            <% } else if (exchange.status === 'completed' && !exchange.reviewed_by_me) { %>
-              <form class="exchange-review-form" action="/intercambios/<%= exchange.id %>/valoraciones" method="post">
-                <input type="hidden" name="_csrf" value="<%= csrf %>">
-                <fieldset class="star-picker"><legend>Tu valoración</legend><div class="star-picker-options">
-                  <% [1, 2, 3, 4, 5].forEach(star => { %><label><input type="radio" name="rating" value="<%= star %>" required><span aria-hidden="true">★</span><span class="visually-hidden"><%= star %> <%= star === 1 ? 'estrella' : 'estrellas' %></span></label><% }); %>
-                </div></fieldset>
-                <label class="form-label" for="review-<%= exchange.id %>">Comentario</label>
-                <textarea class="form-control" id="review-<%= exchange.id %>" name="comment" maxlength="1000" rows="3" required></textarea>
-                <button class="btn btn-teal" type="submit">Publicar valoración</button>
-              </form>
-            <% } else if (exchange.status === 'completed') { %>
-              <p class="exchange-hint">Ya has valorado este intercambio.</p>
-            <% } %>
-          </article>
-        <% }); %>
-      </div>
-    </section>
-    <%- include('partials/reviews', { rating }) %>
+<nav class="profile-tabs" aria-label="Secciones de tu cuenta"><a href="/perfil" aria-current="page">Mi perfil</a><a href="/perfil/editar" >Editar perfil</a></nav><section class="profile-overview" aria-labelledby="profile-title"><div class="profile-cover"><span>Tu comunidad, más cerca</span></div><div class="profile-overview-body"><div class="profile-identity"><div class="profile-avatar-preview"><% if (avatarFilename) { %><img src="/uploads/avatars/<%= avatarFilename %>" alt="Foto de perfil" width="112" height="112"><% } else { %><span class="profile-avatar-placeholder" aria-hidden="true"><%= (values.first_name || 'R').slice(0,1).toUpperCase() %></span><% } %></div><div><p class="auth-kicker">Mi perfil</p><h1 id="profile-title"><%= values.first_name %> <%= values.last_name %></h1><p class="profile-handle">@<%= values.username %></p></div><a class="btn btn-teal profile-edit-button" href="/perfil/editar">Editar perfil ↗</a></div><p class="profile-bio"><%= values.description || 'Puedes completar tus datos privados desde Editar perfil.' %></p><dl class="profile-facts"><div><dt>Localidad</dt><dd><%= values.locality || 'Sin indicar' %></dd></div><div><dt>Organización</dt><dd><%= values.organization || 'Sin indicar' %></dd></div><% if (values.age) { %><div><dt>Edad</dt><dd><%= values.age %> años</dd></div><% } %></dl></div></section><div class="profile-stats" aria-label="Resumen de actividad"><div><strong><%= activitySummary.publications %></strong><span>Hallazgos publicados</span></div><div><strong><%= activitySummary.active %></strong><span>Reclamaciones activas</span></div><div><strong><%= activitySummary.completed %></strong><span>Devoluciones completadas</span></div></div>
+<nav aria-label="Mi actividad"><a href="/mis-publicaciones">Mis publicaciones</a> · <a href="/reclamaciones">Mis reclamaciones</a> · <a href="/actividad">Mi historial</a> · <a href="/avisos">Mis avisos</a></nav>
   </main>
   <script src="/vendor/bootstrap/js/bootstrap.bundle.min.js"></script>
 </body>

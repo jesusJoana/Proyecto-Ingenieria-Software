@@ -10,6 +10,7 @@ import {
   CLAIM_STATUSES,
 } from "./validation.js";
 import { today } from "../posts/validation.js";
+import { createDeliveryService } from "../delivery/service.js";
 import {
   parseAttachments,
   saveAttachments,
@@ -20,6 +21,7 @@ import {
 export function createClaimsRouter(pool, mode) {
   const router = Router(),
     service = createClaimsService(pool);
+  const deliveryService = createDeliveryService(pool);
   const auth = (req, res, next) =>
     req.session.userId ? next() : res.redirect(303, "/iniciar-sesion");
   router.use(
@@ -37,21 +39,25 @@ export function createClaimsRouter(pool, mode) {
     next();
   };
   function form(req, res, info, errors = {}, status = 200) {
-    return res
-      .status(status)
-      .render("claim-new", {
-        title: "Reclamar objeto",
-        info,
-        values: claimFormValues(req.body),
-        errors,
-        maxDate: today(),
-        csrf: csrfToken(req),
-      });
+    return res.status(status).render("claim-new", {
+      title: "Reclamar objeto",
+      info,
+      values: claimFormValues(req.body),
+      errors,
+      maxDate: today(),
+      csrf: csrfToken(req),
+    });
   }
   async function thread(
     req,
     res,
-    { errors = {}, status = 200, draft = "" } = {},
+    {
+      errors = {},
+      status = 200,
+      draft = "",
+      actionError = "",
+      actionReason = "",
+    } = {},
   ) {
     const claim = await service.get(req.params.id, req.session.userId),
       before = req.query.before;
@@ -60,19 +66,20 @@ export function createClaimsRouter(pool, mode) {
     const result = await service.messages(claim.id, req.session.userId, {
       before: before || null,
     });
-    return res
-      .status(status)
-      .render("claim-detail", {
-        title: "Reclamación y conversación",
-        claim,
-        evidence: await service.evidence(claim.id, req.session.userId),
-        ...result,
-        errors,
-        draft,
-        older: Boolean(before),
-        statuses: CLAIM_STATUSES,
-        csrf: csrfToken(req),
-      });
+    return res.status(status).render("claim-detail", {
+      title: "Reclamación y conversación",
+      claim,
+      delivery: await deliveryService.details(claim.id, req.session.userId),
+      actionError,
+      actionReason,
+      evidence: await service.evidence(claim.id, req.session.userId),
+      ...result,
+      errors,
+      draft,
+      older: Boolean(before),
+      statuses: CLAIM_STATUSES,
+      csrf: csrfToken(req),
+    });
   }
   router.get("/publicaciones/:objectId/reclamar", idCheck, async (req, res) => {
     const info = await service.context(req.params.objectId, req.session.userId);
@@ -132,6 +139,53 @@ export function createClaimsRouter(pool, mode) {
     });
   });
   router.get("/reclamaciones/:id", idCheck, (req, res) => thread(req, res));
+  router.post(
+    "/reclamaciones/:id/acciones/:action",
+    idCheck,
+    verifyCsrf,
+    async (req, res) => {
+      try {
+        if (
+          ["confirm", "agree"].includes(req.params.action) &&
+          req.body.confirm !== "1"
+        )
+          throw new ClaimError(422, "Confirma expresamente la acción.");
+        if (
+          req.params.action === "agree" &&
+          !isValidClaimId(req.body.incidentId)
+        )
+          throw new ClaimError(422, "Incidencia no válida.");
+        if (
+          req.params.action === "confirm" &&
+          req.body.cycle !== "0" &&
+          !isValidClaimId(req.body.cycle)
+        )
+          throw new ClaimError(422, "Referencia de confirmación no válida.");
+        await deliveryService.act(
+          req.params.id,
+          req.session.userId,
+          req.params.action,
+          {
+            reason: req.body.reason ?? "",
+            incidentId: req.body.incidentId,
+            cycle: req.body.cycle,
+          },
+        );
+        res.redirect(303, `/reclamaciones/${req.params.id}`);
+      } catch (e) {
+        if (e instanceof ClaimError && [409, 422].includes(e.status))
+          return thread(req, res, {
+            status: e.status,
+            actionError: e.message,
+            actionReason:
+              typeof req.body.reason === "string"
+                ? req.body.reason.slice(0, 1000)
+                : "",
+          });
+        throw e;
+      }
+    },
+  );
   router.get("/reclamaciones/:id/mensajes.json", idCheck, async (req, res) => {
     const after = req.query.after;
     if (after !== undefined && after !== "0" && !isValidClaimId(after))
@@ -201,23 +255,19 @@ export function createClaimsRouter(pool, mode) {
       { cacheControl: false },
       (error) => {
         if (error && !res.headersSent)
-          res
-            .status(error.status === 404 ? 404 : 500)
-            .render("error", {
-              title: "Archivo no disponible",
-              message: "No se puede descargar el archivo.",
-            });
+          res.status(error.status === 404 ? 404 : 500).render("error", {
+            title: "Archivo no disponible",
+            message: "No se puede descargar el archivo.",
+          });
       },
     );
   });
   router.use((error, req, res, next) => {
     if (!(error instanceof ClaimError)) return next(error);
-    res
-      .status(error.status)
-      .render("error", {
-        title: "No se puede realizar la acción",
-        message: error.message,
-      });
+    res.status(error.status).render("error", {
+      title: "No se puede realizar la acción",
+      message: error.message,
+    });
   });
   return router;
 }

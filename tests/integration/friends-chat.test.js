@@ -105,7 +105,7 @@ describe("Amigos y chat", () => {
     const [ana, bea, cora, dani] = people;
     const search = await ana.agent
       .get("/amigos")
-      .query({ q: bea.email })
+      .query({ q: bea.username })
       .expect(200);
     const resultRow = search.text.match(
       /<article class="friend-row">[\s\S]*?<\/article>/,

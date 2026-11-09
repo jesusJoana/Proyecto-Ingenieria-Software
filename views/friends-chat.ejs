@@ -20,8 +20,8 @@
     <section class="chat-panel" aria-labelledby="chat-title" data-chat data-friend-id="<%= conversation.user_id %>" data-user-id="<%= userId %>" data-csrf="<%= csrf %>">
       <header class="chat-heading">
         <a class="chat-back" href="/amigos" aria-label="Volver a Amigos">←</a>
-        <% if (conversation.avatar_filename) { %><img class="friend-avatar" src="/uploads/avatars/<%= conversation.avatar_filename %>" alt="" width="48" height="48"><% } else { %><span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= conversation.first_name.slice(0, 1).toUpperCase() %></span><% } %>
-        <div><p class="auth-kicker">Conversación privada</p><h1 id="chat-title"><%= conversation.first_name %> <%= conversation.last_name %></h1><p>@<%= conversation.username %></p></div>
+        <span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= conversation.username.slice(0, 1).toUpperCase() %></span>
+        <div><p class="auth-kicker">Conversación privada</p><h1 id="chat-title">@<%= conversation.username %></h1><p>@<%= conversation.username %></p></div>
       </header>
       <ol class="chat-messages" data-messages aria-live="polite" aria-label="Historial de mensajes">
         <% if (!messages.length) { %><li class="chat-empty" data-empty>Este es el comienzo de la conversación.</li><% } %>

@@ -139,9 +139,9 @@ describe('Formularios reales', () => {
     const publicPage = await request(app)
       .get(`/u/${user.username}`)
       .expect(200);
-    expect(publicPage.text).toContain('Ana María García');
+    expect(publicPage.text).not.toContain('Ana María García');
     expect(publicPage.text).toContain('@' + user.username);
-    expect(publicPage.text).toContain('Me gusta ayudar a mi comunidad.');
+    expect(publicPage.text).not.toContain('Me gusta ayudar a mi comunidad.');
     expect(publicPage.text).not.toContain(data.email);
     await request(app).get(`/u/${user.username}-missing`).expect(404);
     await agent
@@ -199,7 +199,8 @@ describe('Formularios reales', () => {
       [data.email],
     );
     expect(user.avatar_filename).toMatch(/^[a-f0-9-]{36}\.webp$/);
-    await request(app)
+    await request(app).get(`/uploads/avatars/${user.avatar_filename}`).expect(404);
+    await agent
       .get(`/uploads/avatars/${user.avatar_filename}`)
       .expect(200)
       .expect('Content-Type', /image\/webp/);

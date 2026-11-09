@@ -1,0 +1,23 @@
+<section class="auth-panel p-3 my-3" aria-labelledby="actions-title">
+<h2 id="actions-title">Gestión de la reclamación</h2>
+<% const isAuthor=String(userId)===String(claim.author_id), partial=delivery.claim.author_confirmed_at||delivery.claim.claimant_confirmed_at; const openIncident=delivery.incidents.find(i=>!i.resolved_at); %>
+<% if(actionError){ %><div class="alert alert-danger" role="alert"><%= actionError %></div><% } %>
+<% if(claim.status==='pending'&&isAuthor){ %>
+<form method="post" action="/reclamaciones/<%= claim.id %>/acciones/accept"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-teal">Aceptar reclamación y reservar</button></form>
+<form class="mt-3" method="post" action="/reclamaciones/<%= claim.id %>/acciones/reject"><input type="hidden" name="_csrf" value="<%= csrf %>"><label for="reject-reason">Motivo del rechazo</label><textarea class="form-control" id="reject-reason" name="reason" required maxlength="1000"><%= actionReason %></textarea><button class="btn btn-outline-danger mt-2">Rechazar reclamación</button></form>
+<% } %>
+<% if((!isAuthor&&['pending','waiting'].includes(claim.status))||(claim.status==='accepted'&&!partial)){ %>
+<form class="mt-3" method="post" action="/reclamaciones/<%= claim.id %>/acciones/cancel"><input type="hidden" name="_csrf" value="<%= csrf %>"><label for="cancel-reason">Motivo de la cancelación</label><textarea class="form-control" id="cancel-reason" name="reason" required maxlength="1000"><%= actionReason %></textarea><button class="btn btn-outline-danger mt-2">Cancelar <%= claim.status==='accepted'?'reserva':'solicitud' %></button></form>
+<% } %>
+<% if(['accepted','completed'].includes(claim.status)){ %>
+<p class="mt-3">Entrega: <%= delivery.claim.author_confirmed_at?'confirmada':'pendiente de confirmar por el autor' %>. Recepción: <%= delivery.claim.claimant_confirmed_at?'confirmada':'pendiente de confirmar por el reclamante' %>.</p>
+<% if(claim.status==='accepted'&&!(isAuthor?delivery.claim.author_confirmed_at:delivery.claim.claimant_confirmed_at)){ %><form method="post" action="/reclamaciones/<%= claim.id %>/acciones/confirm"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="cycle" value="<%= delivery.cycle %>"><p>Confirma únicamente cuando hayas <%= isAuthor?'entregado':'recibido' %> el objeto. Una confirmación mantiene la reserva; ambas completan la devolución.</p><label><input type="checkbox" name="confirm" value="1" required> Confirmo que he <%= isAuthor?'entregado':'recibido' %> el objeto</label><button class="btn btn-teal d-block mt-2">Confirmar <%= isAuthor?'entrega':'recepción' %></button></form><% } %>
+<% } %>
+<% if(claim.status==='accepted'&&partial){ %><p class="mt-3">La reserva se mantiene. No puede cancelarse unilateralmente mientras exista una confirmación.</p>
+<% if(!openIncident){ %><form method="post" action="/reclamaciones/<%= claim.id %>/acciones/incident"><input type="hidden" name="_csrf" value="<%= csrf %>"><label for="incident-reason">Motivo de la incidencia</label><textarea class="form-control" id="incident-reason" name="reason" maxlength="1000" required><%= actionReason %></textarea><button class="btn btn-outline-secondary mt-2">Registrar incidencia</button></form><% } else { %>
+<p class="text-break">Incidencia: <%= openIncident.reason %></p><p>Acuerdo del autor: <%= openIncident.author_agreed_at?'sí':'pendiente' %>. Acuerdo del reclamante: <%= openIncident.claimant_agreed_at?'sí':'pendiente' %>.</p>
+<% if(!(isAuthor?openIncident.author_agreed_at:openIncident.claimant_agreed_at)){ %><form method="post" action="/reclamaciones/<%= claim.id %>/acciones/agree"><input type="hidden" name="_csrf" value="<%= csrf %>"><input type="hidden" name="incidentId" value="<%= openIncident.id %>"><label><input type="checkbox" name="confirm" value="1" required> Acepto anular la confirmación registrada</label><button class="btn btn-outline-danger d-block mt-2">Acordar anulación</button></form><% } %><% } %><% } %>
+<% if(claim.status==='waiting'){ %><p>Tu reclamación está en espera mientras el objeto está reservado. Puedes seguir conversando o cancelar tu solicitud.</p><% } %>
+<% if(!writable){ %><p>Esta reclamación está cerrada. Puedes consultar la conversación y el historial.</p><% } %>
+<a class="d-inline-block mt-3" href="/actividad">Consultar mi historial</a>
+</section>

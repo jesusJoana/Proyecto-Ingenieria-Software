@@ -204,22 +204,26 @@ export function createPostsService(pool) {
             409,
             "Solo se puede retirar un hallazgo disponible.",
           );
-        if (
-          (
-            await c.query("SELECT 1 FROM claims WHERE object_id=$1 LIMIT 1", [
-              id,
-            ])
-          ).rowCount
-        )
-          throw new PostError(
-            409,
-            "La retirada de hallazgos con reclamaciones aún no está disponible.",
+        const { rows: claims } = await c.query(
+          "SELECT id,claimant_id FROM claims WHERE object_id=$1 AND status IN ('pending','waiting') ORDER BY id FOR UPDATE",
+          [id],
+        );
+        for (const claim of claims) {
+          await c.query(
+            "UPDATE claims SET status='closed_withdrawn',updated_at=now() WHERE id=$1",
+            [claim.id],
           );
+        }
         await c.query(
           "UPDATE found_objects SET status='withdrawn',withdrawal_reason=$2,updated_at=now() WHERE id=$1",
           [id, reason],
         );
-        await event(c, id, author, "withdrawn", { reason });
+        const eid = await event(c, id, author, "withdrawn", { reason });
+        for (const claim of claims)
+          await c.query(
+            "INSERT INTO notifications(recipient_id,event_id) VALUES($1,$2) ON CONFLICT DO NOTHING",
+            [claim.claimant_id, eid],
+          );
         return { id };
       });
     },

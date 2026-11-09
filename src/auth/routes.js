@@ -15,18 +15,14 @@ import {
   fieldErrors,
 } from './validation.js';
 import { createAuthService } from './service.js';
-import { createExchangeService } from '../exchanges/service.js';
-import {
-  exchangeProposalSchema,
-  exchangeReviewSchema,
-} from '../exchanges/validation.js';
+import { createActivityService } from '../activity/service.js';
 import { csrfToken, verifyCsrf, createAuthLimiter } from './security.js';
 import { startSession, endSession, requireAuth } from '../session.js';
 
 export function createAuthRouter(pool) {
   const router = Router();
   const service = createAuthService(pool);
-  const exchanges = createExchangeService(pool);
+  const activity = createActivityService(pool);
   const limit = createAuthLimiter();
   const avatarDirectory = fileURLToPath(
     new URL('../../public/uploads/avatars/', import.meta.url),
@@ -108,24 +104,28 @@ export function createAuthRouter(pool) {
     }
   }
   async function renderProfilePage(req, res, options) {
-    const [exchangeRecords, rating] = await Promise.all([
-      exchanges.getForUser(req.session.userId),
-      exchanges.getRatingSummary(req.session.userId),
-    ]);
+    const activitySummary = await activity.summary(req.session.userId);
     res.set('Cache-Control', 'no-store');
-    return res.status(options.status ?? 200).render(options.edit || options.errors || options.saved ? 'profile-edit' : 'profile', {
-      title: options.edit || options.errors || options.saved ? 'Editar perfil' : 'Mi perfil',
-      values: options.values,
-      errors: options.errors ?? {},
-      csrf: csrfToken(req),
-      saved: options.saved ?? false,
-      avatarFilename: options.avatarFilename ?? null,
-      publicProfileUrl: options.publicProfileUrl,
-      exchangeRecords,
-      rating,
-      exchangeNotice: req.query.intercambio ?? null,
-      reviewNotice: req.query.valoracion ?? null,
-    });
+    return res
+      .status(options.status ?? 200)
+      .render(
+        options.edit || options.errors || options.saved
+          ? 'profile-edit'
+          : 'profile',
+        {
+          title:
+            options.edit || options.errors || options.saved
+              ? 'Editar perfil'
+              : 'Mi perfil',
+          values: options.values,
+          errors: options.errors ?? {},
+          csrf: csrfToken(req),
+          saved: options.saved ?? false,
+          avatarFilename: options.avatarFilename ?? null,
+          publicProfileUrl: options.publicProfileUrl,
+          activitySummary,
+        },
+      );
   }
   async function avatarError(req, res, error, profile) {
     if (error.code !== 'INVALID_AVATAR') return false;
@@ -180,116 +180,26 @@ export function createAuthRouter(pool) {
         title: 'Perfil no encontrado',
         message: 'No se ha encontrado ese perfil.',
       });
-    const rating = await exchanges.getRatingSummary(profile.id);
     return res.render('public-profile', {
       title: profile.username,
-      profile: { ...profile, ...rating },
+      profile,
     });
   });
+  // Historical exchange/rating tables are retained; no new writes through obsolete routes.
   router.post(
-    '/u/:username/intercambios',
+    [
+      '/u/:username/intercambios',
+      '/intercambios/:exchangeId/aceptar',
+      '/intercambios/:exchangeId/confirmar',
+      '/intercambios/:exchangeId/valoraciones',
+    ],
     requireAuth,
     verifyCsrf,
-    async (req, res) => {
-      const result = exchangeProposalSchema.safeParse(req.body);
-      if (!result.success)
-        return res.status(422).render('error', {
-          title: 'No se pudo proponer el intercambio',
-          message: result.error.issues[0].message,
-        });
-      try {
-        await exchanges.create(
-          req.session.userId,
-          req.params.username,
-          result.data.description,
-        );
-        return res.redirect(303, '/perfil?intercambio=solicitado');
-      } catch (error) {
-        if (error.code !== 'EXCHANGE_TARGET_INVALID') throw error;
-        return res.status(404).render('error', {
-          title: 'No se pudo proponer el intercambio',
-          message: error.message,
-        });
-      }
-    },
-  );
-  router.post(
-    '/intercambios/:exchangeId/aceptar',
-    requireAuth,
-    verifyCsrf,
-    async (req, res) => {
-      if (!isValidExchangeId(req.params.exchangeId))
-        return res.status(404).render('error', {
-          title: 'Intercambio no encontrado',
-          message: 'No se ha encontrado ese intercambio.',
-        });
-      const exchange = await exchanges.accept(
-        req.params.exchangeId,
-        req.session.userId,
-      );
-      if (!exchange)
-        return res.redirect(303, '/perfil?intercambio=no-disponible');
-      return res.redirect(303, '/perfil?intercambio=aceptado');
-    },
-  );
-  router.post(
-    '/intercambios/:exchangeId/confirmar',
-    requireAuth,
-    verifyCsrf,
-    async (req, res) => {
-      if (!isValidExchangeId(req.params.exchangeId))
-        return res.status(404).render('error', {
-          title: 'Intercambio no encontrado',
-          message: 'No se ha encontrado ese intercambio.',
-        });
-      const exchange = await exchanges.confirm(
-        req.params.exchangeId,
-        req.session.userId,
-      );
-      if (!exchange)
-        return res.redirect(303, '/perfil?intercambio=no-disponible');
-      return res.redirect(
-        303,
-        exchange.status === 'completed'
-          ? '/perfil?intercambio=completado'
-          : '/perfil?intercambio=confirmacion-pendiente',
-      );
-    },
-  );
-  router.post(
-    '/intercambios/:exchangeId/valoraciones',
-    requireAuth,
-    verifyCsrf,
-    async (req, res) => {
-      if (!isValidExchangeId(req.params.exchangeId))
-        return res.status(404).render('error', {
-          title: 'Intercambio no encontrado',
-          message: 'No se ha encontrado ese intercambio.',
-        });
-      const result = exchangeReviewSchema.safeParse(req.body);
-      if (!result.success)
-        return res.status(422).render('error', {
-          title: 'No se pudo publicar la valoración',
-          message: result.error.issues[0].message,
-        });
-      try {
-        await exchanges.review(
-          req.params.exchangeId,
-          req.session.userId,
-          result.data,
-        );
-        return res.redirect(303, '/perfil?valoracion=publicada');
-      } catch (error) {
-        if (error.code === 'REVIEW_EXISTS')
-          return res.redirect(303, '/perfil?valoracion=ya-enviada');
-        if (error.code === 'REVIEW_NOT_ALLOWED')
-          return res.status(403).render('error', {
-            title: 'Valoración no disponible',
-            message: error.message,
-          });
-        throw error;
-      }
-    },
+    (req, res) =>
+      res.status(410).render('error', {
+        title: 'Función retirada',
+        message: 'La devolución se gestiona desde la reclamación del hallazgo.',
+      }),
   );
   router.post(
     '/perfil',
@@ -427,9 +337,4 @@ export function createAuthRouter(pool) {
     res.redirect(303, '/iniciar-sesion');
   });
   return router;
-}
-
-function isValidExchangeId(value) {
-  if (!/^[1-9]\d{0,18}$/.test(value)) return false;
-  return BigInt(value) <= 9223372036854775807n;
 }

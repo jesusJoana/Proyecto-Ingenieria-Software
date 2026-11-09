@@ -1,4 +1,10 @@
-import { participant, canWrite, ACTIVE_STATUSES } from "./validation.js";
+import {
+  participant,
+  canWrite,
+  ACTIVE_STATUSES,
+  CLAIM_STATUSES,
+} from "./validation.js";
+import { recordActivity, recipients } from "../activity/service.js";
 export class ClaimError extends Error {
   constructor(status, message) {
     super(message);
@@ -16,7 +22,7 @@ export function assertWritable(claim) {
       "La conversación está cerrada y solo permite consulta.",
     );
 }
-const selection = `c.id,c.object_id,c.author_id,c.claimant_id,c.description,c.distinguishing_details,c.lost_location,c.date_unknown,to_char(c.lost_from,'YYYY-MM-DD') AS lost_from,to_char(c.lost_until,'YYYY-MM-DD') AS lost_until,c.additional_information,c.previous_claim_id,c.status,c.created_at,c.decision_reason,f.object_type || ' encontrado en ' || f.campus AS title,au.username AS author_username,cu.username AS claimant_username`;
+const selection = `c.id,c.object_id,c.author_id,c.claimant_id,c.description,c.distinguishing_details,c.lost_location,c.date_unknown,to_char(c.lost_from,'YYYY-MM-DD') AS lost_from,to_char(c.lost_until,'YYYY-MM-DD') AS lost_until,c.additional_information,c.previous_claim_id,c.status,c.created_at,c.updated_at,c.decision_reason,f.object_type || ' encontrado en ' || f.campus AS title,au.username AS author_username,cu.username AS claimant_username`;
 const joins =
   "FROM claims c JOIN found_objects f ON f.id=c.object_id JOIN users au ON au.id=c.author_id JOIN users cu ON cu.id=c.claimant_id";
 export function createClaimsService(pool) {
@@ -179,6 +185,8 @@ export function createClaimsService(pool) {
         messages: items,
         more,
         status: claim.status,
+        statusLabel: CLAIM_STATUSES[claim.status],
+        revision: claim.updated_at,
         writable: canWrite(claim),
       };
     },
@@ -199,6 +207,13 @@ export function createClaimsService(pool) {
           message.id,
           files,
         );
+        await recordActivity(c, {
+          objectId: claim.object_id,
+          claimId: claim.id,
+          actor: user,
+          action: "message",
+          notify: recipients(claim, user),
+        });
         return message;
       });
     },

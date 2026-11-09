@@ -46,8 +46,8 @@
     <section class="friends-section" aria-labelledby="search-title">
       <div class="friends-section-heading"><div><p class="auth-kicker">Encuentra a tu gente</p><h2 id="search-title">Buscar usuarios</h2></div></div>
       <form class="friends-search" action="/amigos" method="get">
-        <label class="visually-hidden" for="friends-query">Nombre de usuario o correo electrónico</label>
-        <input class="form-control" id="friends-query" name="q" type="search" value="<%= query %>" placeholder="Usuario o correo electrónico" maxlength="100" autocomplete="off">
+        <label class="visually-hidden" for="friends-query">Nombre de usuario</label>
+        <input class="form-control" id="friends-query" name="q" type="search" value="<%= query %>" placeholder="Nombre de usuario" maxlength="100" autocomplete="off">
         <button class="btn btn-teal" type="submit">Buscar</button>
       </form>
       <% if (query.length >= 2) { %>
@@ -56,8 +56,8 @@
             <% searchResults.forEach(person => { %>
               <article class="friend-row">
                 <div class="friend-identity">
-                  <% if (person.avatar_filename) { %><img class="friend-avatar" src="/uploads/avatars/<%= person.avatar_filename %>" alt="" width="48" height="48"><% } else { %><span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.first_name.slice(0, 1).toUpperCase() %></span><% } %>
-                  <div><h3><%= person.first_name %> <%= person.last_name %></h3><p>@<%= person.username %></p></div>
+                  <span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.username.slice(0, 1).toUpperCase() %></span>
+                  <div><h3>@<%= person.username %></h3><p>@<%= person.username %></p></div>
                 </div>
                 <% if (person.relationship_status === 'accepted') { %>
                   <button class="btn btn-outline-secondary" type="button" disabled>Amigos</button>
@@ -84,8 +84,8 @@
             <% friends.forEach(person => { %>
               <article class="friend-row">
                 <div class="friend-identity">
-                  <% if (person.avatar_filename) { %><img class="friend-avatar" src="/uploads/avatars/<%= person.avatar_filename %>" alt="" width="48" height="48"><% } else { %><span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.first_name.slice(0, 1).toUpperCase() %></span><% } %>
-                  <div><h3><%= person.first_name %> <%= person.last_name %></h3><p>@<%= person.username %></p></div>
+                  <span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.username.slice(0, 1).toUpperCase() %></span>
+                  <div><h3>@<%= person.username %></h3><p>@<%= person.username %></p></div>
                 </div>
                 <div class="friend-actions">
                   <a class="btn btn-teal" href="/amigos/<%= person.id %>/chat">Chat</a>
@@ -107,8 +107,8 @@
             <% received.forEach(person => { %>
               <article class="friend-row">
                 <div class="friend-identity">
-                  <% if (person.avatar_filename) { %><img class="friend-avatar" src="/uploads/avatars/<%= person.avatar_filename %>" alt="" width="48" height="48"><% } else { %><span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.first_name.slice(0, 1).toUpperCase() %></span><% } %>
-                  <div><h3><%= person.first_name %> <%= person.last_name %></h3><p>@<%= person.username %></p></div>
+                  <span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.username.slice(0, 1).toUpperCase() %></span>
+                  <div><h3>@<%= person.username %></h3><p>@<%= person.username %></p></div>
                 </div>
                 <div class="friend-actions">
                   <form action="/amigos/solicitudes/<%= person.id %>/aceptar" method="post"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-teal" type="submit">Aceptar</button></form>
@@ -128,8 +128,8 @@
           <% sent.forEach(person => { %>
             <article class="friend-row">
               <div class="friend-identity">
-                <% if (person.avatar_filename) { %><img class="friend-avatar" src="/uploads/avatars/<%= person.avatar_filename %>" alt="" width="48" height="48"><% } else { %><span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.first_name.slice(0, 1).toUpperCase() %></span><% } %>
-                <div><h3><%= person.first_name %> <%= person.last_name %></h3><p>@<%= person.username %></p></div>
+                <span class="friend-avatar friend-avatar-placeholder" aria-hidden="true"><%= person.username.slice(0, 1).toUpperCase() %></span>
+                <div><h3>@<%= person.username %></h3><p>@<%= person.username %></p></div>
               </div>
               <form action="/amigos/solicitudes/<%= person.id %>/cancelar" method="post"><input type="hidden" name="_csrf" value="<%= csrf %>"><button class="btn btn-outline-secondary" type="submit">Cancelar</button></form>
             </article>
