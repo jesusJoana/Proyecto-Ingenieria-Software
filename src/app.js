@@ -16,6 +16,7 @@ import { createFriendsRouter } from './friends/routes.js';
 import { createPostsRouter } from './posts/routes.js';
 import { createPasswordResetRouter } from './auth/password-reset-routes.js';
 import { createMailer } from './mail.js';
+import { blockLegacyPostPhotos } from './posts/legacy-photo-privacy.js';
 
 // Carpeta raíz del proyecto, para localizar vistas y recursos.
 const root = fileURLToPath(new URL('..', import.meta.url));
@@ -49,6 +50,7 @@ export function createApp(config, { mailer = createMailer(config) } = {}) {
   // Recursos estáticos: Bootstrap desde node_modules y los propios en public/.
   app.use('/vendor/bootstrap', express.static(path.join(root, 'node_modules', 'bootstrap', 'dist')));
   app.use('/vendor/leaflet', express.static(path.join(root, 'node_modules', 'leaflet', 'dist')));
+  app.use(blockLegacyPostPhotos);
   app.use(express.static(path.join(root, 'public')));
 
   // Sesiones de usuario.

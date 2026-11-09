@@ -155,3 +155,4 @@ test-results/
 
 # Adjuntos privados de mensajes
 /storage/message-attachments/
+/storage/environments/

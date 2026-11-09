@@ -315,6 +315,17 @@ Las tablas de ReFind no se crean a mano en `psql` ni en pgAdmin. Están definida
 | `001_create-users.js` | `users`: usuarios registrados |
 | `002_create-session.js` | `session`: sesiones de los usuarios conectados |
 | `003_add-public-profile.js` | Añade a `users` nombre de usuario único, edad, descripción, localidad y foto de perfil |
+| `004_create-user-ratings.js` | Valoraciones de usuarios |
+| `005_create-object-exchanges.js` | Intercambios de objetos |
+| `006_complete-object-exchanges-and-ratings.js` | Estados y confirmaciones del intercambio y restricciones de las valoraciones |
+| `007_create-friendships-and-messages.js` | Amistades y mensajes |
+| `008_create-object-posts.js` | Publicaciones de objetos |
+| `009_add-university-locations.js` | Ubicaciones universitarias y depósito |
+| `010_create-password-reset-tokens.js` | Tokens de recuperación de contraseña |
+| `011_create-message-attachments.js` | Adjuntos del chat |
+| `012_create-found-object-workflow.js` | Hallazgos públicos y privados, versiones, reclamaciones, mensajes, pruebas, incidencias, historial, avisos y muro |
+
+El [modelo de I04](Modelo_datos_I04.md) describe las tablas nuevas y sus restricciones. Los formularios y servicios las adoptan en I05–I08; las tablas anteriores se conservan durante esa transición.
 
 **Dónde:** terminal Windows PowerShell de VS Code, en la carpeta del proyecto. PostgreSQL debe estar iniciado y el apartado 3.3 correcto.
 
@@ -342,22 +353,13 @@ npm.cmd run db:migrate:test
 npm.cmd run db:migrate:e2e
 ```
 
-Cada comando debe terminar así (con `test` y `e2e` en los otros dos):
+Cada comando enumera las migraciones aplicadas y termina con el total correspondiente. Con los doce archivos actuales, una base vacía termina así (con `test` y `e2e` en los otros dos):
 
 ```text
-development: aplicada 001_create-users
-development: aplicada 002_create-session
-development: aplicada 003_add-public-profile
-development: 3 migraciones aplicadas.
+development: 12 migraciones aplicadas.
 ```
 
-Si aparece `relation "users" already exists`, en esa base existe una tabla `users` creada a mano antes de las migraciones. Si no contiene datos que haya que conservar, eliminarla con el usuario de esa base y repetir el comando. Por ejemplo, en desarrollo:
-
-```powershell
-& "$pgBin\psql.exe" -h 127.0.0.1 -p 5433 -U refind_dev_user -d refind_dev -W -c "DROP TABLE users;"
-```
-
-Si contiene datos, consultar al responsable antes de borrarla.
+Si aparece `relation "users" already exists`, existe una discrepancia entre las tablas y el historial de migraciones. No borrar tablas sueltas ni marcar migraciones manualmente. Para datos locales desechables utilizar el procedimiento común de reconstrucción del apartado 5.
 
 **3. Comprobar las tablas.** Ejecutar:
 
@@ -365,7 +367,7 @@ Si contiene datos, consultar al responsable antes de borrarla.
 & "$pgBin\psql.exe" -h 127.0.0.1 -p 5433 -U refind_dev_user -d refind_dev -W -c "\dt"
 ```
 
-Deben aparecer tres tablas cuyo dueño es `refind_dev_user`: `users`, `session` y `pgmigrations`. La última la crea la herramienta para anotar qué migraciones se han aplicado. Repetir con `refind_test_user`/`refind_test` y `refind_e2e_user`/`refind_e2e` para comprobar las otras dos bases.
+Deben aparecer las tablas de todas las migraciones aplicadas, incluidas `users`, `session`, `object_posts` y `pgmigrations`, con los propietarios previstos. `pgmigrations` registra los archivos aplicados. Contrastar su contenido con la carpeta `migrations/`; no validar únicamente un número fijo de tablas. Repetir con `refind_test_user`/`refind_test` y `refind_e2e_user`/`refind_e2e` para comprobar las otras dos bases.
 
 **4. Comprobar que no se repiten.** Ejecutar de nuevo:
 
@@ -380,12 +382,14 @@ Resultado esperado: `development: la base de datos ya estaba al día; no hay mig
 **Normas para modificar las tablas:**
 
 - No crear ni modificar tablas a mano en `psql` ni en pgAdmin.
-- No modificar una migración que ya se haya compartido. Cada cambio se añade en un archivo nuevo de `migrations/` con el número siguiente, por ejemplo `003_...js`.
-- No borrar ni modificar la tabla `pgmigrations`.
+- No modificar una migración que ya se haya compartido. Cada cambio se añade en un archivo nuevo de `migrations/` con el número siguiente al último existente.
+- No borrar ni modificar `pgmigrations` de forma aislada. Solo el procedimiento controlado de reconstrucción puede reiniciarla junto con el esquema del proyecto.
 
 ### 3.5. Anotar el resultado de la instalación
 
 Este paso consiste en guardar qué has comprobado; no instala ni configura nada.
+
+La reconstrucción de bases locales después de cambios de esquema requiere además la comprobación del apartado «Reinicio de datos de desarrollo» al final de este manual.
 
 **1. Obtener la versión del proyecto.** Ejecutar en la terminal del proyecto:
 
@@ -427,3 +431,65 @@ La instalación queda validada cuando todas las comprobaciones están en `OK`. S
 Cada desarrollador instala las versiones indicadas, crea sus usuarios, bases y contraseñas siguiendo el apartado 2 y realiza las comprobaciones del apartado 3. No copia los datos ni las contraseñas de otro equipo.
 
 Cuando el repositorio incorpore migraciones nuevas, cada desarrollador las aplica en sus tres bases con los comandos del apartado 3.4.
+
+## 5. Reinicio de datos de desarrollo
+
+**Decisión del 09/11/2026:** los datos locales introducidos durante el desarrollo son desechables. Para este cambio de modelo se permite eliminarlos y reconstruir las bases limpias; no se exige convertir pérdidas, reservas, entregas, amistades o mensajes anteriores. Se conservan los archivos de migraciones ya compartidos y se añaden los cambios en archivos nuevos.
+
+**Estado:** procedimiento implementado y comprobado automáticamente en PostgreSQL temporal aislado y en las tres bases habituales del equipo de Jesús. Pendiente de revisión y comprobación en los otros cinco equipos. Evidencia: [I04, 09/11/2026](../tests/evidence/I04-2026-11-09.md). `db:migrate` aplica migraciones pendientes; `db:reset` limpia y reconstruye una base. No borrar únicamente `pgmigrations`.
+
+El procedimiento común cumple estas condiciones:
+
+1. Seleccionar explícitamente `development`, `test` o `e2e`, comprobar configuración e identidad real de la conexión y limitarse a la base local ReFind y su rol. Rechazar otros destinos antes de cualquier borrado.
+2. Exigir que se hayan detenido servidores y pruebas que utilicen esa base; detectar conexiones incompatibles y detener el proceso sin terminarlas automáticamente.
+3. Eliminar los datos y estructuras del proyecto que deban reconstruirse, incluida su contabilidad de migraciones, conservando bases, roles, credenciales y permisos de aislamiento. No ejecutar una limpieza parcial de tablas escogidas a mano.
+4. Aplicar desde cero todas las migraciones del repositorio en orden. Ante fallo, mostrar qué fase falló y no declarar la base lista; permitir repetir el procedimiento de recuperación documentado.
+5. Comprobar tablas, restricciones e historial de migraciones; repetir la aplicación debe indicar que no quedan migraciones pendientes. Crear y consultar datos ficticios nuevos y ejecutar las suites correspondientes.
+6. Gestionar también fotos y adjuntos locales de prueba: una limpieza SQL no elimina archivos. Los directorios actuales pueden estar compartidos por los tres entornos. `db:clean-files` exige los tres entornos detenidos y vacíos y verifica las rutas. Las URL antiguas de fotografías de publicaciones se bloquean desde I04; la visualización privada del autor se completa en I05.
+7. Repetir el ciclo con datos ficticios ya creados para demostrar que no solo funciona sobre una base inicialmente vacía.
+
+### 5.1. Comandos para cada desarrollador
+
+Actualizar el repositorio y las dependencias. Detener `dev`, `start:test`, `start:e2e`, pruebas y conexiones de pgAdmin. Mantenerlas detenidas hasta finalizar. Los comandos siguientes **eliminan los datos locales** de la base indicada; conservan bases, roles, contraseñas y permisos.
+
+```powershell
+npm.cmd run check:db
+npm.cmd run db:reset -- development --confirm refind_dev
+npm.cmd run db:reset -- test --confirm refind_test
+npm.cmd run db:reset -- e2e --confirm refind_e2e
+npm.cmd run db:clean-files -- --confirm all-local-files
+npm.cmd run db:migrate
+npm.cmd run db:migrate:test
+npm.cmd run db:migrate:e2e
+npm.cmd run check:db
+npm.cmd run test:i04
+npm.cmd test
+npm.cmd run test:e2e
+```
+
+Ejecutar uno a uno y detenerse ante cualquier error. Cada reinicio muestra entorno, base, migraciones aplicadas y `repeated: true`; los tres comandos posteriores de migración deben indicar que no queda ninguna pendiente. `check:db` debe conservar sus tres resultados correctos. La limpieza global puede repetirse: sin archivos devuelve cero. No borra directorios ni acepta rutas personalizadas. Si se utiliza `REFIND_PRIVATE_UPLOADS_DIR`, el comando se detiene para revisar esa ubicación aparte.
+
+`test:i04` inicia y elimina su propio PostgreSQL temporal, sin leer las conexiones `.env`. Usa los binarios de `C:\ReFind\PostgreSQL\17\bin`; si están en otra ruta, indicar `$env:REFIND_PG_BIN = 'ruta\bin'`. En otros sistemas usa los ejecutables del PATH si no se define esta variable. No inicia ni detiene el servicio habitual.
+
+Para comprobar también el segundo ciclo en las bases habituales: registrar una cuenta ficticia y un objeto de prueba en cada entorno, detener los servidores, repetir los tres reinicios y la limpieza de archivos. Comprobar ausencia de esos registros y ejecutar de nuevo los tres comandos de migración. Conservar resultados y errores sin credenciales.
+
+### 5.2. Recuperación ante errores
+
+Un fallo de verificación no inicia la limpieza. La limpieza SQL y las migraciones se ejecutan en una transacción: un error revierte el conjunto. Se informa de fase y código; no se da la base por reconstruida. Cerrar conexiones ocupadas o corregir configuración/migración y repetir el mismo comando. Nunca eliminar manualmente filas de `pgmigrations`. Una pérdida de conexión en el momento del commit exige volver a comprobar el resultado o repetir el reinicio.
+
+La limpieza de archivos es independiente y no transaccional: si un archivo está bloqueado, cerrar la aplicación que lo utiliza y repetirla. Valida todas las rutas antes de borrar y rechaza enlaces o junctions. No se borran archivos compartidos al reiniciar solo una base.
+
+### 5.3. Evidencia por equipo
+
+Cada desarrollador ejecutará la comprobación en **sus tres bases** después de actualizar el proyecto. Se registrarán desarrollador, fecha, commit, entorno, resultado de limpieza, aplicación de migraciones, segunda aplicación, pruebas y referencia al informe. Una comprobación automatizada local no valida por sí sola los demás equipos.
+
+| Desarrollador | Desarrollo | Integración | E2E |
+| --- | --- | --- | --- |
+| Jesús | Verificado 09/11/2026 | Verificado 09/11/2026 | Verificado 09/11/2026 |
+| Álvaro | Pendiente | Pendiente | Pendiente |
+| Jorge | Pendiente | Pendiente | Pendiente |
+| Íñigo | Pendiente | Pendiente | Pendiente |
+| Gonzalo | Pendiente | Pendiente | Pendiente |
+| Alejandro | Pendiente | Pendiente | Pendiente |
+
+Esta autorización se limita a los datos locales de desarrollo. El historial funcional de la aplicación seguirá conservándose conforme a la especificación; el reinicio es una herramienta de desarrollo, no una acción del usuario de la aplicación.

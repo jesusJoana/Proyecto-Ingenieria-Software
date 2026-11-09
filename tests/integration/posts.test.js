@@ -370,7 +370,7 @@ describe('Publicaciones de objetos', () => {
   });
 
   /** Para qué sirve: adjuntar una foto opcional igual que los avatares.
-   * Qué comprueba: guarda un WebP con nombre aleatorio, lo sirve y lo muestra en el listado y el detalle. */
+   * Qué comprueba: guarda un WebP; I04 bloquea su antigua URL pública. La UI se adapta en I05. */
   test('publica con una foto válida', async () => {
     const image = await sharp({
       create: { width: 40, height: 30, channels: 3, background: '#227766' },
@@ -387,8 +387,7 @@ describe('Publicaciones de objetos', () => {
     photos.push(post.photo_filename);
     await request(app)
       .get(`/uploads/posts/${post.photo_filename}`)
-      .expect(200)
-      .expect('Content-Type', /image\/webp/);
+      .expect(404);
     const detail = await request(app)
       .get(`/publicaciones/${post.id}`)
       .expect(200);

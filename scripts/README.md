@@ -1,5 +1,7 @@
 # Comprobación del entorno de ReFind
 
+Para reconstruir las bases locales después de cambios del modelo, utilizar `db:reset` y `db:clean-files` según el [apartado 5 del manual de base de datos](../docs/Manual_base_datos_ReFind.md#5-reinicio-de-datos-de-desarrollo). La suite `test:i04` comprueba el procedimiento en PostgreSQL temporal aislado. No sustituye las verificaciones de cada desarrollador.
+
 Para crear una **VM Windows nueva e instalar el entorno mediante scripts**, sigue el [Manual de la máquina virtual](../docs/Manual_VM_ReFind.md), desde la creación de la VM hasta la verificación final.
 
 Guía común para todos los integrantes. **Estado: scripts preparados; ejecución y validación pendientes.**
