@@ -18,6 +18,7 @@ import { createPasswordResetRouter } from "./auth/password-reset-routes.js";
 import { createMailer } from "./mail.js";
 import { blockLegacyPostPhotos } from "./posts/legacy-photo-privacy.js";
 import { createPostsService } from "./posts/service.js";
+import { createClaimsRouter } from "./claims/routes.js";
 import { CATEGORIES, STATUSES } from "./posts/validation.js";
 
 // Carpeta raíz del proyecto, para localizar vistas y recursos.
@@ -89,6 +90,7 @@ export function createApp(config, { mailer = createMailer(config) } = {}) {
   app.use(createPasswordResetRouter(pool, mailer));
   app.use(createFriendsRouter(pool));
   app.use(createPostsRouter(pool, config.APP_ENV));
+  app.use(createClaimsRouter(pool, config.APP_ENV));
 
   // Página de inicio.
   app.get("/", async (req, res) => {

@@ -1,0 +1,6 @@
+<%- include('partials/found-page-start',{section:'claims'}) %>
+<h1>Mis reclamaciones y conversaciones</h1><p>Incluye tus solicitudes y las recibidas por tus hallazgos. Cada conversación es privada entre sus dos participantes.</p>
+<% if(!claims.length){ %><p role="status">Todavía no tienes reclamaciones.</p><% } %>
+<% for(const claim of claims){ %><article class="auth-panel p-3 mb-3"><h2 class="h5"><a class="text-break" href="/reclamaciones/<%= claim.id %>"><%= claim.title %></a></h2><p>Reclamación <%= claim.id %> · <%= statuses[claim.status] %></p><p>Conversación con @<%= claim.other_username %></p></article><% } %>
+<nav aria-label="Páginas de conversaciones"><% if(page>1){ %><a class="text-break" href="/reclamaciones?page=<%= page-1 %>">Anterior</a><% } %> Página <%= page %> <% if(hasNext){ %><a class="text-break" href="/reclamaciones?page=<%= page+1 %>">Siguiente</a><% } %></nav>
+<%- include('partials/found-page-end') %>

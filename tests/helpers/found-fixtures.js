@@ -4,6 +4,7 @@ import request from "supertest";
 import { createApp } from "../../src/app.js";
 import { readConfig } from "../../src/config.js";
 import { today } from "../../src/posts/validation.js";
+import { removeAttachments } from "../../src/claims/attachments.js";
 import { removePhoto } from "../../src/posts/photos.js";
 export const validFound = (change = {}) => ({
   category: "accessories",
@@ -30,6 +31,12 @@ export async function cleanupFound(pool, ids, mode = "test") {
   ).rows
     .map((r) => r.key)
     .filter(Boolean);
+  const claimFiles = (
+    await pool.query(
+      `SELECT e.storage_key FROM claim_evidence e JOIN claims c ON c.id=e.claim_id JOIN found_objects f ON f.id=c.object_id WHERE f.author_id=ANY($1::bigint[]) UNION SELECT a.storage_key FROM claim_message_files a JOIN claim_messages m ON m.id=a.message_id JOIN claims c ON c.id=m.claim_id JOIN found_objects f ON f.id=c.object_id WHERE f.author_id=ANY($1::bigint[])`,
+      [ids],
+    )
+  ).rows;
   const c = await pool.connect();
   try {
     await c.query("BEGIN");
@@ -78,6 +85,7 @@ export async function cleanupFound(pool, ids, mode = "test") {
     c.release();
   }
   await Promise.all(keys.map((key) => removePhoto(key, mode)));
+  await removeAttachments(claimFiles, mode);
 }
 export async function foundFixture() {
   const context = createApp(readConfig("test"));

@@ -208,3 +208,16 @@ Se han ejecutado las sustituciones previstas para publicación y búsqueda. El c
 La revisión manual de Jesús sigue pendiente. [Pantallas, pasos y resultados esperados M01–M12](../docs/Pruebas_manuales_I05.md). I05 está preparada para revisión, sin commit ni push.
 
 Revisión posterior de Objetos por zonas: aviso específico para búsquedas sin coordenadas y enlace al listado conservando filtros. Un caso nuevo de integración (20 en la suite) y comprobación E2E del círculo visible y su título; 2 E2E superados. Véase la ampliación de la evidencia I05.
+
+## Preparación de I06
+
+I05 publicada en 67b7c41. Criterios de textos, fechas y adjuntos validados por Jesús. La especificación y docs/Implementacion_I06.md recogen el alcance y el diseño antes de modificar código. Se definieron antes del código las suites de validación/adjuntos, reglas, reclamación y chat, con concurrencia, aislamiento de dos reclamantes, descargas, conversación cerrada, repetición y limpieza ante errores. Se mantiene la regresión de Amigos; las decisiones y devolución siguen en I07. Resultados de I06 en el apartado siguiente.
+
+
+## Verificación de I06 del 09/11/2026
+
+`npm run verify` superado: entorno correcto, 433 pruebas unitarias/integración y 15 E2E. Los 73 casos nuevos de I06 se distribuyen en `unit/claims-validation.test.js`, `unit/claims-service.test.js`, `unit/claims-attachments.test.js`, `integration/claims.test.js` e `integration/claim-chat.test.js`. `e2e/claims.spec.js` recorre publicación, reclamación con errores y adjunto, conversación sin amistad, sondeo con borrador, exclusión de terceros y consulta tras cierre.
+
+Se conserva la cobertura anterior de Amigos y de publicación. La limpieza compartida de fixtures incorpora los adjuntos de reclamaciones y mensajes. Las migraciones 001–013 se mantienen sin cambios y sus pruebas forman parte de la regresión. No se reutilizan las pruebas de Amigos como evidencia del aislamiento del nuevo chat: este dispone de sus propias suites.
+
+I01-P03 superado localmente. La parte de I06 de I01-P04/P05 está verificada; decisiones y transiciones se completan en I07. [Evidencia y límites](evidence/I06-2026-11-09.md). [Guion de revisión manual](../docs/Pruebas_manuales_I06.md). Revisión de Jesús, commit y push pendientes.
