@@ -31,6 +31,7 @@ const schema = z
     SMTP_PORT: z.coerce.number().int().min(1).max(65535).optional(),
     SMTP_USER: z.string().min(1).optional(),
     SMTP_PASS: z.string().min(1).optional(),
+    GEOCODER_URL: z.url({ protocol: /^https?$/ }).optional(),
   })
   .superRefine((data, ctx) => {
     // En modo smtp hacen falta, como mínimo, el servidor y el remitente.

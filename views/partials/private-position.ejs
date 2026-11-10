@@ -1,0 +1,3 @@
+<% for(const [prefix,label] of [['found','Coordenadas originales del hallazgo'],['custody','Coordenadas actuales de custodia']]){ if(data[prefix+'_latitude']!=null && data[prefix+'_longitude']!=null){ %>
+<p><strong><%= label %>:</strong> <%= data[prefix+'_latitude'] %>, <%= data[prefix+'_longitude'] %><% if(data[prefix+'_accuracy']!=null){ %> (precisión estimada: <%= Math.ceil(data[prefix+'_accuracy']) %> m)<% }else{ %> (punto manual)<% } %></p>
+<% }} %>

@@ -1,0 +1,19 @@
+<section class="mt-3 p-3 border rounded" data-private-location data-prefix="<%= prefix %>">
+  <h3 class="h6"><%= prefix==='found'?'Ubicación del hallazgo':'Ubicación actual de custodia' %></h3>
+  <p class="form-text">Úsala si estás junto al objeto. Solo tú verás la ubicación precisa.</p>
+  <div class="d-flex flex-wrap gap-2">
+    <button class="btn btn-outline-primary" type="button" data-locate>Usar mi ubicación actual<%= prefix==='custody'?' de custodia':'' %></button>
+    <button class="btn btn-outline-secondary" type="button" data-manual-location>Introducir manualmente</button>
+    <button class="btn btn-outline-secondary" type="button" data-clear-location>Quitar punto</button>
+  </div>
+  <p class="form-text mt-2" data-location-status role="status" aria-label="Estado de la ubicación" aria-live="polite">Puedes escribir el lugar sin utilizar el mapa.</p>
+  <p class="form-text" data-address-status role="status" aria-label="Estado de la dirección" aria-live="polite"></p>
+  <input type="hidden" name="<%= prefix %>_latitude" value="<%= values[prefix+'_latitude'] %>" data-private-lat>
+  <input type="hidden" name="<%= prefix %>_longitude" value="<%= values[prefix+'_longitude'] %>" data-private-lng>
+  <input type="hidden" name="<%= prefix %>_accuracy" value="<%= values[prefix+'_accuracy'] %>" data-private-accuracy>
+  <% for(const suffix of ['latitude','longitude','accuracy']){ if(errors[prefix+'_'+suffix]){ %><p class="text-danger"><%= errors[prefix+'_'+suffix] %></p><% }} %>
+  <div class="location-map mt-2" data-private-map aria-label="<%= prefix==='found'?'Ubicación privada del hallazgo':'Ubicación privada de custodia' %>" hidden></div>
+  <label class="form-label mt-2" for="<%= prefix==='found'?'exact_location':'deposit_location' %>"><%= prefix==='found'?'Lugar exacto (opcional)':'Dónde lo guardas (opcional)' %></label>
+  <input class="form-control" id="<%= prefix==='found'?'exact_location':'deposit_location' %>" name="<%= prefix==='found'?'exact_location':'deposit_location' %>" value="<%= values[prefix==='found'?'exact_location':'deposit_location'] %>" maxlength="250" data-location-description>
+  <% if(errors[prefix==='found'?'exact_location':'deposit_location']){ %><p class="text-danger"><%= errors[prefix==='found'?'exact_location':'deposit_location'] %></p><% } %>
+</section>

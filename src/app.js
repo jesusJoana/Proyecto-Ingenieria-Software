@@ -22,6 +22,7 @@ import { createClaimsRouter } from "./claims/routes.js";
 import { createActivityRouter } from "./activity/routes.js";
 import { protectAvatars } from "./auth/avatar-privacy.js";
 import { CATEGORIES, STATUSES } from "./posts/validation.js";
+import { createReverseGeocoder } from "./posts/geocoding.js";
 
 // Carpeta raíz del proyecto, para localizar vistas y recursos.
 const root = fileURLToPath(new URL("..", import.meta.url));
@@ -92,7 +93,7 @@ export function createApp(config, { mailer = createMailer(config) } = {}) {
   app.use(createAuthRouter(pool));
   app.use(createPasswordResetRouter(pool, mailer));
   app.use(createFriendsRouter(pool));
-  app.use(createPostsRouter(pool, config.APP_ENV));
+  app.use(createPostsRouter(pool, config.APP_ENV, { reverseGeocode: createReverseGeocoder(config.GEOCODER_URL) }));
   app.use(createClaimsRouter(pool, config.APP_ENV));
   app.use(createActivityRouter(pool));
 

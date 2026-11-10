@@ -31,7 +31,33 @@ export const PRIVATE_FIELDS = [
   "exact_location",
   "deposit_location",
 ];
-const FIELDS = [...PUBLIC_FIELDS, ...PRIVATE_FIELDS, "remove_photo"];
+export const POSITION_FIELDS = [
+  "found_latitude",
+  "found_longitude",
+  "found_accuracy",
+  "custody_latitude",
+  "custody_longitude",
+  "custody_accuracy",
+];
+const FIELDS = [
+  ...PUBLIC_FIELDS,
+  ...PRIVATE_FIELDS,
+  ...POSITION_FIELDS,
+  "remove_photo",
+];
+const preciseNumber = (min, max) =>
+  z
+    .union([
+      z.literal("").transform(() => null),
+      z
+        .string()
+        .trim()
+        .regex(/^-?\d+(\.\d+)?$/)
+        .transform(Number)
+        .pipe(z.number().finite().min(min).max(max)),
+    ])
+    .optional()
+    .transform((value) => value ?? null);
 export function today(now = new Date()) {
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
 }
@@ -91,6 +117,12 @@ export function createPostSchema(now = () => new Date()) {
       distinguishing_details: text(2000, 10),
       exact_location: optional(250),
       deposit_location: optional(250),
+      found_latitude: preciseNumber(-90, 90),
+      found_longitude: preciseNumber(-180, 180),
+      found_accuracy: preciseNumber(0, 40075000),
+      custody_latitude: preciseNumber(-90, 90),
+      custody_longitude: preciseNumber(-180, 180),
+      custody_accuracy: preciseNumber(0, 40075000),
       found_from: date,
       found_until: date.optional().or(z.literal("")),
       campus_latitude: coordinate(85),
@@ -98,6 +130,19 @@ export function createPostSchema(now = () => new Date()) {
       remove_photo: z.literal("1").optional(),
     })
     .superRefine((data, ctx) => {
+      for (const prefix of ["found", "custody"]) {
+        const lat = data[`${prefix}_latitude`],
+          lng = data[`${prefix}_longitude`];
+        if (
+          (lat === null) !== (lng === null) ||
+          (lat === null && data[`${prefix}_accuracy`] !== null)
+        )
+          ctx.addIssue({
+            code: "custom",
+            path: [`${prefix}_latitude`],
+            message: "Indica ambas coordenadas o deja la ubicación vacía.",
+          });
+      }
       const end = data.found_until || data.found_from;
       if (end < data.found_from)
         ctx.addIssue({
@@ -120,6 +165,14 @@ export function createPostSchema(now = () => new Date()) {
     })
     .transform(({ kind, remove_photo, ...data }) => ({
       ...data,
+      ...(data.campus_latitude === null &&
+      data.found_latitude !== null &&
+      Math.abs(data.found_latitude) <= 85
+        ? {
+            campus_latitude: Math.round(data.found_latitude * 100) / 100,
+            campus_longitude: Math.round(data.found_longitude * 100) / 100,
+          }
+        : {}),
       found_until: data.found_until || data.found_from,
       removePhoto: remove_photo === "1",
     }));

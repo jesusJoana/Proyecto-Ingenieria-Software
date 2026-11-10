@@ -2,6 +2,7 @@ import { publicPost } from "./privacy.js";
 import {
   PUBLIC_FIELDS,
   PRIVATE_FIELDS,
+  POSITION_FIELDS,
   SEARCH_DEFAULTS,
   SEARCH_LIMIT,
 } from "./validation.js";
@@ -48,7 +49,7 @@ export function createPostsService(pool) {
       `INSERT INTO found_object_versions(object_id,version,public_data,private_data)
  SELECT f.id,COALESCE((SELECT max(version) FROM found_object_versions WHERE object_id=f.id),0)+1,
  jsonb_build_object('category',f.category,'object_type',f.object_type,'university',f.university,'campus',f.campus,'general_area',f.general_area,'found_from',f.found_from,'found_until',f.found_until,'campus_latitude',f.campus_latitude,'campus_longitude',f.campus_longitude),
- jsonb_build_object('distinguishing_details',p.distinguishing_details,'exact_location',p.exact_location,'deposit_location',p.deposit_location,'photo_key',p.photo_key)
+ jsonb_build_object('distinguishing_details',p.distinguishing_details,'exact_location',p.exact_location,'deposit_location',p.deposit_location,'photo_key',p.photo_key) || jsonb_build_object(${POSITION_FIELDS.map((k) => `'${k}',p.${k}`).join(",")})
  FROM found_objects f JOIN found_object_private p ON p.object_id=f.id WHERE f.id=$1`,
       [id],
     );
@@ -77,6 +78,10 @@ export function createPostsService(pool) {
             ...PRIVATE_FIELDS.map((k) => data[k] || null),
             data.photoKey ?? null,
           ],
+        );
+        await c.query(
+          `UPDATE found_object_private SET ${POSITION_FIELDS.map((k, i) => `${k}=$${i + 2}`).join(",")} WHERE object_id=$1`,
+          [post.id, ...POSITION_FIELDS.map((k) => data[k] ?? null)],
         );
         await snapshot(c, post.id);
         await event(c, post.id, author, "published");
@@ -137,7 +142,7 @@ export function createPostsService(pool) {
         const {
           rows: [privateRow],
         } = await pool.query(
-          "SELECT distinguishing_details,exact_location,deposit_location,photo_key FROM found_object_private WHERE object_id=$1",
+          `SELECT distinguishing_details,exact_location,deposit_location,photo_key,${POSITION_FIELDS.join(",")} FROM found_object_private WHERE object_id=$1`,
           [id],
         );
         result.private = privateRow;
@@ -175,7 +180,7 @@ export function createPostsService(pool) {
           [id, ...PUBLIC_FIELDS.map((k) => data[k])],
         );
         await c.query(
-          `UPDATE found_object_private SET distinguishing_details=$2,exact_location=$3,deposit_location=$4,
+          `UPDATE found_object_private SET distinguishing_details=$2,exact_location=COALESCE(exact_location,$3),deposit_location=$4,
  photo_key=CASE WHEN $5 THEN $6::uuid ELSE photo_key END WHERE object_id=$1`,
           [
             id,
@@ -183,6 +188,12 @@ export function createPostsService(pool) {
             data.photoKey !== undefined || data.removePhoto,
             data.photoKey ?? null,
           ],
+        );
+        // Cambiar la custodia nunca modifica las coordenadas originales del hallazgo.
+        const custody = POSITION_FIELDS.filter((k) => k.startsWith("custody_"));
+        await c.query(
+          `UPDATE found_object_private SET ${custody.map((k, i) => `${k}=$${i + 2}`).join(",")} WHERE object_id=$1`,
+          [id, ...custody.map((k) => data[k] ?? null)],
         );
         await snapshot(c, id);
         const eid = await event(c, id, author, "edited", {

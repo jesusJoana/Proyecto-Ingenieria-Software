@@ -15,7 +15,11 @@ import {
 } from "./validation.js";
 const onlyUser = (req, res, next) =>
   req.session.userId ? next() : res.redirect(303, "/iniciar-sesion");
-export function createPostsRouter(pool, mode) {
+export function createPostsRouter(
+  pool,
+  mode,
+  { reverseGeocode = async () => null } = {},
+) {
   const router = Router(),
     posts = createPostsService(pool);
   const labels = { categories: CATEGORIES, statuses: STATUSES };
@@ -67,6 +71,29 @@ export function createPostsRouter(pool, mode) {
     });
   }
   router.get("/publicaciones", (req, res) => list(req, res));
+  router.post(
+    "/publicaciones/ubicacion/direccion",
+    onlyUser,
+    verifyCsrf,
+    async (req, res) => {
+      res.set("Cache-Control", "private, no-store");
+      const { latitude, longitude } = req.body;
+      const number = (value) =>
+        typeof value === "string" &&
+        /^-?\d+(\.\d+)?$/.test(value) &&
+        Number.isFinite(Number(value));
+      if (
+        !number(latitude) ||
+        !number(longitude) ||
+        Math.abs(Number(latitude)) > 90 ||
+        Math.abs(Number(longitude)) > 180
+      )
+        return res.status(422).json({ address: null });
+      res.json({
+        address: await reverseGeocode(Number(latitude), Number(longitude)),
+      });
+    },
+  );
   router.get("/objetos-por-zonas", (req, res) => list(req, res, true));
   router.get("/publicaciones/nueva", onlyUser, (req, res) => {
     if (req.query.tipo === "perdido")
