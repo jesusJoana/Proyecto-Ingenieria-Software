@@ -86,6 +86,9 @@ test("publica, conserva valores tras error y consulta solo datos públicos", asy
     await expect(publicPage.locator(".leaflet-popup-content")).toContainText(
       type,
     );
+    await expect(
+      publicPage.locator(".leaflet-popup-content a"),
+    ).toHaveAttribute("href", url);
     await publicPage.setViewportSize({ width: 390, height: 844 });
     expect(
       await publicPage.evaluate(

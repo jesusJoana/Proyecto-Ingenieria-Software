@@ -15,11 +15,7 @@ import {
 } from "./validation.js";
 const onlyUser = (req, res, next) =>
   req.session.userId ? next() : res.redirect(303, "/iniciar-sesion");
-export function createPostsRouter(
-  pool,
-  mode,
-  { reverseGeocode = async () => null } = {},
-) {
+export function createPostsRouter(pool, mode, { reverseGeocode } = {}) {
   const router = Router(),
     posts = createPostsService(pool);
   const labels = { categories: CATEGORIES, statuses: STATUSES };
@@ -89,6 +85,8 @@ export function createPostsRouter(
         Math.abs(Number(longitude)) > 180
       )
         return res.status(422).json({ address: null });
+      // Sin proveedor configurado, el cliente deja de consultar y no muestra errores.
+      if (!reverseGeocode) return res.json({ address: null, available: false });
       res.json({
         address: await reverseGeocode(Number(latitude), Number(longitude)),
       });

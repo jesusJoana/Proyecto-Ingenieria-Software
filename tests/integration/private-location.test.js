@@ -89,5 +89,5 @@ test("consulta de dirección exige sesión, CSRF y coordenadas válidas; admite 
     .send({ _csrf: f.author.csrf, latitude: "40", longitude: "-3" })
     .expect(200);
   expect(res.headers["cache-control"]).toContain("no-store");
-  expect(res.body.address).toBeNull();
+  expect(res.body).toEqual({ address: null, available: false });
 });

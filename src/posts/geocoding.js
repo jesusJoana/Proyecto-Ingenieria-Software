@@ -1,12 +1,21 @@
 /** Instancia Nominatim propia o proveedor autorizado; sin coordenadas en logs ni caché persistente. */
 export function createReverseGeocoder(
   endpoint,
-  { fetcher = fetch, now = Date.now } = {},
+  {
+    fetcher = fetch,
+    now = Date.now,
+    sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+    maxWait = 3000,
+  } = {},
 ) {
   let nextRequest = 0;
+  // Las peticiones esperan su turno (1,1 s entre ellas) en lugar de fallar; solo se descartan si la cola supera maxWait.
   return async (latitude, longitude) => {
-    if (!endpoint || now() < nextRequest) return null;
-    nextRequest = now() + 1100;
+    if (!endpoint) return null;
+    const wait = Math.max(0, nextRequest - now());
+    if (wait > maxWait) return null;
+    nextRequest = Math.max(nextRequest, now()) + 1100;
+    if (wait) await sleep(wait);
     try {
       const url = new URL(endpoint);
       url.search = new URLSearchParams({

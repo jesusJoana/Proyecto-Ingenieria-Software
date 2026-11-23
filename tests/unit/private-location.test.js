@@ -51,14 +51,22 @@ test("la dirección es opcional y el proveedor se consulta solo cuando está con
     await createReverseGeocoder(undefined, { fetcher })(40, -3),
   ).toBeNull();
   expect(fetcher).not.toHaveBeenCalled();
+  const sleep = vi.fn().mockResolvedValue();
   const lookup = createReverseGeocoder(
     "https://geocoder.example.test/reverse",
-    { fetcher, now: () => 10000 },
+    { fetcher, now: () => 10000, sleep },
   );
   expect(await lookup(40, -3)).toBe("Biblioteca central");
   expect(fetcher.mock.calls[0][0].searchParams.get("lat")).toBe("40");
+  expect(sleep).not.toHaveBeenCalled();
+  // Una petición seguida espera su turno en lugar de fallar.
+  expect(await lookup(40, -3)).toBe("Biblioteca central");
+  expect(sleep).toHaveBeenLastCalledWith(1100);
+  expect(await lookup(40, -3)).toBe("Biblioteca central");
+  expect(sleep).toHaveBeenLastCalledWith(2200);
+  // Si la cola supera la espera máxima (3 s), se descarta sin consultar.
   expect(await lookup(40, -3)).toBeNull();
-  expect(fetcher).toHaveBeenCalledTimes(1);
+  expect(fetcher).toHaveBeenCalledTimes(3);
 });
 
 test.each([

@@ -99,6 +99,30 @@ test("captura puntual, revisión, dirección opcional, privacidad y cambio de cu
   await expect(page.locator("main")).toContainText("40.4134567");
 });
 
+test("sin referencia de campus avisa de la referencia pública automática y sin proveedor no muestra errores de dirección", async ({
+  page,
+}) => {
+  await login(page, person);
+  await fillFound(page, { campus_latitude: "", campus_longitude: "" });
+  const found = page.locator('[data-private-location][data-prefix="found"]');
+  await found.getByRole("button", { name: "Introducir manualmente" }).click();
+  const lookup = page.waitForResponse("**/publicaciones/ubicacion/direccion");
+  await found
+    .locator("[data-private-map]")
+    .click({ position: { x: 180, y: 150 } });
+  await expect(
+    found.getByRole("status", { name: "Estado de la ubicación" }),
+  ).toContainText("se publicará una aproximada");
+  // El entorno e2e no configura GEOCODER_URL: la consulta responde available:false y no se avisa de fallo.
+  expect(await (await lookup).json()).toEqual({
+    address: null,
+    available: false,
+  });
+  await expect(
+    found.getByRole("status", { name: "Estado de la dirección" }),
+  ).toHaveText("");
+});
+
 test("permiso denegado permite escribir y publicar sin mapa en móvil", async ({
   page,
 }) => {

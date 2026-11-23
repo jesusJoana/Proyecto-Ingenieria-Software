@@ -93,7 +93,13 @@ export function createApp(config, { mailer = createMailer(config) } = {}) {
   app.use(createAuthRouter(pool));
   app.use(createPasswordResetRouter(pool, mailer));
   app.use(createFriendsRouter(pool));
-  app.use(createPostsRouter(pool, config.APP_ENV, { reverseGeocode: createReverseGeocoder(config.GEOCODER_URL) }));
+  app.use(
+    createPostsRouter(pool, config.APP_ENV, {
+      reverseGeocode: config.GEOCODER_URL
+        ? createReverseGeocoder(config.GEOCODER_URL)
+        : undefined,
+    }),
+  );
   app.use(createClaimsRouter(pool, config.APP_ENV));
   app.use(createActivityRouter(pool));
 

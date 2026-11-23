@@ -106,3 +106,10 @@
     max-height: none;
   }
 }
+
+.map-popup-list {
+  margin: 0.25rem 0 0;
+  padding-left: 1.1rem;
+  max-height: 12rem;
+  overflow-y: auto;
+}
