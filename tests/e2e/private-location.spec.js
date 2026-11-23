@@ -99,30 +99,6 @@ test("captura puntual, revisión, dirección opcional, privacidad y cambio de cu
   await expect(page.locator("main")).toContainText("40.4134567");
 });
 
-test("sin referencia de campus avisa de la referencia pública automática y sin proveedor no muestra errores de dirección", async ({
-  page,
-}) => {
-  await login(page, person);
-  await fillFound(page, { campus_latitude: "", campus_longitude: "" });
-  const found = page.locator('[data-private-location][data-prefix="found"]');
-  await found.getByRole("button", { name: "Introducir manualmente" }).click();
-  const lookup = page.waitForResponse("**/publicaciones/ubicacion/direccion");
-  await found
-    .locator("[data-private-map]")
-    .click({ position: { x: 180, y: 150 } });
-  await expect(
-    found.getByRole("status", { name: "Estado de la ubicación" }),
-  ).toContainText("se publicará una aproximada");
-  // El entorno e2e no configura GEOCODER_URL: la consulta responde available:false y no se avisa de fallo.
-  expect(await (await lookup).json()).toEqual({
-    address: null,
-    available: false,
-  });
-  await expect(
-    found.getByRole("status", { name: "Estado de la dirección" }),
-  ).toHaveText("");
-});
-
 test("permiso denegado permite escribir y publicar sin mapa en móvil", async ({
   page,
 }) => {
@@ -167,7 +143,7 @@ test("permiso denegado permite escribir y publicar sin mapa en móvil", async ({
   ).toBe(true);
 });
 
-test("un error de dirección conserva la ubicación y una captura tardía no deshace la entrada manual", async ({
+test("aviso de referencia automática, sin proveedor de dirección, un error de dirección conserva la ubicación y una captura tardía no deshace la entrada manual", async ({
   page,
 }) => {
   await page.addInitScript(() => {
@@ -182,9 +158,28 @@ test("un error de dirección conserva la ubicación y una captura tardía no des
       },
     });
   });
+  // Se comparte el inicio de sesión: el límite de 30 intentos por 15 minutos cubre toda la suite e2e.
   await login(page, person);
-  await fillFound(page);
+  await fillFound(page, { campus_latitude: "", campus_longitude: "" });
   const found = page.locator('[data-prefix="found"]');
+  // Sin referencia de campus se avisa de la referencia pública automática.
+  await found.getByRole("button", { name: "Introducir manualmente" }).click();
+  const lookup = page.waitForResponse("**/publicaciones/ubicacion/direccion");
+  await found
+    .locator("[data-private-map]")
+    .click({ position: { x: 180, y: 150 } });
+  await expect(
+    found.getByRole("status", { name: "Estado de la ubicación" }),
+  ).toContainText("se publicará una aproximada");
+  // El entorno e2e no configura GEOCODER_URL: la consulta responde available:false y no se avisa de fallo.
+  expect(await (await lookup).json()).toEqual({
+    address: null,
+    available: false,
+  });
+  await expect(
+    found.getByRole("status", { name: "Estado de la dirección" }),
+  ).toHaveText("");
+  await found.getByRole("button", { name: "Quitar punto" }).click();
   await found
     .getByRole("button", { name: "Usar mi ubicación actual", exact: true })
     .click();
